@@ -1,7 +1,7 @@
 /*
- * File: WordLadder.cpp
+ * File: PCSocBot.js
  * --------------------
- * Name: David Sison (z5019783)
+ * Name: David Sison
  * discord.js Bot for UNSW PCSoc Discord.
  */
 
