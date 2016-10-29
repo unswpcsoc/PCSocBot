@@ -2,7 +2,7 @@ const Eris = require("eris");
 var Datastore = require('nedb')
   , db = new Datastore({ filename: 'users.db', autoload: true });
 
-var bot = new Eris("Token");
+var bot = new Eris("Token"); //Insert Bot token here.
 
 bot.on("ready", () => {
     console.log("Ready!");
@@ -52,7 +52,7 @@ function highNoon() {
     var s = date.getSeconds();
 
     if (h === 12 && m === 00 && s === 0) {
-        bot.createMessage("171578649668091904", "It's high noon.")
+        bot.createMessage("channelID", "It's high noon.") //Replace channelID with the ID of the text channel that you wish to use this function.
     }
 }
 
@@ -111,4 +111,4 @@ function printtags(app, message) {
     });
 }
 
-bot.connect();`1`
+bot.connect();
