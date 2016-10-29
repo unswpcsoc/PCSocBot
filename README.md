@@ -1,11 +1,11 @@
 # PCSocBot
-Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for members.
+Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for members. Also announces when it is high noon.
 
 ## Requirements
 
-**[Node.js](https://nodejs.org/en/)** - a JavaScript runtime built on Chrome's V8 JavaScript engine.
+**[Node.js](https://nodejs.org/en/)** - A JavaScript runtime built on Chrome's V8 JavaScript engine.
 
-**[discord.js](https://github.com/hydrabolt/discord.js/)** - a node module used as a way of interfacing with Discord.
+**[Eris](https://github.com/abalabahaha/eris)** - A NodeJS wrapper for interfacing with Discord.
 
 **[NeDB](https://github.com/louischatriot/nedb)** - Embedded persistent or in memory database for Node.js, nw.js, Electron and browsers, 100% JavaScript, no binary dependency.
 
