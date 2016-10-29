@@ -1,5 +1,5 @@
 # PCSocBot
-Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for members.
+Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for members. Also announces when it is high noon.
 
 ## Requirements
 
