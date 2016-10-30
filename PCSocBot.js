@@ -58,7 +58,7 @@ function highNoon() {
     let m = date.getMinutes();
     let s = date.getSeconds();
 
-    if (h === 1 && m === 00 && s === 0) {
+    if (h === 12 && m === 00 && s === 0) {
         request.get("http://vignette3.wikia.nocookie.net/overwatch/images/f/f3/Mccree_portrait.png", function(err, res, buffer) {
             bot.createMessage(channelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
         });
