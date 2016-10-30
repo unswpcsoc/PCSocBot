@@ -2,7 +2,9 @@ const Eris = require("eris");
 var Datastore = require('nedb')
   , db = new Datastore({ filename: 'users.db', autoload: true });
 
-var bot = new Eris("Token"); //Insert Bot token here.
+var request = require('request').defaults({encoding: null});
+
+var bot = new Eris("token"); //Insert Bot token here.
 
 bot.on("ready", () => {
     console.log("Ready!");
@@ -11,10 +13,16 @@ bot.on("ready", () => {
 bot.on("messageCreate", (message) => {
     var username = message.author.username;
     var id = message.author.id;
-    var argv = message.content.match(/(".*?")|(\S+)/g);
+    var argv = message.content.match;
 
     if(message.content === "!ping") {
         bot.createMessage(message.channel.id, "Pong!");
+    }
+
+    if(message.content === "!meme") {
+        request.get("http://puu.sh/s0lxS.gif", function(err, res, buffer) { //URL is a placeholder GIF
+            bot.createMessage(channelID, message.author.mention, {name: 'meme.gif', file: buffer}); //Replace channelID with the ID of the channel that you want the image to be posted in. To send in same channel as the command was used in use message.channel.id
+        });
     }
 
     if (argv !== null) {
@@ -42,17 +50,18 @@ bot.on("messageCreate", (message) => {
     }
 });
 
-
 var t = setInterval(highNoon, 1000);
 
 function highNoon() {
-    var date = new Date();
-    var h = date.getHours();
-    var m = date.getMinutes();
-    var s = date.getSeconds();
+    let date = new Date();
+    let h = date.getHours();
+    let m = date.getMinutes();
+    let s = date.getSeconds();
 
-    if (h === 12 && m === 00 && s === 0) {
-        bot.createMessage("channelID", "It's high noon.") //Replace channelID with the ID of the text channel that you wish to use this function.
+    if (h === 1 && m === 00 && s === 0) {
+        request.get("http://vignette3.wikia.nocookie.net/overwatch/images/f/f3/Mccree_portrait.png", function(err, res, buffer) {
+            bot.createMessage(channelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
+        });
     }
 }
 
