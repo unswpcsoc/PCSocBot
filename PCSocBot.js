@@ -13,7 +13,7 @@ bot.on("ready", () => {
 bot.on("messageCreate", (message) => {
     var username = message.author.username;
     var id = message.author.id;
-    var argv = message.content.match;
+    var argv = message.content.match(/(".*?")|(\S+)/g);
 
     if(message.content === "!ping") {
         bot.createMessage(message.channel.id, "Pong!");
