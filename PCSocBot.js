@@ -96,7 +96,7 @@ function highNoon() {
 
     if (h === 12 && m === 0 && s === 0) {
         request.get("http://vignette3.wikia.nocookie.net/overwatch/images/f/f3/Mccree_portrait.png", function(err, res, buffer) {
-            bot.createMessage(chanelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
+            bot.createMessage(channelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
         });
     }
 }
