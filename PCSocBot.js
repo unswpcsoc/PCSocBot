@@ -3,7 +3,6 @@ var Datastore = require('nedb')
   , db = new Datastore({ filename: 'users.db', autoload: true });
 
 var request = require('request').defaults({encoding: null});
-const FS = require("fs");
 
 var bot = new Eris.CommandClient("token", {}, { //Insert Bot token here.
     description: "PC Enthusiasts Society Discod bot made with Eris",
@@ -29,6 +28,15 @@ bot.registerCommand("pong", "Ping!", {
     fullDescription: "This command could be used to check if the bot is up. Or entertainment when you're bored.",
     caseInsensitive: true
 });
+
+bot.registerCommand("highnoon", () => {
+    playHighNoon();
+}, {
+    caseInsensitive: true,
+    requirements: {
+        roleNames: ["Exec", "Moderator"]
+    }
+}, 10000);
 
 var tags_CMD = bot.registerCommand("tags", "Player tag storage for the UNSW PCSoc discord server.\n\n**`!tags`** `add` __`platform/game`__ __`tag`__\n    Adds/changes a player tag with associated platform/game to the list\n**`!tags`** `remove` __`platform/game`__\n    Removes a player tag from the list\n**`!tags`** `get` __`platform/game`__\n    Returns player tag for that discord user\n**`!tags`** __`platform/game`__\n    Displays all player tags stored for platform/game\n", {
     description: "Player tag storage for the UNSW PCSoc discord server.",
@@ -94,21 +102,23 @@ function highNoon() {
     let m = date.getMinutes();
     let s = date.getSeconds();
 
-    if (h === 7 && m === 0 && s === 0) {
+    if (h === 12 && m === 0 && s === 0) {
         request.get("http://vignette3.wikia.nocookie.net/overwatch/images/f/f3/Mccree_portrait.png", function(err, res, buffer) {
             bot.createMessage(channelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
         });
 
-        var filename = 'High Noon.mp3'; // Get the filename
-        bot.joinVoiceChannel(channelID).catch((err) => { // Join the user's voice channel
-            bot.createMessage(channelID, "Error joining voice channel: " + err.message); // Notify the user if there is an error
-            console.log(err); // Log the error
-        }).then((connection) => {
-            connection.play(filename); // Play the file and notify the user
-        });
+        playHighNoon();
     }
 }
 
+function playHighNoon() {
+    bot.joinVoiceChannel(channelID).then(connection => {
+        connection.play('HighNoon.mp3');
+        connection.on('end', () => {
+            bot.leaveVoiceChannel(channelID);
+        });
+    });
+}
 
 function additem(id, app, tag, msg, username) {
     db.findOne({ _id: id }, function (err, doc) {
