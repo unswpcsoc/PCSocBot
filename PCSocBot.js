@@ -16,12 +16,6 @@ bot.on("ready", () => {
     console.log("Ready!");
 });
 
-<<<<<<< HEAD
-bot.on("messageCreate", (message) => {
-    var username = message.author.username;
-    var id = message.author.id;
-    var argv = message.content.match(/(".*?")|(\S+)/g);
-=======
 /* =========================COMMANDS========================= */
 
 bot.registerCommand("ping", "Pong!", {
@@ -53,7 +47,6 @@ tags_CMD.registerSubcommand("add", (msg, args) => {
     fullDescription: "Adds a user/player tag to the bot.",
     usage: "<platform/game> <tag>"
 });
->>>>>>> refs/heads/pr/3
 
 tags_CMD.registerSubcommand("get", (msg, args) => {
     if(args.length !== 1) {
@@ -101,11 +94,7 @@ function highNoon() {
     let m = date.getMinutes();
     let s = date.getSeconds();
 
-<<<<<<< HEAD
-    if (h === 12 && m === 00 && s === 0) {
-=======
     if (h === 12 && m === 0 && s === 0) {
->>>>>>> refs/heads/pr/3
         request.get("http://vignette3.wikia.nocookie.net/overwatch/images/f/f3/Mccree_portrait.png", function(err, res, buffer) {
             bot.createMessage(channelID, "It's high noon", {name: 'mccree.png', file: buffer}); //Replace channelID with the ID of the text channel that you wish to use this function.
         });
