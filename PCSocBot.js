@@ -5,9 +5,12 @@ var Datastore = require('nedb')
 var request = require('request').defaults({encoding: null});
 
 var bot = new Eris.CommandClient("token", {}, { //Insert Bot token here.
-    description: "PC Enthusiasts Society Discod bot made with Eris",
+    description: "PC Enthusiasts Society Discord bot made with Eris",
     owner: "David Sison, Josh Wason",
-    prefix: "!"
+    prefix: "!",
+    defaultCommandOptions: {
+        caseInsensitive: true
+    }
 });
 
 
@@ -20,28 +23,25 @@ bot.on("ready", () => {
 bot.registerCommand("ping", "Pong!", {
     description: "Pong!",
     fullDescription: "This command could be used to check if the bot is up. Or entertainment when you're bored.",
-    caseInsensitive: true
 });
 
 bot.registerCommand("pong", "Ping!", {
     description: "Ping!",
     fullDescription: "This command could be used to check if the bot is up. Or entertainment when you're bored.",
-    caseInsensitive: true
 });
 
 bot.registerCommand("highnoon", () => {
     playHighNoon();
 }, {
-    caseInsensitive: true,
+    cooldown: 10000,
     requirements: {
         roleNames: ["Exec", "Moderator"]
     }
-}, 10000);
+});
 
 var tags_CMD = bot.registerCommand("tags", "Player tag storage for the UNSW PCSoc discord server.\n\n**`!tags`** `add` __`platform/game`__ __`tag`__\n    Adds/changes a player tag with associated platform/game to the list\n**`!tags`** `remove` __`platform/game`__\n    Removes a player tag from the list\n**`!tags`** `get` __`platform/game`__\n    Returns player tag for that discord user\n**`!tags`** __`platform/game`__\n    Displays all player tags stored for platform/game\n", {
     description: "Player tag storage for the UNSW PCSoc discord server.",
     fullDescription: "This command stores user/player tags for any platform. Can be used to search up your own tags and other users/players on the server.",
-    caseInsensitive: true
 });
 
 tags_CMD.registerSubcommand("add", (msg, args) => {
@@ -112,10 +112,10 @@ function highNoon() {
 }
 
 function playHighNoon() {
-    bot.joinVoiceChannel(channelID).then(connection => {
+    bot.joinVoiceChannel('channelID').then(connection => {
         connection.play('HighNoon.mp3');
         connection.on('end', () => {
-            bot.leaveVoiceChannel(channelID);
+            bot.leaveVoiceChannel('channelID');
         });
     });
 }
