@@ -11,6 +11,8 @@ Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for m
 
 **[Request] (https://github.com/request/request)** - Simplified HTTP client
 
+**[FFmpeg] (https://www.ffmpeg.org/)** - A complete, cross-platform solution to record, convert and stream audio and video.
+
 ## Enquiries
 
 If you have enquiries or suggested modifications to our bot, please contact us at unswpsoc@gmail.com.
