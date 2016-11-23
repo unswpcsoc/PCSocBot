@@ -7,14 +7,10 @@ var request = require('request').defaults({encoding: null});
 var bot = new Eris.CommandClient("token", {}, { //Insert Bot token here.
     description: "PC Enthusiasts Society Discord bot made with Eris",
     owner: "David Sison, Josh Wason",
-<<<<<<< HEAD
     prefix: "!",
     defaultCommandOptions: {
         caseInsensitive: true
     }
-=======
-    prefix: "!"
->>>>>>> origin/master
 });
 
 
