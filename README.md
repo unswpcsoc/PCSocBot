@@ -3,15 +3,7 @@ Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for m
 
 ## Requirements
 
-**[Node.js](https://nodejs.org/en/)** - A JavaScript runtime built on Chrome's V8 JavaScript engine.
-
-**[Eris](https://github.com/abalabahaha/eris)** - A NodeJS wrapper for interfacing with Discord.
-
-**[NeDB](https://github.com/louischatriot/nedb)** - Embedded persistent or in memory database for Node.js, nw.js, Electron and browsers, 100% JavaScript, no binary dependency.
-
-**[Request] (https://github.com/request/request)** - Simplified HTTP client
-
-**[FFmpeg] (https://www.ffmpeg.org/)** - A complete, cross-platform solution to record, convert and stream audio and video.
+**[Python 3](https://www.python.org/)** - Python is a programming language that lets you work quickly and integrate systems more effectively.
 
 ## Enquiries
 
