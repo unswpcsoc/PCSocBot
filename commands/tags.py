@@ -1,4 +1,5 @@
 from commands.base import Command
+from helpers import bold
 from models import Tag
 
 
@@ -33,5 +34,5 @@ class List(Tags):
     desc = "Returns a list of user tags for a specified platform"
     def eval(self, platform):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
-        return "tags stored for %s:\n" % platform + \
-               "".join("%s [%s]" % (tag.tag, self.get_member(tag.user).name) for tag in tags)
+        return bold("Tags stored for %s:\n" % platform) + \
+               "\n".join("%s [%s]" % (tag.tag, self.get_member(tag.user).name) for tag in tags)
