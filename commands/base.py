@@ -44,14 +44,11 @@ class Command(metaclass=Tree):
         if len(argspec.args) == len(args) + 1 or argspec.varargs:
             try:
                 self.check_permissions()
-                self.output = await self.eval(*args) if inspect.iscoroutinefunction(self.eval) else self.eval(*args)
+                return await self.eval(*args) if inspect.iscoroutinefunction(self.eval) else self.eval(*args)
             except CommandFailure as e:
-                self.output = e.args[0]
+                return e.args[0]
         elif self.tag_prefix_list:
-            self.output = "Invalid usage of command. Usage:\n" + self.tag_markup
-        else:
-            self.output = "Invalid command\n" + self.help
-        return self.output
+            return "Invalid usage of command. Usage:\n" + self.tag_markup
 
     def eval(self):
         return self.help
