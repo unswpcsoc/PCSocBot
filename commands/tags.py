@@ -1,5 +1,5 @@
 from commands.base import Command
-from helpers import bold
+from helpers import bold, CommandFailure
 from models import Tag
 
 
@@ -35,4 +35,15 @@ class List(Tags):
     def eval(self, platform):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
         return bold("Tags stored for %s:\n" % platform) + \
-               "\n".join("%s [%s]" % (tag.tag, self.get_member(tag.user).name) for tag in tags)
+               "\n".join("%s [%s]" % (tag.tag, self.from_id(tag.user).name) for tag in tags)
+
+
+class View(Tags):
+    desc = "Returns a list of tags associated with a user"
+    def eval(self, name):
+        user = self.from_name(name)
+        if user is None:
+            raise CommandFailure("Username not found")
+        tags = Tag.select_or_err(lambda x: x.user == int(user.id), "User has no tags")
+        return bold("Tags stored for %s\n" % user.name) + \
+               "\n".join("%s [%s]" % (tag.tag, tag.platform) for tag in tags)

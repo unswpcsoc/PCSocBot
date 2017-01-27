@@ -1,4 +1,5 @@
 import json
+import os
 
 import discord
 
@@ -27,7 +28,5 @@ async def on_message(message):
         if output is not None:
             await client.send_message(message.channel, output)
 
-config = json.loads(open('config.json').read())
-client.run(config['token'])
-
-server = client.accept_invite(config['invite'])
+client.run(os.environ['TOKEN'])
+server = client.accept_invite(os.environ['INVITE'])

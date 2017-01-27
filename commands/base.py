@@ -1,4 +1,5 @@
 import asyncio
+import os
 from collections import OrderedDict
 import inspect
 
@@ -8,7 +9,7 @@ from mutagen.mp3 import MP3
 
 from helpers import classproperty, code, bold, underline, CommandFailure
 
-PREFIX = '!'
+PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
 
 class Tree(type):
@@ -21,6 +22,7 @@ class Tree(type):
         cls.subcommands = OrderedDict()
         if cls.db_required:
             cls.eval = db_session(cls.eval)
+
 
 class Command(metaclass=Tree):
     roles_required = None
@@ -81,8 +83,11 @@ class Command(metaclass=Tree):
             lines = [cls.tag_markup , cls.desc]
         return '\n'.join(lines)
 
-    def get_member(self, id):
+    def from_id(self, id):
         return discord.utils.get(self.members, id=str(id))
+
+    def from_name(self, name):
+        return discord.utils.find(lambda x: x.name.lower() == name.lower(), self.members)
 
     def check_permissions(self):
         if self.roles_required is not None:
