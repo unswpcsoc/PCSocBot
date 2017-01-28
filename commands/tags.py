@@ -1,5 +1,4 @@
-import discord
-from prettytable import PrettyTable
+from pony.orm import select
 
 from commands.base import Command
 from helpers import bold, CommandFailure
@@ -16,8 +15,13 @@ class Tags(Command):
 class Add(Tags):
     desc = "Adds/changes a player tag with associated platform/game to the list"
     def eval(self, platform, tag):
+        warning = ''
+        if Tag.get(platform=platform.lower()) is None:
+            platforms = ', '.join(sorted(select(t.platform for t in Tag)[:]))
+            warning = bold('WARNING: creating a new platform. Please check that the platform doesn\'t already '
+            'exist by another name.\n') + 'Current platforms are ' + platforms + '\n'
         Tag.create_or_update(user=self.user, platform=platform.lower(), tag=tag)
-        return "%s added as %s tag for %s" % (tag, platform.title(), self.name)
+        return "%s%s added as %s tag for %s" % (warning, tag, platform.title(), self.name)
 
 
 class Remove(Tags):
