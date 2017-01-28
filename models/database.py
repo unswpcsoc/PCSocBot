@@ -36,3 +36,7 @@ class Table(object):
         if not objs:
             raise CommandFailure(cls.err if err is None else err)
         return objs
+
+    @classmethod
+    def select_fields_or_err(cls, fields, fn, err=None):
+        return [[getattr(x, field) for field in fields] for x in cls.select_or_err(fn, err)]

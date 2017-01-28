@@ -11,7 +11,6 @@ from helpers import classproperty, code, bold, underline, CommandFailure
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
-
 class Tree(type):
     def __init__(cls, name, bases, clsdict):
         assert len(bases) < 2  # no multiple inheritance for commands
@@ -29,6 +28,7 @@ class Command(metaclass=Tree):
     db_required = False
     desc = bold('PCSocBot') + ' - PC Enthusiasts society Discord bot made with discord.py by Matt Stark'
     pprint = {}
+    EMBED_COLOR = int('f0cf20', 16)
 
     @classproperty
     def name(cls):

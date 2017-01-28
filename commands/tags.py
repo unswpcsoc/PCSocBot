@@ -1,6 +1,10 @@
+import discord
+from prettytable import PrettyTable
+
 from commands.base import Command
 from helpers import bold, CommandFailure
 from models import Tag
+from utils.embed_table import EmbedTable
 
 
 class Tags(Command):
@@ -24,7 +28,7 @@ class Remove(Tags):
 
 
 class Get(Tags):
-    desc = "Returns your own tag for a platform / game"
+    desc = "Returns your own tag for a specified platform / game"
     def eval(self, platform):
         tag = Tag.get_or_err(user=self.user, platform=platform)
         return "The %s tag of %s is %s" % (platform, self.name, tag.tag)
@@ -34,16 +38,20 @@ class List(Tags):
     desc = "Returns a list of user tags for a specified platform"
     def eval(self, platform):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
-        return bold("Tags stored for %s:\n" % platform) + \
-               "\n".join("%s [%s]" % (tag.tag, self.from_id(tag.user).name) for tag in tags)
+        return EmbedTable(fields=['User', 'Tag'],
+                           table=[(tag.tag, self.from_id(tag.user).name) for tag in tags],
+                           title="Showing tags for " + platform, colour=self.EMBED_COLOR)
 
 
 class View(Tags):
-    desc = "Returns a list of tags associated with a user"
+    desc = "Returns a list of tags for a specified user"
     def eval(self, name):
         user = self.from_name(name)
         if user is None:
-            raise CommandFailure("Username not found")
-        tags = Tag.select_or_err(lambda x: x.user == int(user.id), "User has no tags")
-        return bold("Tags stored for %s\n" % user.name) + \
-               "\n".join("%s [%s]" % (tag.tag, tag.platform) for tag in tags)
+            raise CommandFailure("User not found")
+        return EmbedTable(fields=['Platform', 'Tag'],
+                           table=Tag.select_fields_or_err(['platform', 'tag'],
+                                                          lambda x: x.user == int(user.id),
+                                                          "User has no tags"),
+                           colour=self.EMBED_COLOR, user=user,
+                           title="Tags for " + bold(user.name))

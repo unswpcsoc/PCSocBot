@@ -25,7 +25,9 @@ async def on_message(message):
         args = message.content[1:].split()
         cls, args = commands.Help.find_command(args)
         output = await cls(client, message).init(*args)
-        if output is not None:
+        if isinstance(output, discord.Embed):
+            await client.send_message(message.channel, embed=output)
+        elif output is not None:
             await client.send_message(message.channel, output)
 
 client.run(os.environ['TOKEN'])
