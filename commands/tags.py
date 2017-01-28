@@ -16,31 +16,32 @@ class Tags(Command):
 class Add(Tags):
     desc = "Adds/changes a player tag with associated platform/game to the list"
     def eval(self, platform, tag):
-        Tag.create_or_update(user=self.user, platform=platform, tag=tag)
-        return "%s added as %s tag for %s" % (tag, platform, self.name)
+        Tag.create_or_update(user=self.user, platform=platform.lower(), tag=tag)
+        return "%s added as %s tag for %s" % (tag, platform.title(), self.name)
 
 
 class Remove(Tags):
     desc = "Removes a user/player tag to the bot."
     def eval(self, platform):
-        Tag.delete_or_err(user=self.user, platform=platform)
-        return "%s tag for %s removed" % (platform, self.name)
+        Tag.delete_or_err(user=self.user, platform=platform.lower())
+        return "%s tag for %s removed" % (platform.title(), self.name)
 
 
 class Get(Tags):
     desc = "Returns your own tag for a specified platform / game"
     def eval(self, platform):
-        tag = Tag.get_or_err(user=self.user, platform=platform)
+        tag = Tag.get_or_err(user=self.user, platform=platform.lower())
         return "The %s tag of %s is %s" % (platform, self.name, tag.tag)
 
 
 class List(Tags):
     desc = "Returns a list of user tags for a specified platform"
     def eval(self, platform):
+        platform = platform.lower()
         tags = Tag.select_or_err(lambda x: x.platform == platform)
         return EmbedTable(fields=['User', 'Tag'],
-                           table=[(tag.tag, self.from_id(tag.user).name) for tag in tags],
-                           title="Showing tags for " + platform, colour=self.EMBED_COLOR)
+                           table=[(self.from_id(tag.user).name, tag.tag) for tag in tags],
+                           title="Showing tags for " + platform.title(), colour=self.EMBED_COLOR)
 
 
 class View(Tags):
@@ -49,9 +50,8 @@ class View(Tags):
         user = self.from_name(name)
         if user is None:
             raise CommandFailure("User not found")
+        tags = Tag.select_or_err(lambda x: x.user == int(user.id), "User has no tags")
         return EmbedTable(fields=['Platform', 'Tag'],
-                           table=Tag.select_fields_or_err(['platform', 'tag'],
-                                                          lambda x: x.user == int(user.id),
-                                                          "User has no tags"),
-                           colour=self.EMBED_COLOR, user=user,
-                           title="Tags for " + bold(user.name))
+                          table=[(x.platform.title(), x.tag) for x in tags],
+                          colour=self.EMBED_COLOR, user=user,
+                          title="Tags for " + bold(user.name))
