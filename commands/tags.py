@@ -1,4 +1,4 @@
-from pony.orm import select
+from pony.orm import select, count
 
 from commands.base import Command
 from helpers import bold, CommandFailure
@@ -16,7 +16,7 @@ class Add(Tags):
     desc = "Adds/changes a player tag with associated platform/game to the list"
     def eval(self, platform, tag):
         warning = ''
-        if Tag.get(platform=platform.lower()) is None:
+        if not select(count(t) for t in Tag if t.platform == platform.lower())[:][0]:
             platforms = ', '.join(sorted(select(t.platform for t in Tag)[:]))
             warning = bold('WARNING: creating a new platform. Please check that the platform doesn\'t already '
             'exist by another name.\n') + 'Current platforms are ' + platforms + '\n'
