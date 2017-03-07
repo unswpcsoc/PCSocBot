@@ -59,3 +59,9 @@ class View(Tags):
                           table=[(x.platform.title(), x.tag) for x in tags],
                           colour=self.EMBED_COLOR, user=user,
                           title="Tags for " + bold(user.name))
+
+class Platforms(Tags):
+    desc = "Returns a list of platforms"
+    def eval(self):
+        tags = [(platform,) for platform in sorted(select(x.platform for x in Tag))]
+        return EmbedTable(fields=['Platform'], table=tags, colour=self.EMBED_COLOR)
