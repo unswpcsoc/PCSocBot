@@ -1,15 +1,17 @@
 import asyncio
 from datetime import date, time, timedelta, datetime
+from helpers import CommandFailure
 
 from commands import Command
 
-HIGH_NOON_CHANNEL = 'gaming'
+HIGH_NOON_CHANNEL = 'Gaming'
 
 
 class HighNoon(Command):
-    roles_required = ['moderator', 'exec']
+    roles_required = ['mod', 'exec']
     async def eval(self):
-        await self.play_audio('high_noon.mp3')
+        raise CommandFailure("Unicode in channel names breaks me")
+        # await self.play_audio('high_noon.mp3')
 
 
 async def high_noon(client, channel):

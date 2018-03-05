@@ -1,7 +1,7 @@
 from pony.orm import select, count
 
 from commands.base import Command
-from helpers import bold, CommandFailure
+from helpers import bold, at, CommandFailure
 from models import Tag
 from utils.embed_table import EmbedTable
 
@@ -65,3 +65,10 @@ class Platforms(Tags):
     def eval(self):
         tags = [(platform,) for platform in sorted(select(x.platform for x in Tag))]
         return EmbedTable(fields=['Platform'], table=tags, colour=self.EMBED_COLOR)
+
+class Ping(Tags):
+    desc = "pings users for a specific platform"
+    def eval(self, platform):
+        tags = Tag.select_or_err(lambda x: x.platform == platform)
+        users = [at(str(tag.user)) for tag in tags]
+        return "%s" % (' '.join(users))

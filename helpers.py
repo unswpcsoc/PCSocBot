@@ -17,5 +17,8 @@ def underline(s):
 def code(s):
     return surround(s, '`')
 
+def at(s):
+    return "<@%s>" % s
+
 class CommandFailure(Exception):
     pass
