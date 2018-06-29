@@ -20,5 +20,8 @@ def code(s):
 def at(s):
     return "<@%s>" % s
 
+def nick(m):
+    return m.nick or str(m).split("#")[0]
+
 class CommandFailure(Exception):
     pass

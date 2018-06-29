@@ -42,12 +42,15 @@ class Someone(Command):
                 formats = json.load(fmt)
 
             # Randomly choose from the people indexing
-            out = random.choice(formats[str(people)])
+            try:
+                out = random.choice(formats[str(people)])
+            except KeyError:
+                return "No format for %s `people`" % (code(str(people)))
 
         except FileNotFoundError:
             pass
 
-        roll_list = [x.nick or str(x).split("#")[0] for x in roll_list]
+        roll_list = [nick(x) for x in roll_list]
         roll_list = map(bold, roll_list)
         return out.format(*roll_list)
 
@@ -58,7 +61,7 @@ class Add(Someone):
     """
     #roles_required = ['mod', 'exec']
 
-    def eval(Someone, *format_string):
+    def eval(self, *format_string):
         # Get the format string
         format_string = " ".join(format_string)
 
@@ -88,7 +91,7 @@ class Remove(Someone):
     desc = "Removes a format template. Mods only."
 
     #roles_required = ['mod', 'exec']
-    def eval(Someone, *format_string):
+    def eval(self, *format_string):
 
         # Get the format string
         format_string = " ".join(format_string)
