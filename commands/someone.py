@@ -84,3 +84,33 @@ class Add(Someone):
 
         return "Your format %s for %s people has been added!" % (code(format_string), code(str(people)))
 
+class Remove(Someone):
+    desc = "Removes a format template. Mods only."
+
+    #roles_required = ['mod', 'exec']
+    def eval(Someone, *format_string):
+
+        # Get the format string
+        format_string = " ".join(format_string)
+
+        # Count the number of people to generate
+        people = format_string.count(IDENTIFIER)
+
+        # Open the JSON file or create a new dict to load
+        try:
+            with open(FORMAT_FILE, 'r') as old:
+                formats = json.load(old)
+        except FileNotFoundError:
+            formats = {}
+
+        # Check if format string is in the dict
+        try:
+            formats[str(people)].remove(format_string)
+        except KeyError:
+            pass
+
+        # Write the formats to the JSON file
+        with open(FORMAT_FILE, 'w') as new:
+            json.dump(formats, new)
+
+        return "If format %s for %s people existed, it was removed!" % (code(format_string), code(str(people)))
