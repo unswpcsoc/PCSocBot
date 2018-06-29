@@ -5,6 +5,7 @@ import asyncio
 
 HISTORY = 10
 HISTORY_LIMIT = 500
+SCROLL_UTF = "\U0001F4DC"
 
 class Archive(Command):
 
@@ -15,9 +16,12 @@ class Archive(Command):
             if i >= HISTORY:
                 break
 
-            if message.channel == self.message.channel:
-                out.append(bold(nick(message.author)) + " : " + message.clean_content)
+            if SCROLL_UTF in [x.emoji for x in message.reactions]:
                 i += 1
+                out.append(
+                        bold(nick(message.author)) + " : " 
+                        + message.clean_content
+                        )
 
-        return "\n".join(out)
+        return SCROLL_UTF + "Last 10 Archiveable Messages:\n" + "\n".join(out)
 
