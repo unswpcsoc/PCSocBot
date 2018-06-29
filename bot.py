@@ -5,6 +5,7 @@ import discord
 
 import commands
 from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
+from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 
 client = discord.Client()
 high_noon_channel = None
@@ -18,6 +19,8 @@ async def on_ready():
     for channel in client.get_all_channels():
         if channel.name == HIGH_NOON_CHANNEL:
             await high_noon(client, channel)
+        if channel.name == LEADERBOARD_CHANNEL:
+            await leaderboard(client, channel)
 
 @client.event
 async def on_message(message):
