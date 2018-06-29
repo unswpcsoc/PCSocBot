@@ -23,12 +23,13 @@ async def on_ready():
 async def on_message(message):
     if message.content.startswith(commands.PREFIX):
         args = message.content[1:].split()
-        cls, args = commands.Help.find_command(args)
-        output = await cls(client, message).init(*args)
-        if isinstance(output, discord.Embed):
-            await client.send_message(message.channel, embed=output)
-        elif output is not None:
-            await client.send_message(message.channel, output)
+        if args:
+            cls, args = commands.Help.find_command(args)
+            output = await cls(client, message).init(*args)
+            if isinstance(output, discord.Embed):
+                await client.send_message(message.channel, embed=output)
+            elif output is not None:
+                await client.send_message(message.channel, output)
 
 client.run(os.environ['TOKEN'])
 server = client.accept_invite(os.environ['INVITE'])
