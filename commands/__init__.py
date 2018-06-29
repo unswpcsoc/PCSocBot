@@ -5,3 +5,4 @@ from commands.tags import *
 from commands.highnoon import *
 from commands.someone import *
 from commands.archive import *
+from commands.leaderboard import *
