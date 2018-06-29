@@ -43,7 +43,7 @@ class Command(metaclass=Tree):
 
     async def init(self, *args):
         argspec = inspect.getargspec(self.eval)
-        if len(argspec.args) == len(args) + 1 or argspec.varargs:
+        if len(argspec.args) == len(args) + 1 or argspec.varargs or argspec.defaults:
             try:
                 self.check_permissions()
                 return await self.eval(*args) if inspect.iscoroutinefunction(self.eval) else self.eval(*args)
