@@ -38,20 +38,20 @@ class Someone(Command):
 
         # Retrieve a random format from the json
         try:
+            # Get the format dict, throws FileNotFoundError
             with open(FORMAT_FILE, 'r') as fmt:
                 formats = json.load(fmt)
 
-            # Randomly choose from the people indexing
-            try:
-                out = random.choice(formats[str(people)])
-            except KeyError:
-                return "No format for %s `people`" % (code(str(people)))
+            # Randomly choose from the people indexing, throws KeyError
+            out = random.choice(formats[str(people)])
 
-        except FileNotFoundError:
-            pass
+        except (FileNotFoundError, KeyError):
+            # No format for that number of people, use default
+            out = "{}" + " {}"*(people-1)
 
-        roll_list = [nick(x) for x in roll_list]
-        roll_list = map(bold, roll_list)
+        roll_list = [bold(nick(x)) for x in roll_list]
+
+        # Craft output string according to format
         return out.format(*roll_list)
 
 class Add(Someone):
