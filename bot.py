@@ -16,6 +16,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
+    await client.change_presence(game=discord.Game(name="Despacito 2"))
     for channel in client.get_all_channels():
         if channel.name == HIGH_NOON_CHANNEL:
             await high_noon(client, channel)
