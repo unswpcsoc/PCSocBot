@@ -121,3 +121,24 @@ class Remove(Someone):
             json.dump(formats, new)
 
         return "If format %s for %s people existed, it was removed!" % (code(format_string), code(str(people)))
+
+class List(Someone):
+    desc = "Lists the formats for the given number of `people`."
+
+    def eval(self, people):
+
+        # Open the JSON file
+        try:
+            with open(FORMAT_FILE, 'r') as fmt:
+                formats = json.load(fmt)
+        except FileNotFoundError:
+            formats = {}
+
+        # List all the entries for people
+        out = "Formats for " + people + " `people`:\n" 
+        try:
+            out += "\n".join(formats[people])
+        except KeyError:
+            out += "No formats for %s people" % people
+
+        return out
