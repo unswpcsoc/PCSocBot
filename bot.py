@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 
 import discord
 
@@ -14,11 +15,14 @@ high_noon_channel = None
 
 @client.event
 async def on_ready():
+    game = sys.argv[1] if len(sys.argv) == 2 else "Despacito 2"
+
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
     print('------')
-    await client.change_presence(game=discord.Game(name="Despacito 2"))
+
+    await client.change_presence(game=discord.Game(name=game))
     for channel in client.get_all_channels():
         if channel.name == HIGH_NOON_CHANNEL:
             await high_noon(client, channel)
