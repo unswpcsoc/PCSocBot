@@ -7,7 +7,7 @@ import sys
 import discord
 
 import commands
-from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
+#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 
 client = discord.Client()
@@ -27,8 +27,10 @@ async def on_ready():
 
     await client.change_presence(game=discord.Game(name=presence))
     for channel in client.get_all_channels():
-        if channel.name == HIGH_NOON_CHANNEL:
-            await high_noon(client, channel)
+
+        #if channel.name == HIGH_NOON_CHANNEL:
+            #await high_noon(client, channel)
+
         if channel.name == LEADERBOARD_CHANNEL:
             await leaderboard(client, channel)
 

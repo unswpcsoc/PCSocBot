@@ -9,6 +9,7 @@ SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
 
 class Archive(Command):
+    desc = "Archive command to store the best of PCSoc. Mods only."
 
     async def eval(self):
         i = 0
