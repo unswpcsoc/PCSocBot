@@ -7,3 +7,4 @@ from commands.someone import *
 from commands.archive import *
 from commands.leaderboard import *
 from commands.playing import *
+from commands.crashme import *
