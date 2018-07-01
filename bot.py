@@ -16,16 +16,16 @@ high_noon_channel = None
 @client.event
 async def on_ready():
     # Set game by CLA or default
-    game = sys.argv[1] if len(sys.argv) == 2 else "Despacito 2"
+    presence = sys.argv[1] if len(sys.argv) == 2 else "Despacito 2"
 
     print('------')
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
-    print("Playing " + game)
+    print("Playing " + presence)
     print('------')
 
-    await client.change_presence(game=discord.Game(name=game))
+    await client.change_presence(game=discord.Game(name=presence))
     for channel in client.get_all_channels():
         if channel.name == HIGH_NOON_CHANNEL:
             await high_noon(client, channel)
