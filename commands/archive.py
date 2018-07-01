@@ -49,10 +49,10 @@ class Archive(Command):
                     inner += bold("Attachment(s): ")
                     attachments = message.attachments
                     attachments = [ noembed(x["url"]) for x in attachments ]
-                    inner += "\n".join(attachments)
+                    inner += "\n".join(attachments) + "\n"
 
                 # Add the hotlink without embed
-                inner += noembed(HOTLINK_PREFIX 
+                inner += bold("Hotlink: ") + noembed(HOTLINK_PREFIX 
                         + message.server.id + "/" 
                         + message.channel.id + "/" 
                         + message.id)+ "\n"
