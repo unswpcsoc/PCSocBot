@@ -7,7 +7,7 @@ git pull
 echo
 echo "Starting bot..."
 
-if [ $# -eq 2 ]
+if [ $# -eq 1 ]
 then
     python3 bot.py "$1"
 else
