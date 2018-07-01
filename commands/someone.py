@@ -68,6 +68,10 @@ class Add(Someone):
         # Count the number of people to generate
         people = format_string.count(IDENTIFIER)
 
+        # Make sure the number of people is sane
+        if people < 1:
+            return "Invalid format string, must have at least 1 `{}`!"
+
         # Open the JSON file or create a new dict to load
         try:
             with open(FORMAT_FILE, 'r') as old:
