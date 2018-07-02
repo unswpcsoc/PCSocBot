@@ -12,7 +12,7 @@ SPOOF_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
     (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
 DATA_FILE = 'files/leaderboard.json'
 MILESTONES = [10, 25, 50]
-SLEEP_INTERVAL = 1
+SLEEP_INTERVAL = 15
 
 async def leaderboard(client, channel):
     req = urllib.request.Request(
