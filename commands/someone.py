@@ -107,7 +107,7 @@ class Remove(Someone):
             people = int(format_string)
             remove_all = True
         except ValueError:
-            pass
+            remove_all = False
 
         # Get people
         people = format_string.count(IDENTIFIER)
@@ -117,38 +117,58 @@ class Remove(Someone):
             with open(FORMAT_FILE, 'r') as fmt:
                 formats = json.load(fmt)
 
-            # Remove format string if in the dict
             if remove_all:
+                # Remove all format strings for people
                 del formats[str(people)]
+                out = "Removed all formats for %s people!" % code(people)
             else:
+                # Remove format string if in the dict
                 formats[str(people)].remove(format_string)
+                out =  "If the format " + code(format_string)
+                out += " for " + code(str(people))
+                out += " people existed, it was removed!"
 
-        except (FileNotFoundError, KeyError):
+
+        except (FileNotFoundError, KeyError, ValueError):
             return "Format %s not found!" % code(format_string)
 
         # Write the formats to the JSON file
         with open(FORMAT_FILE, 'w') as new:
             json.dump(formats, new)
 
-        return "If the format %s for %s people existed, it was removed!" % (code(format_string), code(str(people)))
+        return out
 
 class List(Someone):
     desc = "Lists the formats for the given number of `people`."
 
-    def eval(self, people):
+    def eval(self, *people):
 
-        # Open the JSON file
+        if people:
+            # User has specified number of people
+            try:
+                int(people)
+            except ValueError:
+                return "`people` must be an integer value!"
+
         try:
+            # Open the JSON file
             with open(FORMAT_FILE, 'r') as fmt:
                 formats = json.load(fmt)
-        except FileNotFoundError:
-            formats = {}
 
-        # List all the entries for people
-        out = "Formats for " + people + " `people`:\n" 
-        try:
-            out += "\n".join(formats[people])
-        except KeyError:
+            if people:
+                # List all the entries for people
+                out = "Formats for " + code(people) + " `people`:\n" 
+                out += "\n".join(formats[people])
+            else:
+                # List all entries
+                out = "All formats:\n"
+                for k, v in sorted(formats.items()):
+                    out += "Formats for " + code(k) + " `people`:\n" 
+                    out += "\n".join(v) + "\n"
+
+        except (FileNotFoundError, KeyError):
             out += "No formats for %s people" % people
 
         return out
+
+
