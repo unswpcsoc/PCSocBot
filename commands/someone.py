@@ -124,9 +124,9 @@ class Remove(Someone):
             else:
                 # Remove format string if in the dict
                 formats[str(people)].remove(format_string)
-                out =  "If the format " + code(format_string)
+                out =  "The format " + code(format_string)
                 out += " for " + code(str(people))
-                out += " people existed, it was removed!"
+                out += " people was removed!"
 
 
         except (FileNotFoundError, KeyError, ValueError):
@@ -141,7 +141,7 @@ class Remove(Someone):
 class List(Someone):
     desc = "Lists the formats for the given number of `people`."
 
-    def eval(self, *people):
+    def eval(self, people=None):
 
         if people:
             # User has specified number of people
@@ -157,18 +157,25 @@ class List(Someone):
 
             if people:
                 # List all the entries for people
+                if not formats[people]:
+                    raise NoFormatsError
                 out = "Formats for " + code(people) + " `people`:\n" 
                 out += "\n".join(formats[people])
             else:
                 # List all entries
                 out = "All formats:\n"
                 for k, v in sorted(formats.items()):
-                    out += "Formats for " + code(k) + " `people`:\n" 
-                    out += "\n".join(v) + "\n"
+                    if v:
+                        out += "Formats for " + code(k) + " `people`:\n" 
+                        out += "\n".join(v) + "\n"
+                else:
+                    raise NoFormatsError
 
-        except (FileNotFoundError, KeyError):
-            out += "No formats for %s people" % people
+        except (FileNotFoundError, KeyError, NoFormatsError):
+            out = "No formats for %s people" % people if people else "No formats"
 
         return out
 
+class NoFormatsError(Exception):
+    pass
 
