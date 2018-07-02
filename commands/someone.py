@@ -98,15 +98,16 @@ class Remove(Someone):
     #roles_required = ['mod', 'exec']
     def eval(self, *format_string):
 
+        # Get the format string
+        format_string = " ".join(format_string)
+
+
         # If a number is passed into the second argument, set remove_all flag
         try:
             people = int(format_string)
             remove_all = True
         except ValueError:
             pass
-
-        # Get the format string
-        format_string = " ".join(format_string)
 
         # Get people
         people = format_string.count(IDENTIFIER)
