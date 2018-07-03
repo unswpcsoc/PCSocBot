@@ -5,7 +5,7 @@ import asyncio
 import datetime
 
 HISTORY = 10
-HISTORY_LIMIT = 1000
+HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
 ARCHIVE_CHANNEL = "463574764699516939"
@@ -31,7 +31,12 @@ class List(Archive):
         out = await create_archive(self.client.logs_from(self.message.channel,
                                                          limit=HISTORY_LIMIT),
                                    summary=True)
-        return SCROLL_UTF + "Last 10 Archiveable Messages:\n" + "\n".join(out)
+        return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)
+
+class Ls(Archive):
+    desc = "See " + bold(code("!archive") + " " + code("list")) + "."
+    async def eval(self):
+        return await List.eval(self)
 
 async def create_archive(logs, summary=False):
     i = 0
