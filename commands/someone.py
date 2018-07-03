@@ -164,11 +164,13 @@ class List(Someone):
             else:
                 # List all entries
                 out = "All formats:\n"
+                empty = True
                 for k, v in sorted(formats.items()):
                     if v:
                         out += "Formats for " + code(k) + " `people`:\n" 
                         out += "\n".join(v) + "\n"
-                else:
+                        empty = False 
+                if empty:
                     raise NoFormatsError
 
         except (FileNotFoundError, KeyError, NoFormatsError):
