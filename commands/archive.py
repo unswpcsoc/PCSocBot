@@ -2,23 +2,28 @@ from commands.base import Command
 from helpers import *
 
 import asyncio
+import datetime
 
 HISTORY = 10
 HISTORY_LIMIT = 1000
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
-ARCHIVE_CHANNEL = "462063414408249376"
+ARCHIVE_CHANNEL = "463574764699516939"
 
 class Archive(Command):
     desc = "Archive command to store the best of PCSoc. Mods only."
     async def eval(self, index):
-        out = await create_archive(self.client.logs_from(self.message.channel,
-                                                         limit=HISTORY_LIMIT))
-        channel = self.client.get_channel(ARCHIVE_CHANNEL)
-        header = "Archived message from <#{}>:\n".format(self.message.channel.id)
-        header += bold("Author:") + " "
-        await self.client.send_message(channel, header + out[int(index)])
-        return "Archived message {} in <#{}>".format(index, ARCHIVE_CHANNEL)
+        try:
+            out = await create_archive(self.client.logs_from(self.message.channel,
+                                                            limit=HISTORY_LIMIT))
+            channel = self.client.get_channel(ARCHIVE_CHANNEL)
+            header = "Archived message from <#{}>:\n".format(self.message.channel.id)
+            header += bold("Author:") + " "
+            await self.client.send_message(channel, header + out[int(index)])
+            return "Archived message {} in <#{}>".format(index, ARCHIVE_CHANNEL)
+
+        except (IndexError, ValueError):
+            return "Could not archive message %s!" % bold(index)
 
 class List(Archive):
     desc = "Lists recent messages available for archiving. Mods only."
@@ -70,6 +75,10 @@ async def create_archive(logs, summary=False):
                 attachments = message.attachments
                 attachments = [ noembed(x["url"]) for x in attachments ]
                 inner += "\n".join(attachments) + "\n"
+
+            # Show timestamp of message
+            inner += bold("Timestamp: ")
+            inner += code(message.timestamp.strftime("%d/%m/%y %H:%M:%S")) + "\n"
 
             # Add the hotlink without embed
             inner += bold("Hotlink: ") + noembed(HOTLINK_PREFIX 

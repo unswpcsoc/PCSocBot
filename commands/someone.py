@@ -17,7 +17,11 @@ class Someone(Command):
         # Initialise vars
         roll = 0
         roll_list = []
-        people = int(people)
+
+        try:
+            people = int(people)
+        except ValueError:
+            return "Must supply either an integer or subcommand!"
 
         # Assert that people is greater than 0
         people = max(people, 1)
@@ -89,7 +93,7 @@ class Add(Someone):
         with open(FORMAT_FILE, 'w') as new:
             json.dump(formats, new)
 
-        return "Your format %s for %s people has been added!" % (code(format_string), code(str(people)))
+        return "Your format %s for %s people has been added!" % (code(format_string), bold(str(people)))
 
 class Remove(Someone):
     desc = """Removes a format template. 
@@ -101,6 +105,8 @@ class Remove(Someone):
         # Get the format string
         format_string = " ".join(format_string)
 
+        if not format_string:
+            return "Must supply a format string!"
 
         # If a number is passed into the second argument, set remove_all flag
         try:
@@ -108,9 +114,8 @@ class Remove(Someone):
             remove_all = True
         except ValueError:
             remove_all = False
-
-        # Get people
-        people = format_string.count(IDENTIFIER)
+            # Get people
+            people = format_string.count(IDENTIFIER)
 
         try:
             # Open the JSON file or create a new dict to load
@@ -120,12 +125,13 @@ class Remove(Someone):
             if remove_all:
                 # Remove all format strings for people
                 del formats[str(people)]
-                out = "Removed all formats for %s people!" % code(people)
+                out = "Removed all formats for %s people!" % bold(str(people))
+
             else:
                 # Remove format string if in the dict
                 formats[str(people)].remove(format_string)
                 out =  "The format " + code(format_string)
-                out += " for " + code(str(people))
+                out += " for " + bold(str(people))
                 out += " people was removed!"
 
 
@@ -159,7 +165,7 @@ class List(Someone):
                 # List all the entries for people
                 if not formats[people]:
                     raise NoFormatsError
-                out = "Formats for " + code(people) + " `people`:\n" 
+                out = "Formats for " + bold(people) + " `people`:\n" 
                 out += "\n".join(formats[people])
             else:
                 # List all entries
@@ -167,7 +173,7 @@ class List(Someone):
                 empty = True
                 for k, v in sorted(formats.items()):
                     if v:
-                        out += "Formats for " + code(k) + " `people`:\n" 
+                        out += "Formats for " + bold(k) + " `people`:\n" 
                         out += "\n".join(v) + "\n"
                         empty = False 
                 if empty:
