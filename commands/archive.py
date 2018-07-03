@@ -4,7 +4,7 @@ from helpers import *
 import asyncio
 
 HISTORY = 10
-HISTORY_LIMIT = 500
+HISTORY_LIMIT = 1000
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
 ARCHIVE_CHANNEL = "462063414408249376"
@@ -12,18 +12,23 @@ ARCHIVE_CHANNEL = "462063414408249376"
 class Archive(Command):
     desc = "Archive command to store the best of PCSoc. Mods only."
     async def eval(self, index):
-        out = await create_archive(self.client.logs_from(self.message.channel))
+        out = await create_archive(self.client.logs_from(self.message.channel,
+                                                         limit=HISTORY_LIMIT))
         channel = self.client.get_channel(ARCHIVE_CHANNEL)
-        await self.client.send_message(channel, out[int(index)])
+        header = "Archived message from <#{}>:\n".format(self.message.channel.id)
+        header += bold("Author:") + " "
+        await self.client.send_message(channel, header + out[int(index)])
         return "Archived message {} in <#{}>".format(index, ARCHIVE_CHANNEL)
 
 class List(Archive):
     desc = "Lists recent messages available for archiving. Mods only."
     async def eval(self):
-        out = await create_archive(self.client.logs_from(self.message.channel))
+        out = await create_archive(self.client.logs_from(self.message.channel,
+                                                         limit=HISTORY_LIMIT),
+                                   summary=True)
         return SCROLL_UTF + "Last 10 Archiveable Messages:\n" + "\n".join(out)
 
-async def create_archive(logs):
+async def create_archive(logs, summary=False):
     i = 0
     out = []
 
@@ -38,12 +43,14 @@ async def create_archive(logs):
         if SCROLL_UTF in reactions:
 
             # Enumerate archivable posts
-            inner = str(i) + ". "
+            inner = ""
+            if summary:
+                inner += str(i) + ". "
 
-            # Show reaction count
-            sformat = (SCROLL_UTF,
-                    message.reactions[reactions.index(SCROLL_UTF)].count)
-            inner += "[%s%d]  " % sformat
+                # Show reaction count
+                sformat = (SCROLL_UTF,
+                        message.reactions[reactions.index(SCROLL_UTF)].count)
+                inner += "[%s%d]  " % sformat
 
             # Show author
             inner += str(message.author)
