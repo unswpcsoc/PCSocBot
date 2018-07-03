@@ -6,7 +6,7 @@ import discord
 
 class Playing(Command):
     desc = "Changes the Playing status of the bot. Mod only."
-    #roles_required = ["mod", "exec"]
+    roles_required = ["mod", "exec"]
 
     async def eval(self, *presence):
         presence = " ".join(presence)
