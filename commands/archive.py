@@ -8,10 +8,12 @@ HISTORY = 10
 HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
-ARCHIVE_CHANNEL = "463574764699516939"
+ARCHIVE_CHANNEL = "463602892717162497"
 
 class Archive(Command):
     desc = "Archive command to store the best of PCSoc. Mods only."
+    roles_required = ['mod', 'exec']
+
     async def eval(self, index):
         try:
             out = await create_archive(self.client.logs_from(self.message.channel,

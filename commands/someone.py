@@ -63,7 +63,7 @@ class Add(Someone):
     `format_string`: String containing `people` number of {}, 
     where `{}` is replaced by a random **someone**
     """
-    #roles_required = ['mod', 'exec']
+    roles_required = ['mod', 'exec']
 
     def eval(self, *format_string):
         # Get the format string
@@ -99,7 +99,7 @@ class Remove(Someone):
     desc = """Removes a format template. 
     Passing a number removes all formats for those people. Mods only."""
 
-    #roles_required = ['mod', 'exec']
+    roles_required = ['mod', 'exec']
     def eval(self, *format_string):
 
         # Get the format string

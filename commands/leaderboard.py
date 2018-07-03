@@ -3,20 +3,17 @@ import json
 import asyncio
 from helpers import at
 
-# TODO: make sure you change this before putting on actual PCSoc server
-LEADERBOARD_CHANNEL = 'general'
-MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/462063414408249374'
-# LEADERBOARD_CHANNEL = 'bot-testing'
-# MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/157263595128881153'
+LEADERBOARD_CHANNEL = 'commands'
+MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/'
 SPOOF_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
     (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
 DATA_FILE = 'files/leaderboard.json'
 MILESTONES = [10, 25, 50]
-SLEEP_INTERVAL = 15
+SLEEP_INTERVAL = 60
 
 async def leaderboard(client, channel):
     req = urllib.request.Request(
-        MEE6_URL, 
+        MEE6_URL + channel.server.id, 
         data=None, 
         headers={
             'User-Agent': SPOOF_AGENT
