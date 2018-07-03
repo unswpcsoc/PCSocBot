@@ -13,6 +13,9 @@ from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 client = discord.Client()
 high_noon_channel = None
 
+err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
+The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
+
 @client.event
 async def on_ready():
     # Set game by CLA or default
@@ -36,14 +39,17 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.content.startswith(commands.PREFIX):
-        args = message.content[1:].split()
-        if args:
-            cls, args = commands.Help.find_command(args)
-            output = await cls(client, message).init(*args)
-            if isinstance(output, discord.Embed):
-                await client.send_message(message.channel, embed=output)
-            elif output is not None:
-                await client.send_message(message.channel, output)
+    try:
+        if message.content.startswith(commands.PREFIX):
+            args = message.content[1:].split()
+            if args:
+                cls, args = commands.Help.find_command(args)
+                output = await cls(client, message).init(*args)
+                if isinstance(output, discord.Embed):
+                    await client.send_message(message.channel, embed=output)
+                elif output is not None:
+                    await client.send_message(message.channel, output)
+    except discord.errors.HTTPException as e:
+        await client.send_message(message.channel, err)
 
 client.run(os.environ['TOKEN'])
