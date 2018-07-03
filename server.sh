@@ -1,8 +1,15 @@
-while `true`
-do
-    echo "starting server"
-    timeout 24h python3 bot.py
-    echo "killing server to restart"
-    git pull
-    sleep 1
-done
+#!/bin/sh
+
+echo
+echo "Updating bot..."
+git pull
+
+echo
+echo "Starting bot..."
+
+if [ $# -eq 1 ]
+then
+    python3 bot.py "$1"
+else
+    python3 bot.py
+fi

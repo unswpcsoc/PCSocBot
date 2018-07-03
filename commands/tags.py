@@ -67,7 +67,7 @@ class Platforms(Tags):
         return EmbedTable(fields=['Platform'], table=tags, colour=self.EMBED_COLOR)
 
 class Ping(Tags):
-    desc = "pings users for a specific platform"
+    desc = "Pings users for a specific platform"
     def eval(self, platform):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
         users = [at(str(tag.user)) for tag in tags]
