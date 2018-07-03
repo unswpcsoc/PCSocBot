@@ -184,6 +184,11 @@ class List(Someone):
 
         return out
 
+class Ls(Someone):
+    desc = "See " + bold(code("!someone") + " " + code("list")) + "."
+    def eval(self, people=None):
+        return List.eval(self, people)
+
 class NoFormatsError(Exception):
     pass
 
