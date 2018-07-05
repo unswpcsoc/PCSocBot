@@ -25,7 +25,7 @@ class Add(Tags):
 
 
 class Remove(Tags):
-    desc = "Removes a user/player tag to the bot."
+    desc = "Removes a user/player tag from the bot"
     def eval(self, platform):
         Tag.delete_or_err(user=self.user, platform=platform.lower())
         return "%s tag for %s removed" % (platform.title(), self.name)
@@ -72,3 +72,29 @@ class Ping(Tags):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
         users = [at(str(tag.user)) for tag in tags]
         return "%s" % (' '.join(users))
+
+class ModAdd(Tags):
+    desc = "Adds/changes a specified player tag with associated platform/game to the list"
+    roles_required = ["mod", "exec"]
+    def eval(self, name, platform, tag):
+        user = self.from_name(name)
+        if user is None:
+            raise CommandFailure("User not found")
+        warning = ''
+        if not select(count(t) for t in Tag if t.platform == platform.lower())[:][0]:
+            platforms = ', '.join(sorted(select(t.platform for t in Tag)[:]))
+            warning = bold('WARNING: creating a new platform. Please check that the platform doesn\'t already '
+            'exist by another name.\n') + 'Current platforms are ' + platforms + '\n'
+        Tag.create_or_update(user=int(user.id), platform=platform.lower(), tag=tag)
+        return "%s%s added as %s tag for %s" % (warning, tag, platform.title(), user.name)
+
+
+class ModRemove(Tags):
+    desc = "Removes a specified user/player tag from the bot. Mod only."
+    roles_required = ["mod", "exec"]
+    def eval(self, name, platform):
+        user = self.from_name(name)
+        if user is None:
+            raise CommandFailure("User not found")
+        Tag.delete_or_err(user=int(user.id), platform=platform.lower())
+        return "%s tag for %s removed" % (platform.title(), user.name)
