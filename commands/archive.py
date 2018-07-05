@@ -1,6 +1,6 @@
 from commands.base import Command
 from helpers import *
-from discord import Embed
+from discord import Embed, NotFound, Forbidden, HTTPException
 
 import asyncio
 import datetime
@@ -19,16 +19,20 @@ class Archive(Command):
 
     async def eval(self, index):
         try:
-            archive = await create_archive(self.client.logs_from(self.message.channel,
-                                                                 limit=HISTORY_LIMIT))
-            entry = archive[int(index)]
+            if int(index) >= HISTORY:
+                message = await self.client.get_message(self.message.channel, index)
+                entry = Entry(index, message)
+            else:
+                archive = await create_archive(self.client.logs_from(self.message.channel,
+                                                                     limit=HISTORY_LIMIT))
+                entry = archive[int(index)]
             channel = self.client.get_channel(ARCHIVE_CHANNEL)
             header = entry.hotlink
             footer = "Archived message from #{}".format(self.message.channel)
             await self.client.send_message(channel, header, embed=entry.as_embed(footer))
             return "Archived message {} in <#{}>".format(index, ARCHIVE_CHANNEL)
 
-        except (IndexError, ValueError):
+        except (IndexError, ValueError, NotFound, Forbidden, HTTPException):
             return "Could not archive message %s!" % bold(index)
 
 class List(Archive):
@@ -52,7 +56,10 @@ class Entry():
     def __init__(self, index, message):
         self.index = index
         reactions = [x.emoji for x in message.reactions]
-        self.reactions = message.reactions[reactions.index(SCROLL_UTF)].count
+        try:
+            self.reactions = message.reactions[reactions.index(SCROLL_UTF)].count
+        except ValueError:
+            self.reactions = 0
         self.author = message.author
         self.content = message.clean_content
         self.attachments = message.attachments
