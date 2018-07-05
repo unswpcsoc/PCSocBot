@@ -37,7 +37,11 @@ class List(Archive):
         archive = await create_archive(self.client.logs_from(self.message.channel,
                                                          limit=HISTORY_LIMIT))
         out = [entry.as_text() for entry in archive]
-        return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)
+        if out:
+            return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)
+        return "No messages available for archival. React with a " + SCROLL_UTF \
+            + " to a message in the last " + str(HISTORY_LIMIT) + " messages of"\
+            + " this channel to mark it for archival."
 
 class Ls(Archive):
     desc = "See " + bold(code("!archive") + " " + code("list")) + "."
@@ -60,32 +64,32 @@ class Entry():
         # Show index
         text = str(self.index) + ". "
 
-                # Show reaction count
+        # Show reaction count
         text += "[%s%d]  " % (SCROLL_UTF, self.reactions)
 
-            # Show author
+        # Show author
         text += nick(self.author)
 
-            # Bold entire first line
+        # Bold entire first line
         text = bold(text)
         text += "\n"
 
-            # Show the content if it exists
+        # Show the content if it exists
         if self.content:
             text += bold("Content: ")
             text += code(self.content) + "\n"
 
-            # Show attachments if they exist
+        # Show attachments if they exist
         if self.attachments:
             text += bold("Attachment(s): ")
             attachments = [noembed(x["url"]) for x in self.attachments]
             text += "\n".join(attachments) + "\n"
 
-            # Show timestamp of message
+        # Show timestamp of message
         text += bold("Timestamp: ")
         text += code(self.timestamp.strftime("%d/%m/%y %H:%M:%S")) + "\n"
 
-            # Add the hotlink without embed
+        # Add the hotlink without embed
         text += bold("Hotlink: ")
         text += noembed(self.hotlink)
 
