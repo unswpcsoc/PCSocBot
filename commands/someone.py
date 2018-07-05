@@ -6,6 +6,7 @@ import json
 
 IDENTIFIER = "{}"
 FORMAT_FILE = "files/formats.json"
+PEOPLE_LIMIT = 100 # to minimise API spam
 
 class Someone(Command):
     desc = "This command is used to roll for a random member of the server"
@@ -22,6 +23,11 @@ class Someone(Command):
             people = int(people)
         except ValueError:
             return "Must supply either an integer or subcommand!"
+
+        # Enforce limit on people requested by the command
+        if people > PEOPLE_LIMIT:
+            return "The maximum number of supported " + code("people") + " is " \
+                + bold(str(PEOPLE_LIMIT)) + ". Sorry!"
 
         # Assert that people is greater than 0
         people = max(people, 1)
