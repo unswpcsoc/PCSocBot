@@ -1,5 +1,6 @@
 from commands.base import Command
 from helpers import *
+from discord import Embed
 
 import asyncio
 import datetime
@@ -9,6 +10,8 @@ HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
 ARCHIVE_CHANNEL = "463602892717162497"
+AVATAR_FORMAT = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=128"
+IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
 class Archive(Command):
     desc = "Archive command to store the best of PCSoc. Mods only."
@@ -16,12 +19,13 @@ class Archive(Command):
 
     async def eval(self, index):
         try:
-            out = await create_archive(self.client.logs_from(self.message.channel,
-                                                            limit=HISTORY_LIMIT))
+            archive = await create_archive(self.client.logs_from(self.message.channel,
+                                                                 limit=HISTORY_LIMIT))
+            entry = archive[int(index)]
             channel = self.client.get_channel(ARCHIVE_CHANNEL)
-            header = "Archived message from <#{}>:\n".format(self.message.channel.id)
-            header += bold("Author:") + " "
-            await self.client.send_message(channel, header + out[int(index)])
+            header = entry.hotlink
+            footer = "Archived message from #{}".format(self.message.channel)
+            await self.client.send_message(channel, header, embed=entry.as_embed(footer))
             return "Archived message {} in <#{}>".format(index, ARCHIVE_CHANNEL)
 
         except (IndexError, ValueError):
@@ -30,19 +34,90 @@ class Archive(Command):
 class List(Archive):
     desc = "Lists recent messages available for archiving. Mods only."
     async def eval(self):
-        out = await create_archive(self.client.logs_from(self.message.channel,
-                                                         limit=HISTORY_LIMIT),
-                                   summary=True)
-        return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)
+        archive = await create_archive(self.client.logs_from(self.message.channel,
+                                                         limit=HISTORY_LIMIT))
+        out = [entry.as_text() for entry in archive]
+        if out:
+            return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)
+        return "No messages available for archival. React with a " + SCROLL_UTF \
+            + " to a message in the last " + str(HISTORY_LIMIT) + " messages of"\
+            + " this channel to mark it for archival."
 
 class Ls(Archive):
     desc = "See " + bold(code("!archive") + " " + code("list")) + "."
     async def eval(self):
         return await List.eval(self)
 
-async def create_archive(logs, summary=False):
+class Entry():
+    def __init__(self, index, message):
+        self.index = index
+        reactions = [x.emoji for x in message.reactions]
+        self.reactions = message.reactions[reactions.index(SCROLL_UTF)].count
+        self.author = message.author
+        self.content = message.clean_content
+        self.attachments = message.attachments
+        self.timestamp = message.timestamp
+        self.hotlink = "{}{}/{}/{}".format(HOTLINK_PREFIX,
+            message.server.id, message.channel.id, message.id)
+
+    def as_text(self):
+        # Show index
+        text = str(self.index) + ". "
+
+        # Show reaction count
+        text += "[%s%d]  " % (SCROLL_UTF, self.reactions)
+
+        # Show author
+        text += nick(self.author)
+
+        # Bold entire first line
+        text = bold(text)
+        text += "\n"
+
+        # Show the content if it exists
+        if self.content:
+            text += bold("Content: ")
+            text += code(self.content) + "\n"
+
+        # Show attachments if they exist
+        if self.attachments:
+            text += bold("Attachment(s): ")
+            attachments = [noembed(x["url"]) for x in self.attachments]
+            text += "\n".join(attachments) + "\n"
+
+        # Show timestamp of message
+        text += bold("Timestamp: ")
+        text += code(self.timestamp.strftime("%d/%m/%y %H:%M:%S")) + "\n"
+
+        # Add the hotlink without embed
+        text += bold("Hotlink: ")
+        text += noembed(self.hotlink)
+
+        return text
+
+    def as_embed(self, title):
+        embed = Embed(description=self.content,
+                     colour=self.author.colour,
+                     timestamp=self.timestamp)
+        embed.set_author(name=nick(self.author),
+                         icon_url=AVATAR_FORMAT.format(self.author))
+        embed.set_footer(text=title)
+        attached_image = False
+        for a in self.attachments:
+            if is_image(a["url"]):
+                embed.set_image(url=a["url"])
+                attached_image = True
+            else:
+                embed.add_field(name="Attachment", value=a["url"], inline=False)
+        if not attached_image:
+            if is_image(self.content):
+                embed.set_image(url=self.content)
+            
+        return embed
+
+async def create_archive(logs):
     i = 0
-    out = []
+    archive = []
 
     # Iterate through message history
     async for message in logs:
@@ -54,49 +129,13 @@ async def create_archive(logs, summary=False):
         # Find those messages that have scroll emoji reactions
         if SCROLL_UTF in reactions:
 
-            # Enumerate archivable posts
-            inner = ""
-            if summary:
-                inner += str(i) + ". "
-
-                # Show reaction count
-                sformat = (SCROLL_UTF,
-                        message.reactions[reactions.index(SCROLL_UTF)].count)
-                inner += "[%s%d]  " % sformat
-
-            # Show author
-            inner += str(message.author)
-
-            # Bold entire first line
-            inner = bold(inner)
-            inner += "\n"
-
-            # Show the content if it exists
-            if message.clean_content:
-                inner += bold("Content: ")
-                inner += code(message.clean_content) + "\n"
-
-            # Show attachments if they exist
-            if message.attachments:
-                inner += bold("Attachment(s): ")
-                attachments = message.attachments
-                attachments = [ noembed(x["url"]) for x in attachments ]
-                inner += "\n".join(attachments) + "\n"
-
-            # Show timestamp of message
-            inner += bold("Timestamp: ")
-            inner += code(message.timestamp.strftime("%d/%m/%y %H:%M:%S")) + "\n"
-
-            # Add the hotlink without embed
-            inner += bold("Hotlink: ") + noembed(HOTLINK_PREFIX 
-                    + message.server.id + "/" 
-                    + message.channel.id + "/" 
-                    + message.id)+ "\n"
-
-            # Append inner to out
-            out.append(inner)
+            # Append entry to archive
+            archive.append(Entry(i, message))
 
             # Increment history counter
             i += 1
     
-    return out
+    return archive
+
+def is_image(url):
+    return url.split('.')[-1].lower() in IMAGE_EXTENSIONS
