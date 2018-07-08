@@ -26,6 +26,15 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print("Playing " + presence)
+
+    if not discord.opus.is_loaded():
+        discord.opus.load_opus()
+
+    if discord.opus.is_loaded():
+        print("Opus Loaded") 
+    else:
+        print("Opus not Loaded!")
+
     print('------')
 
     await client.change_presence(game=discord.Game(name=presence))

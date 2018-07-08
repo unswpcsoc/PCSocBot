@@ -8,10 +8,10 @@ HIGH_NOON_CHANNEL = 'Gaming'
 
 
 class HighNoon(Command):
-    roles_required = ['mod', 'exec']
+    #roles_required = ['mod', 'exec']
     async def eval(self):
-        raise CommandFailure("Unicode in channel names breaks me")
-        # await self.play_audio('high_noon.mp3')
+        #raise CommandFailure("Unicode in channel names breaks me")
+        await self.play_mp3('high_noon.mp3')
 
 
 async def high_noon(client, channel):

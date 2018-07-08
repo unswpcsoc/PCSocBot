@@ -7,7 +7,7 @@ import discord
 from pony.orm import db_session
 from mutagen.mp3 import MP3
 
-from helpers import classproperty, code, bold, underline, CommandFailure
+from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
@@ -90,7 +90,7 @@ class Command(metaclass=Tree):
         return discord.utils.find(lambda x: x.name.lower() == name.lower(), self.members)
 
     def check_permissions(self):
-        if self.roles_required is not None:
+        if self.roles_required:
             for role in self.message.author.roles:
                 if role.name.lower() in self.roles_required:
                     return
@@ -99,12 +99,13 @@ class Command(metaclass=Tree):
 
 
     audio_playing = False
-    async def play_audio(self, file):
-        channel = self.message.author.voice_channel
+    async def play_mp3(self, file):
+        channel = self.message.author.voice.voice_channel
         if channel is None:
             raise CommandFailure("You need to join a voice channel to use this command")
         if Command.audio_playing:
             raise CommandFailure("Can only play one audio file at once")
+
         Command.audio_playing = True  # coroutines, no mutex required
         voice = await self.client.join_voice_channel(channel)
         player = voice.create_ffmpeg_player('files/' + file)
