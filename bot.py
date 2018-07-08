@@ -60,5 +60,7 @@ async def on_message(message):
                     await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
         await client.send_message(message.channel, err)
+    except ProcessLookupError:
+        pass
 
 client.run(os.environ['TOKEN'])

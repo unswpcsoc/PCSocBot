@@ -46,6 +46,7 @@ class Command(metaclass=Tree):
         if len(argspec.args) == len(args) + 1 or argspec.varargs or argspec.defaults:
             try:
                 self.check_permissions()
+                self.check_channels()
                 return await self.eval(*args) if inspect.iscoroutinefunction(self.eval) else self.eval(*args)
             except CommandFailure as e:
                 return e.args[0]
@@ -96,6 +97,10 @@ class Command(metaclass=Tree):
                     return
             raise CommandFailure("You need to be a %s to use that command" % \
                                  " or ".join(self.roles_required))
+
+    def check_channels(self):
+        # TODO
+        pass
 
 
     audio_playing = False
