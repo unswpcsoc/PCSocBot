@@ -10,7 +10,7 @@ SLEEP_INTERVAL = 5
 bind_channel = None
 player = None
 playlist = deque()
-volume = 20
+volume = float(12)
 
 
 class M(Command):
@@ -76,6 +76,7 @@ class Play(M):
         # Get the voice channel
         voice = vclients[v_index]
 
+        # TODO Implement playlist scraping
         # Get metadata
         ydl_opts = {}
         info = {}
@@ -126,6 +127,7 @@ class Resume(M):
 class Skip(M):
     desc = "Skips a song"
 
+    # TODO Extend to skip certain songs
     def eval(self):
         global player
 
@@ -148,6 +150,7 @@ class Skip(M):
 class Stop(M):
     desc = "Stops playing but persists in voice"
 
+    # TODO Fix this
     def eval(self):
         global player
 
@@ -174,18 +177,25 @@ class Volume(M):
         except ValueError:
             raise CommandFailure("Please enter a number between 0-100")
 
-        if vol < 100 and vol > 0:
+        if 0 <= vol <= 100:
             # Change the global volume
             volume = vol
             player.volume = volume/100
             return "Volume changed to %f%%" % vol
         else:
-            raise CommandFailure("Please enter a number between 0-100")
+            raise CommandFailure("Please enter a number from 0-100")
+
+
+class V(M):
+    desc = "See " + bold(code("!m") + " " + code("volume")) + "."
+    def eval(self):
+        return Volume.eval(self)
 
 
 class List(M):
     desc = "Lists the playlist"
 
+    # TODO Embeds
     def eval(self):
         global playlist
 
@@ -211,8 +221,8 @@ class List(M):
 
 class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
-    def eval(self)
-    return List.eval(self)
+    def eval(self):
+        return List.eval(self)
 
 
 async def music(voice, client, channel):
@@ -243,6 +253,6 @@ async def music(voice, client, channel):
             out = bold("Now playing: [%s] %s" % (duration, song['title']))
             await client.send_message(channel, out)
 
-            player.volume = volume
+            player.volume = volume/100
 
         await asyncio.sleep(SLEEP_INTERVAL)
