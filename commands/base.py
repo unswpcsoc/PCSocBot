@@ -101,7 +101,7 @@ class Command(metaclass=Tree):
     audio_playing = False
     async def play_mp3(self, file):
         channel = self.message.author.voice.voice_channel
-        if channel is None:
+        if not channel:
             raise CommandFailure("You need to join a voice channel to use this command")
         if Command.audio_playing:
             raise CommandFailure("Can only play one audio file at once")
