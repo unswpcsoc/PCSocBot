@@ -25,6 +25,7 @@ class Tree(type):
 
 class Command(metaclass=Tree):
     roles_required = None
+    channels_required = None
     db_required = False
     desc = bold('PCSocBot') + ' - PC Enthusiasts society Discord bot made with discord.py by Matt Stark'
     pprint = {}
@@ -99,8 +100,11 @@ class Command(metaclass=Tree):
                                  " or ".join(self.roles_required))
 
     def check_channels(self):
-        # TODO
-        pass
+        cr = self.channels_required
+        if cr and len(cr) > 0:
+            if self.message.channel not in cr and None not in cr:
+                raise CommandFailure("You need to use this command in %s" % \
+                                     " or ".join([chan(x.id) for x in cr]))
 
 
     async def play_mp3(self, file):

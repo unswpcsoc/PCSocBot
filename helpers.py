@@ -23,6 +23,9 @@ def at(s):
 def noembed(s):
     return "<%s>" % s
 
+def chan(s):
+    return "<#%s>" % s
+
 def nick(m):
     return m.nick or str(m).split("#")[0]
 
