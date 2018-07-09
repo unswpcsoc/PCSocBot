@@ -11,6 +11,9 @@ from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
+VOLUME = float(30)
+player = None
+
 class Tree(type):
     def __init__(cls, name, bases, clsdict):
         assert len(bases) < 2  # no multiple inheritance for commands
@@ -108,6 +111,8 @@ class Command(metaclass=Tree):
 
 
     async def play_mp3(self, file):
+        global player
+
         channel = self.message.author.voice.voice_channel
 
         if not channel:
@@ -116,12 +121,24 @@ class Command(metaclass=Tree):
         if player:
             raise CommandFailure("Already playing something!")
 
-        Command.audio_playing = True  # coroutines, no mutex required
-        voice = await self.client.join_voice_channel(channel)
-        player = voice.create_ffmpeg_player('files/' + file)
+        # Check if bot is connected already in the server
+        vclients = list(self.client.voice_clients)
+        voices = [ x.server for x in vclients ]
+        try:
+            # Get the voice channel
+            v_index = voices.index(self.message.server)
+            voice = vclients[v_index]
+        except ValueError:
+            # Not connected, join a vc
+            voice = await self.client.join_voice_channel(channel)
 
+        player = voice.create_ffmpeg_player('files/' + file)
+        player.volume = VOLUME/100
         player.start()
+
         duration = MP3('files/' + file).info.length
         await asyncio.sleep(duration)
         await voice.disconnect()
-        Command.audio_playing = False
+
+        # Reset player
+        player = None

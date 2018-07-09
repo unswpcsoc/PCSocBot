@@ -6,7 +6,7 @@ from collections import deque
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import discord, asyncio, datetime, youtube_dl
+import discord, asyncio, datetime, youtube_dl, os
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
@@ -14,13 +14,17 @@ import discord, asyncio, datetime, youtube_dl
 #   https://cloud.google.com/console
 # Please ensure that you have enabled the YouTube Data API for your project.
 # TODO make api key environment variable
-DEVELOPER_KEY = 'INSERT_API_KEY'
+DEVELOPER_KEY = os.environ['YT_API']
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 MAX_RESULTS = 5
 
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
+SAMPLE_RATE = 48000
+
+PAUSE_UTF = "\u23F8"
+PLAY_UTF = "\u25B6"
 
 bind_channel = None
 player = None
@@ -130,11 +134,10 @@ class Play(M):
         if not player or player.is_done():
             await music(voice, self.client, self.message.channel)
 
-
 class Pause(M):
     desc = "Pauses music"
 
-    def eval(self):
+    async def eval(self):
         global bind_channel
         global player
 
@@ -145,6 +148,11 @@ class Pause(M):
 
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         out = bold("Paused Playing: [%s] %s" % (duration, player.title))
+
+        # Change presence
+        presence = PAUSE_UTF + player.title
+        await self.client.change_presence(game=discord.Game(name=presence))
+
         return out
 
 
@@ -162,7 +170,12 @@ class Resume(M):
 
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         out = bold("Resumed Playing: [%s] %s" % (duration, player.title))
-        await self.client.send_message(bind_channel, out)
+
+        # Change presence
+        presence = PLAY_UTF + player.title
+        await self.client.change_presence(game=discord.Game(name=presence))
+
+        return out
 
 
 class Skip(M):
@@ -227,7 +240,6 @@ class Stop(M):
         player.stop()
         player = None
         playlist.clear()
-        return bold("Stopped Playing")
 
 
 class Volume(M):
@@ -300,12 +312,6 @@ class Ls(M):
 async def do_join(client, message):
     global bind_channel
 
-    # Checks if joined to a vc in the server
-    vclients = list(client.voice_clients)
-    voices = [ x.server for x in vclients ]
-    if message.author.server in voices:
-        return "Already joined a voice channel!"
-
     channel = message.author.voice.voice_channel
     if channel:
         voice = await client.join_voice_channel(channel)
@@ -318,6 +324,9 @@ async def do_join(client, message):
     out = "Joined %s, " % code(channel.name)
     out += "Binding to %s" % chan(bind_channel.id)
     await client.send_message(bind_channel, out)
+
+    # Set bitrate
+    voice.encoder_options(sample_rate=SAMPLE_RATE, channels=2)
 
     return voice
 
@@ -335,27 +344,34 @@ async def music(voice, client, channel):
         if not player or player.is_done():
 
             try:
-                # Play the next song in the deque
+                # Play the next song in the list
                 song = playlist.pop(0)
                 url = song['webpage_url']
+
             except IndexError:
                 # Nothing in playlist, break
                 out = bold("Stopped Playing")
                 await client.send_message(bind_channel, out)
+                # Reset presence
+                await client.change_presence(game=None)
+                # Reset player
+                player = None
+                # Exit event loop
                 break
 
-            # TODO Optimise first play scrape
-            # TODO Presence
             player = await voice.create_ytdl_player(url)
             player.start()
+            player.volume = volume/100  # "That's how you get tinnitus"
 
             # Print the message in the supplied channel
             duration = str(datetime.timedelta(seconds=int(song['duration'])))
-            out = bold("Now playing: [%s] %s" % (duration, song['title']))
+            presence = song['title']
+            out = bold("Now playing: [%s] %s" % (duration, presence))
             await client.send_message(bind_channel, out)
 
-            # "That's how you get tinnitus"
-            player.volume = volume/100
+            # Change presence to the currently playing song
+            presence = PLAY_UTF + presence
+            await client.change_presence(game=discord.Game(name=presence))
 
         await asyncio.sleep(SLEEP_INTERVAL)
 

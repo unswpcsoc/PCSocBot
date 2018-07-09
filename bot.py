@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
-import json
-import os
-import sys
+#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
+from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
+
+import json, os, sys
 
 import discord
 
 import commands
-#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 
 client = discord.Client()
 high_noon_channel = None
@@ -60,7 +59,5 @@ async def on_message(message):
                     await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
         await client.send_message(message.channel, err)
-    except ProcessLookupError:
-        pass
 
 client.run(os.environ['TOKEN'])
