@@ -22,6 +22,8 @@ MAX_RESULTS = 5
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
 SAMPLE_RATE = 48000
+VID_PREFIX = "https://www.youtube.com/watch?v="
+LIST_PREFIX = "https://www.youtube.com/playlist?list="
 
 PAUSE_UTF = "\u23F8"
 PLAY_UTF = "\u25B6"
@@ -48,6 +50,9 @@ class Leave(M):
     desc = "Boots the bot from voice channels"
 
     async def eval(self):
+        global player
+        global playlist
+
         # Checks if joined to a vc in the server
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
@@ -64,6 +69,10 @@ class Leave(M):
             await voice.disconnect()
         else:
             raise CommandFailure("Please join a voice channel first")
+
+        # Clean player and playlist
+        player = None
+        playlist.clear()
 
         # Flush channels required
         M.channels_required.clear()
@@ -101,14 +110,14 @@ class Play(M):
 
         # TODO Implement playlist scraping
 
-        if args.startswith("http"):
+        if args.startswith("https"):
             # URL
             url = args
         else:
             # Not a URL, search youtube
             try:
                 vid = youtube_search(args)
-                url = "https://www.youtube.com/watch?v=%s" % vid
+                url = VID_PREFIX + vid
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
                         % (e.resp.status, e.content))
@@ -118,17 +127,44 @@ class Play(M):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        song = {}
-        song['webpage_url'] = info['webpage_url']
-        song['duration'] = info ['duration']
-        song['title'] = info ['title']
-        playlist.append(song)
+        try:
+            # Try playlist
+            songs = []
+            song = dict()
+            for entry in info['entries']:
+                # Create a new dict every iteration
+                copy = song.copy()
+                copy['webpage_url'] = entry['webpage_url']
+                copy['duration'] = entry['duration']
+                copy['title'] = entry['title']
+                songs.append(copy)
 
+            #print(songs)
+            playlist.extend(songs)
+            print(playlist)
 
-        # Send message acknowledging add
-        duration = str(datetime.timedelta(seconds=int(song['duration'])))
-        out = bold("Added: [%s] %s" % (duration, song['title']))
-        await self.client.send_message(bind_channel, out)
+            # Send message acknowledging adds
+            # TODO add playlist name
+            out = bold("Added from playlist:\n")
+            for s in songs:
+                duration = datetime.timedelta(seconds=int(s['duration']))
+                out += "[%s] %s\n" % (str(duration), s['title'])
+
+            await self.client.send_message(bind_channel, out)
+
+        except KeyError:
+            # Not a playlist, get song
+            song = {}
+            song['webpage_url'] = info['webpage_url']
+            song['duration'] = info['duration']
+            song['title'] = info['title']
+            playlist.append(song)
+            print(playlist)
+
+            # Send message acknowledging add
+            duration = str(datetime.timedelta(seconds=int(song['duration'])))
+            out = bold("Added: [%s] %s" % (duration, song['title']))
+            await self.client.send_message(bind_channel, out)
 
         # Nothing is playing, start the music event loop
         if not player or player.is_done():
@@ -307,6 +343,10 @@ class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
     def eval(self):
         return List.eval(self)
+
+
+class Shuffle(M):
+    pass
 
 
 async def do_join(client, message):
