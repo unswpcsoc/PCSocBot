@@ -3,7 +3,21 @@ from helpers import *
 
 from collections import deque
 
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
 import discord, asyncio, datetime, youtube_dl
+
+# Source: https://github.com/youtube/api-samples/blob/master/python/search.py
+# Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
+# tab of
+#   https://cloud.google.com/console
+# Please ensure that you have enabled the YouTube Data API for your project.
+# TODO make api key environment variable
+DEVELOPER_KEY = 'INSERT_API_KEY'
+YOUTUBE_API_SERVICE_NAME = 'youtube'
+YOUTUBE_API_VERSION = 'v3'
+MAX_RESULTS = 5
 
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
@@ -56,12 +70,12 @@ class Leave(M):
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked."
 
-    async def eval(self, *url):
+    async def eval(self, *args):
         global bind_channel
         global player
         global playlist
 
-        url = " ".join(url)
+        args = " ".join(args)
 
         # Check if user is connected to a vc
         channel = self.message.author.voice.voice_channel
@@ -82,8 +96,20 @@ class Play(M):
             M.channels_required.append(bind_channel)
 
         # TODO Implement playlist scraping
-        # TODO Implement searching
-        # Get metadata
+
+        if args.startswith("http"):
+            # URL
+            url = args
+        else:
+            # Not a URL, search youtube
+            try:
+                vid = youtube_search(args)
+                url = "https://www.youtube.com/watch?v=%s" % vid
+            except HttpError as e:
+                print('An HTTP error %d occurred:\n%s' \
+                        % (e.resp.status, e.content))
+                return "Something went wrong!"
+
         ydl_opts = {'geo_bypass_country': GEO_REGION}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -93,6 +119,7 @@ class Play(M):
         song['duration'] = info ['duration']
         song['title'] = info ['title']
         playlist.append(song)
+
 
         # Send message acknowledging add
         duration = str(datetime.timedelta(seconds=int(song['duration'])))
@@ -331,3 +358,30 @@ async def music(voice, client, channel):
             player.volume = volume/100
 
         await asyncio.sleep(SLEEP_INTERVAL)
+
+
+def youtube_search(query):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+            developerKey=DEVELOPER_KEY)
+
+    # Call the search.list method to retrieve results matching the specified
+    # query term.
+    search_response = youtube.search().list(
+        q=query,
+        part='id,snippet',
+        maxResults=MAX_RESULTS,
+        regionCode=GEO_REGION,
+        type='video'
+        ).execute()
+
+    videos = []
+
+    # Add each result to the appropriate list, and then display the lists of
+    # matching videos, channels, and playlists.
+    for search_result in search_response.get('items', []):
+
+        #if search_result['id']['kind'] == 'youtube#video':
+        videos.append(search_result['id']['videoId'])
+            
+    return videos[0]
+
