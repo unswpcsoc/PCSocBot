@@ -5,7 +5,8 @@ from collections import deque
 
 import discord, asyncio, datetime, youtube_dl
 
-SLEEP_INTERVAL = 5
+SLEEP_INTERVAL = 1
+GEO_REGION = "AU"
 
 bind_channel = None
 player = None
@@ -17,27 +18,11 @@ class M(Command):
     desc = "Music"
 
 
-class Join(M):
-    desc = "Binds the bot to the voice channel"
-
-    async def eval(self):
-        # Bind the bot to the text channel it came from
-        global bind_channel
-        bind_channel = self.message.channel
-
-        # Assume we are only running in one server
-        # If you'd like to host the bot on multiple servers,
-        # figure out how to handle it per server
-        if self.client.voice_clients:
-            return "Already joined a voice channel!"
-
-        channel = self.message.author.voice.voice_channel
-        if channel:
-            voice = await self.client.join_voice_channel(channel)
-        else:
-            raise CommandFailure("Please join a voice channel first")
-
-        return "Joined %s, Binding to %s" % (channel.name, bind_channel)
+#class Join(M):
+#    desc = "Binds the bot to the voice channel"
+#
+#    async def eval(self):
+#        voice = await do_join(self.client, self.message)
 
 
 class Leave(M):
@@ -57,28 +42,29 @@ class Play(M):
     desc = "Plays music. Must have `!join`ed before playing."
 
     async def eval(self, url):
+        global bind_channel
         global player
+        global playlist
 
         # Check if connected
         channel = self.message.author.voice.voice_channel
         if not channel:
             raise CommandFailure("Please join a voice channel first")
 
-        # Check if connected to a voice channel
+        # Check if connected to a voice channel in the current server
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
         try:
+            # Get the voice channel
             v_index = voices.index(self.message.server)
+            voice = vclients[v_index]
         except ValueError:
             # Not connected to a voice channel in this server
-            raise CommandFailure("Please `!join` a voice channel first") 
-
-        # Get the voice channel
-        voice = vclients[v_index]
+            voice = await do_join(self.client, self.message)
 
         # TODO Implement playlist scraping
         # Get metadata
-        ydl_opts = {}
+        ydl_opts = {'geobypass': GEO_REGION}
         info = {}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -92,10 +78,9 @@ class Play(M):
         out = bold("Added: %s" % noembed(url))
         await self.client.send_message(bind_channel, out)
 
-        # Check if nothing is playing and start the music event loop
+        # Nothing is playing, start the music event loop
         if not player or player.is_done():
             await music(voice, self.client, self.message.channel)
-
 
 class Pause(M):
     desc = "Pauses music"
@@ -124,6 +109,7 @@ class Resume(M):
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         return bold("Resumed Playing: [%s] %s" % (duration, player.title))
 
+
 class Skip(M):
     desc = "Skips a song"
 
@@ -140,25 +126,27 @@ class Skip(M):
         try:
             v_index = voices.index(self.message.server)
         except ValueError:
-            # Not connected to a voice channel in this server
+            # Bot is not connected to a voice channel in this server
             raise CommandFailure("Please `!join` a voice channel first") 
 
         # Destroy the player instance
         player.stop()
         player = None
 
+
 class Stop(M):
     desc = "Stops playing but persists in voice"
 
-    # TODO Fix this
     def eval(self):
         global player
+        global playlist
 
         if not player:
             return "Not playing anything!"
 
         player.stop()
         player = None
+        playlist.clear()
         return bold("Stopped Playing")
 
 
@@ -188,8 +176,8 @@ class Volume(M):
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
-    def eval(self):
-        return Volume.eval(self)
+    def eval(self, vol):
+        return Volume.eval(self, vol)
 
 
 class List(M):
@@ -213,7 +201,8 @@ class List(M):
         i = 0
         for song in playlist:
             duration = str(datetime.timedelta(seconds=int(song['duration'])))
-            out += "%d. [%s] %s\n" % (i, duration, song['title']) 
+            out += code("%d. [%s] %s" % (i, duration, song['title'])) 
+            out += "\n"
             i += 1
 
         return out
@@ -225,34 +214,62 @@ class Ls(M):
         return List.eval(self)
 
 
+async def do_join(client, message):
+    global bind_channel
+
+    # Checks if joined to a vc in the server
+    vclients = list(client.voice_clients)
+    voices = [ x.server for x in vclients ]
+    if message.author.server in voices:
+        return "Already joined a voice channel!"
+
+    channel = message.author.voice.voice_channel
+    if channel:
+        voice = await client.join_voice_channel(channel)
+    else:
+        raise CommandFailure("Please join a voice channel first")
+
+    # Bind the bot to the text channel it came from
+    bind_channel = message.channel
+
+    out = "Joined %s, Binding to #%s" % (code(channel.name), bind_channel.name)
+    await client.send_message(bind_channel, out)
+
+    return voice
+
+
 async def music(voice, client, channel):
+    global bind_channel
     global player
     global playlist
     global volume
 
-    print("Entered music")
     while True:
 
         # Poll when there is no player or the player is finished
         if not player or player.is_done():
-            print("Entered is_done")
 
-            url = ''
             try:
                 # Play the next song in the deque
                 song = playlist.popleft()
                 url = song['webpage_url']
             except IndexError:
+                # Nothing in playlist, break
+                out = bold("Stopped Playing")
+                await client.send_message(bind_channel, out)
                 break
 
+            # TODO Optimise first play scrape
+            # TODO Presence
             player = await voice.create_ytdl_player(url)
             player.start()
 
             # Print the message in the supplied channel
             duration = str(datetime.timedelta(seconds=int(song['duration'])))
             out = bold("Now playing: [%s] %s" % (duration, song['title']))
-            await client.send_message(channel, out)
+            await client.send_message(bind_channel, out)
 
+            # "That's how you get tinnitus"
             player.volume = volume/100
 
         await asyncio.sleep(SLEEP_INTERVAL)
