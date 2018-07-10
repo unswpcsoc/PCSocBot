@@ -6,7 +6,7 @@ from collections import deque
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import discord, asyncio, datetime, youtube_dl, os
+import discord, asyncio, datetime, isodate, youtube_dl, os
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
@@ -17,13 +17,13 @@ import discord, asyncio, datetime, youtube_dl, os
 DEVELOPER_KEY = os.environ['YT_API']
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
-MAX_RESULTS = 5
+MAX_RESULTS = 1
 
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
 SAMPLE_RATE = 48000
 VID_PREFIX = "https://www.youtube.com/watch?v="
-LIST_PREFIX = "https://www.youtube.com/playlist?list="
+PLIST_PREFIX = "https://www.youtube.com/playlist?list="
 
 PAUSE_UTF = "\u23F8"
 PLAY_UTF = "\u25B6"
@@ -113,16 +113,41 @@ class Play(M):
         if args.startswith("https"):
             # URL
             url = args
-        else:
-            # Not a URL, search youtube
+
+            # Scrape using yt API
             try:
-                vid = youtube_search(args)
-                url = VID_PREFIX + vid
+                if len(url.split("list=")) == 2:
+                    print("Entered playlist")
+                    # Playlist
+                    playlist.extend(playlist_info(url))
+
+                elif url.startswith(VID_PREFIX):
+                    print("Entered video")
+                    # Video
+                    playlist.append(video_info(url))
+
+                else:
+                    # TODO
+                    # Not a youtube link, use youtube_dl
+                    pass
+
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
                         % (e.resp.status, e.content))
                 return "Something went wrong!"
 
+        else:
+            # Not a URL, search youtube using yt API
+            try:
+                playlist.append(youtube_search(args))
+            except HttpError as e:
+                print('An HTTP error %d occurred:\n%s' \
+                        % (e.resp.status, e.content))
+                return "Invalid link! (or something else went wrong :/)"
+
+
+        """
+        # Get from youtube_dl
         ydl_opts = {'geo_bypass_country': GEO_REGION}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -166,9 +191,13 @@ class Play(M):
             out = bold("Added: [%s] %s" % (duration, song['title']))
             await self.client.send_message(bind_channel, out)
 
+            """
+
+
         # Nothing is playing, start the music event loop
         if not player or player.is_done():
             await music(voice, self.client, self.message.channel)
+
 
 class Pause(M):
     desc = "Pauses music"
@@ -416,6 +445,67 @@ async def music(voice, client, channel):
         await asyncio.sleep(SLEEP_INTERVAL)
 
 
+def video_info(url):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
+
+    # Split the url to get video id
+    if url.startswith("http"):
+        vid = url.split("v=")[1]
+        vid = vid.split("&")[0]
+    else:
+        vid = url
+
+    # API call
+    videos = youtube.videos().list(
+            part='snippet, contentDetails',
+            id=vid
+            ).execute()
+
+    # Using vid id, will always return one item
+    vid = videos['items'][0]
+
+    # Construct info dict and return it
+    info = {}
+    info['title'] = vid['snippet']['title']
+    info['webpage_url'] = VID_PREFIX + vid['id']
+    duration = isodate.parse_duration(vid['contentDetails']['duration'])
+    info['duration'] = duration.seconds
+    return info
+
+
+def playlist_info(url):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
+
+    # Split the url to get list id
+    if url.startswith("http"):
+        vid = url.split("list=")[1]
+        vid = vid.split("&")[0]
+    else:
+        vid = url
+
+    # API call
+    videos = youtube.playlistItems().list(
+            part='snippet, contentDetails',
+            playlistId=vid
+            ).execute()
+
+    #print(videos['items'])
+    # Get video metadata
+    info_list = []
+    info = dict()
+    for video in videos['items']:
+        # Create a new dict each iteration and append to list
+        copy = info.copy()
+        copy = video_info(video['contentDetails']['videoId'])
+        info_list.append(copy)
+
+    #print(info_list)
+
+    return info_list
+
+
 def youtube_search(query):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
             developerKey=DEVELOPER_KEY)
@@ -424,20 +514,11 @@ def youtube_search(query):
     # query term.
     search_response = youtube.search().list(
         q=query,
-        part='id,snippet',
+        part='id',
         maxResults=MAX_RESULTS,
         regionCode=GEO_REGION,
         type='video'
         ).execute()
 
-    videos = []
-
-    # Add each result to the appropriate list, and then display the lists of
-    # matching videos, channels, and playlists.
-    for search_result in search_response.get('items', []):
-
-        #if search_result['id']['kind'] == 'youtube#video':
-        videos.append(search_result['id']['videoId'])
-            
-    return videos[0]
-
+    # Return the first video's info
+    return video_info(search_response['items'][0]['id']['videoId'])
