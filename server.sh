@@ -1,5 +1,5 @@
 #!/bin/sh
-# Restart the bot every 24h to avoid weird crashes
+# Restart the bot everytime it crashes
 
 while true
 do
@@ -9,5 +9,7 @@ do
 
     echo
     echo "Starting bot..."
-    timeout 24h python3 bot.py
+    python3 bot.py
+
+    sleep 10
 done
