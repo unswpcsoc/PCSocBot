@@ -35,8 +35,8 @@ async def on_ready():
         #if channel.name == HIGH_NOON_CHANNEL:
             #await high_noon(client, channel)
 
-        if channel.name == LEADERBOARD_CHANNEL:
-            await leaderboard(client, channel)
+        # if channel.name == LEADERBOARD_CHANNEL:
+        #     await leaderboard(client, channel)
 
         if channel.name == TWITCH_CHANNEL:
             await twitch(client, channel)
