@@ -307,6 +307,7 @@ class Stop(M):
 
 class Volume(M):
     desc = "Volume adjustment"
+    roles_required = [ "mod", "exec" ]
 
     def eval(self, vol):
         global bind_channel
@@ -333,6 +334,8 @@ class Volume(M):
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
+    roles_required = [ "mod", "exec" ]
+
     def eval(self, vol):
         return Volume.eval(self, vol)
 
