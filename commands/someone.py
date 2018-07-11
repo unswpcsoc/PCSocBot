@@ -54,7 +54,10 @@ class Someone(Command):
                 formats = json.load(fmt)
 
             # Randomly choose from the people indexing, throws KeyError
-            out = random.choice(formats[str(people)])
+            if len(formats[str(people)]) == 0:
+                raise KeyError
+            else:
+                out = random.choice(formats[str(people)])
 
         except (FileNotFoundError, KeyError):
             # No format for that number of people, use default
@@ -63,7 +66,7 @@ class Someone(Command):
         roll_list = [bold(nick(x)) for x in roll_list]
 
         # Craft output string according to format
-        return out.format(*roll_list)
+        return "\n".join(out.format(*roll_list).split("\\n"))
 
 class Add(Someone):
     desc = """Adds a format template. Mods only. 

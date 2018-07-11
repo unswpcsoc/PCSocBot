@@ -1,31 +1,40 @@
 #!/usr/bin/python3
 
-import json
-import os
-import sys
+#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
+from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
+
+import json, os, sys
 
 import discord
 
 import commands
-#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 
 client = discord.Client()
 high_noon_channel = None
 
+DEFAULT_PRESENCE = "!help"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
 The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
 
 @client.event
 async def on_ready():
     # Set game by CLA or default
-    presence = sys.argv[1] if len(sys.argv) == 2 else "Despacito 2"
+    presence = sys.argv[1] if len(sys.argv) == 2 else DEFAULT_PRESENCE
 
     print('------')
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
     print("Playing " + presence)
+
+    if not discord.opus.is_loaded():
+        discord.opus.load_opus()
+
+    if discord.opus.is_loaded():
+        print("Opus Loaded") 
+    else:
+        print("Opus not Loaded!")
+
     print('------')
 
     await client.change_presence(game=discord.Game(name=presence))

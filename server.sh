@@ -1,15 +1,13 @@
 #!/bin/sh
+# Restart the bot every 24h to avoid weird crashes
 
-echo
-echo "Updating bot..."
-git pull
+while true
+do
+    echo
+    echo "Updating bot..."
+    git pull
 
-echo
-echo "Starting bot..."
-
-if [ $# -eq 1 ]
-then
-    python3 bot.py "$1"
-else
-    python3 bot.py
-fi
+    echo
+    echo "Starting bot..."
+    timeout 24h python3 bot.py
+done

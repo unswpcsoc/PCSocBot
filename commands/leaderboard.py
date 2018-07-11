@@ -45,6 +45,7 @@ async def leaderboard(client, channel):
                                 alerts.append("{} has just entered the top {}, kicking out {}.".format(
                                     at(user), rank, at(prev)))
                             else:
+                                # TODO implement random messages
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     at(user), at(prev), rank))
                     except IndexError:
