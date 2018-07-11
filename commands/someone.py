@@ -3,6 +3,7 @@ from helpers import *
 
 import random
 import json
+import re
 
 IDENTIFIER = "{}"
 FORMAT_FILE = "files/formats.json"
@@ -76,7 +77,7 @@ class Add(Someone):
         format_string = " ".join(format_string)
 
         # Count the number of people to generate
-        people = format_string.count(IDENTIFIER)
+        people = count_placeholders(format_string)
 
         # Make sure the number of people is sane
         if people < 1:
@@ -121,7 +122,7 @@ class Remove(Someone):
         except ValueError:
             remove_all = False
             # Get people
-            people = format_string.count(IDENTIFIER)
+            people = count_placeholders(format_string)
 
         try:
             # Open the JSON file or create a new dict to load
@@ -198,3 +199,6 @@ class Ls(Someone):
 class NoFormatsError(Exception):
     pass
 
+def count_placeholders(format_string):
+    return format_string.count(IDENTIFIER) or 1 + \
+        max([int(x) for x in re.findall(r"{(\d*)}", format_string)])
