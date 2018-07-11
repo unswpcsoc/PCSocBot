@@ -28,7 +28,7 @@ GEO_REGION = "AU"
 SAMPLE_RATE = 48000
 VID_PREFIX = "https://www.youtube.com/watch?v="
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
-
+YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
 PAUSE_UTF = "\u23F8"
 PLAY_UTF = "\u25B6"
 
@@ -81,7 +81,7 @@ class Leave(M):
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
     desc += "Accepts youtube links, playlists (first %d entries), and more!\n"
-    desc += noembed("https://rg3.github.io/youtube-dl/supportedsites.html")
+    desc += noembed(YDL_SITES)
 
     async def eval(self, *args):
         global bind_channel
@@ -134,7 +134,7 @@ class Play(M):
 
                     # Construct add message
                     d = str(datetime.timedelta(seconds=int(song['duration'])))
-                    out = bold("Added:") + " [%s] %s" % (d, song['title']))
+                    out = bold("Added:") + " [%s] %s" % (d, song['title'])
 
                     # Check for list param
                     if len(url.split("list=")) > 1:
@@ -147,25 +147,32 @@ class Play(M):
                     await self.client.send_message(bind_channel, out)
 
                 else:
-                    # Not a youtube link, use youtube_dl
-                    # Get from youtube_dl
-                    ydl_opts = {'geo_bypass_country': GEO_REGION}
-                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url, download=False)
+                    try:
+                        # Not a youtube link, use youtube_dl
+                        # Get from youtube_dl
+                        ydl_opts = {'geo_bypass_country': GEO_REGION}
+                        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(url, download=False)
 
-                    # Add to playlist
-                    song = {}
-                    song['webpage_url'] = info['webpage_url']
-                    song['duration'] = info['duration']
-                    song['title'] = info['title']
-                    song['author'] = self.message.author
-                    playlist.append(song)
+                        # Add to playlist
+                        song = {}
+                        song['webpage_url'] = info['webpage_url']
+                        song['duration'] = info['duration']
+                        song['title'] = info['title']
+                        song['author'] = self.message.author
+                        playlist.append(song)
 
-                    # Construct add message
-                    d = str(datetime.timedelta(seconds=int(song['duration'])))
-                    out = bold("Added: [%s] %s" % (d, song['title']))
 
-                    await self.client.send_message(bind_channel, out)
+                        # Construct add message
+                        d = str(datetime.timedelta(seconds=int(song['duration'])))
+                        out = bold("Added: [%s] %s" % (d, song['title']))
+
+                        await self.client.send_message(bind_channel, out)
+
+                    except:
+                        # Unsupported URL
+                        out = "Unsupported URL, see %s" % noembed(YDL_SITES)
+                        raise CommandFailure(out)
 
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
@@ -175,7 +182,7 @@ class Play(M):
         else:
             # Not a URL, search youtube using yt API
             try:
-                playlist.append(youtube_search(args))
+                playlist.append(youtube_search(args, self.message.author))
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
                         % (e.resp.status, e.content))
@@ -388,6 +395,13 @@ class Shuffle(M):
         return "Shuffled Playlist!"
 
 
+class Sh(M):
+    desc = "See !m shuffle"
+
+    def eval(self):
+        return Shuffle.eval(self)
+
+
 async def do_join(client, message):
     global bind_channel
 
@@ -444,7 +458,7 @@ async def music(voice, client, channel):
             # Print the message in the supplied channel
             duration = str(datetime.timedelta(seconds=int(song['duration'])))
             presence = song['title']
-            out = bold("Now playing:") + " [%s] %s" % (duration, presence))
+            out = bold("Now playing:") + " [%s] %s" % (duration, presence)
             await client.send_message(bind_channel, out)
 
             # Change presence to the currently playing song
@@ -530,4 +544,4 @@ def youtube_search(query, author):
         ).execute()
 
     # Return the first video's info
-    return video_info(search_response['items'][0]['id']['videoId'])
+    return video_info(search_response['items'][0]['id']['videoId'], author)
