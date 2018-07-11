@@ -12,13 +12,14 @@ import commands
 client = discord.Client()
 high_noon_channel = None
 
+DEFAULT_PRESENCE = "!help"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
 The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
 
 @client.event
 async def on_ready():
     # Set game by CLA or default
-    presence = sys.argv[1] if len(sys.argv) == 2 else "Despacito 2"
+    presence = sys.argv[1] if len(sys.argv) == 2 else DEFAULT_PRESENCE
 
     print('------')
     print('Logged in as')
