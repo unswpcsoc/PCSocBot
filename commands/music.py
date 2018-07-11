@@ -6,17 +6,21 @@ from collections import deque
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-import discord, asyncio, datetime, isodate, youtube_dl, os, random
+from discord import Game, Embed, Colour
+import asyncio, datetime, isodate, youtube_dl, os, random
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
 # tab of
 #   https://cloud.google.com/console
 # Please ensure that you have enabled the YouTube Data API for your project.
-# TODO make api key environment variable
+
+# Make sure you set your environment variable
 DEVELOPER_KEY = os.environ['YT_API']
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
+
+# Max results for playlist
 MAX_RESULTS = 10
 
 SLEEP_INTERVAL = 1
@@ -29,6 +33,7 @@ PAUSE_UTF = "\u23F8"
 PLAY_UTF = "\u25B6"
 
 bind_channel = None
+paused = False
 player = None
 playlist = []
 volume = float(12)
@@ -37,13 +42,6 @@ volume = float(12)
 class M(Command):
     desc = "Music"
     channels_required = []
-
-
-#class Join(M):
-#    desc = "Binds the bot to the voice channel"
-#
-#    async def eval(self):
-#        voice = await do_join(self.client, self.message)
 
 
 class Leave(M):
@@ -81,7 +79,9 @@ class Leave(M):
 
 
 class Play(M):
-    desc = "Plays music. Binds commands to the channel invoked."
+    desc = "Plays music. Binds commands to the channel invoked.\n"
+    desc += "Accepts youtube links, playlists (first %d entries), and more!\n"
+    desc += noembed("https://rg3.github.io/youtube-dl/supportedsites.html")
 
     async def eval(self, *args):
         global bind_channel
@@ -114,29 +114,36 @@ class Play(M):
 
             # Scrape using yt API
             try:
-                if len(url.split("list=")) == 2:
-                    print("Entered playlist")
-                    # Playlist
-                    songs = playlist_info(url)
+                if url.startswith(PLIST_PREFIX):
+                    # Pure playlist
+                    songs = playlist_info(url, self.message.author)
                     playlist.extend(songs)
 
-                    # Send message acknowledging adds
+                    # Construct add message
                     out = bold("Added Songs:") + "\n"
                     for song in songs:
-                        duration = str(datetime.timedelta(seconds=int(song['duration'])))
-                        out += "[%s] %s\n" % (duration, song['title'])
+                        d = datetime.timedelta(seconds=int(song['duration']))
+                        out += "[%s] %s\n" % (str(d), song['title'])
 
                     await self.client.send_message(bind_channel, out)
 
                 elif url.startswith(VID_PREFIX):
-                    print("Entered video")
-                    # Video
-                    song = video_info(url)
+                    # Video, could have playlist, add anyway
+                    song = video_info(url, self.message.author)
                     playlist.append(song)
 
-                    # Send message acknowledging add
-                    duration = str(datetime.timedelta(seconds=int(song['duration'])))
-                    out = bold("Added: [%s] %s" % (duration, song['title']))
+                    # Construct add message
+                    d = str(datetime.timedelta(seconds=int(song['duration'])))
+                    out = bold("Added:") + " [%s] %s" % (d, song['title']))
+
+                    # Check for list param
+                    if len(url.split("list=")) > 1:
+                        out += "\nWarning: You have added a video that is "
+                        out += "part of a playlist.Use this URL to add the "
+                        out += "playlist:\n"
+                        nu = PLIST_PREFIX + url.split("list=")[1].split("&")[0]
+                        out += noembed(nu)
+
                     await self.client.send_message(bind_channel, out)
 
                 else:
@@ -146,13 +153,19 @@ class Play(M):
                     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(url, download=False)
 
-                    # Not a playlist, get song
+                    # Add to playlist
                     song = {}
                     song['webpage_url'] = info['webpage_url']
                     song['duration'] = info['duration']
                     song['title'] = info['title']
+                    song['author'] = self.message.author
                     playlist.append(song)
-                    print(playlist)
+
+                    # Construct add message
+                    d = str(datetime.timedelta(seconds=int(song['duration'])))
+                    out = bold("Added: [%s] %s" % (d, song['title']))
+
+                    await self.client.send_message(bind_channel, out)
 
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
@@ -168,7 +181,6 @@ class Play(M):
                         % (e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
-
         # Nothing is playing, start the music event loop
         if not player or player.is_done():
             await music(voice, self.client, self.message.channel)
@@ -179,19 +191,21 @@ class Pause(M):
 
     async def eval(self):
         global bind_channel
+        global paused
         global player
 
         if not player:
             raise CommandFailure("Not playing anything!")
 
         player.pause()
+        paused = True
 
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         out = bold("Paused Playing: [%s] %s" % (duration, player.title))
 
         # Change presence
         presence = PAUSE_UTF + player.title
-        await self.client.change_presence(game=discord.Game(name=presence))
+        await self.client.change_presence(game=Game(name=presence))
 
         return out
 
@@ -201,19 +215,21 @@ class Resume(M):
 
     async def eval(self):
         global bind_channel
+        global paused
         global player
 
         if not player:
             raise CommandFailure("Not playing anything!")
 
         player.resume()
+        paused = False
 
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         out = bold("Resumed Playing: [%s] %s" % (duration, player.title))
 
         # Change presence
         presence = PLAY_UTF + player.title
-        await self.client.change_presence(game=discord.Game(name=presence))
+        await self.client.change_presence(game=Game(name=presence))
 
         return out
 
@@ -317,37 +333,45 @@ class V(M):
 class List(M):
     desc = "Lists the playlist"
 
-    # TODO Embeds
-    def eval(self):
+    async def eval(self):
         global bind_channel
+        global paused
         global playlist
 
         if not player or player.is_done():
             raise CommandFailure("Not playing anything!")
 
         duration = str(datetime.timedelta(seconds=int(player.duration)))
-        out = bold("Now Playing: [%s] %s" % (duration, player.title))
 
-        if playlist:
-            out += "\n\n"
-            out += bold("Up Next:")
-            out += "\n"
+        # Construct embed
+        col = Colour.red() if paused else Colour.green()
+        state = "Paused" if paused else "Playing"
+        state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
-        i = 1
+        ti = "Up Next:" if len(playlist) > 0 else ""
+        embed = Embed(title=ti, colour=col)
+        embed.set_author(name=state)
+        embed.set_footer(text="!m play [link/search]")
+                        
+        i = 0
         for song in playlist:
-            duration = str(datetime.timedelta(seconds=int(song['duration'])))
-            out += code("%d. [%s] %s" % (i, duration, song['title'])) 
-            out += "\n"
             i += 1
 
-        return out
+            duration = datetime.timedelta(seconds=int(song['duration']))
+            title = "%d. [%s] %s" % (i, str(duration), song['title'])
+
+            embed.add_field(name=title, 
+                            value="Added by: %s" % nick(song['author']), 
+                            inline=False)
+
+        await self.client.send_message(bind_channel, embed=embed)
 
 
 class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
 
-    def eval(self):
-        return List.eval(self)
+    async def eval(self):
+        return await List.eval(self)
 
 
 class Shuffle(M):
@@ -362,6 +386,7 @@ class Shuffle(M):
             raise CommandFailure("No playlist!")
 
         return "Shuffled Playlist!"
+
 
 async def do_join(client, message):
     global bind_channel
@@ -391,7 +416,6 @@ async def music(voice, client, channel):
     global playlist
     global volume
 
-    # TODO Make a proper event loop
     while True:
 
         # Poll when there is no player or the player is finished
@@ -403,7 +427,7 @@ async def music(voice, client, channel):
                 url = song['webpage_url']
 
             except IndexError:
-                # Nothing in playlist, break
+                # Nothing in playlist
                 out = bold("Stopped Playing")
                 await client.send_message(bind_channel, out)
                 # Reset presence
@@ -420,17 +444,18 @@ async def music(voice, client, channel):
             # Print the message in the supplied channel
             duration = str(datetime.timedelta(seconds=int(song['duration'])))
             presence = song['title']
-            out = bold("Now playing: [%s] %s" % (duration, presence))
+            out = bold("Now playing:") + " [%s] %s" % (duration, presence))
             await client.send_message(bind_channel, out)
 
             # Change presence to the currently playing song
             presence = PLAY_UTF + presence
-            await client.change_presence(game=discord.Game(name=presence))
+            await client.change_presence(game=Game(name=presence))
 
         await asyncio.sleep(SLEEP_INTERVAL)
 
 
-def video_info(url):
+def video_info(url, author):
+    # This is the only function that gets the video info
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
 
@@ -456,10 +481,11 @@ def video_info(url):
     info['webpage_url'] = VID_PREFIX + vid['id']
     duration = isodate.parse_duration(vid['contentDetails']['duration'])
     info['duration'] = duration.seconds
+    info['author'] = author
     return info
 
 
-def playlist_info(url):
+def playlist_info(url, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
 
@@ -477,22 +503,19 @@ def playlist_info(url):
             maxResults=MAX_RESULTS
             ).execute()
 
-    #print(videos['items'])
     # Get video metadata
     info_list = []
     info = dict()
     for video in videos['items']:
         # Create a new dict each iteration and append to list
         copy = info.copy()
-        copy = video_info(video['contentDetails']['videoId'])
+        copy = video_info(video['contentDetails']['videoId'], author)
         info_list.append(copy)
-
-    #print(info_list)
 
     return info_list
 
 
-def youtube_search(query):
+def youtube_search(query, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
             developerKey=DEVELOPER_KEY)
 
