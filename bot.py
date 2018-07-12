@@ -5,6 +5,7 @@ import os
 import sys
 
 import discord
+import asyncio
 
 import commands
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
@@ -35,11 +36,11 @@ async def on_ready():
         #if channel.name == HIGH_NOON_CHANNEL:
             #await high_noon(client, channel)
 
-        # if channel.name == LEADERBOARD_CHANNEL:
-        #     await leaderboard(client, channel)
+        if channel.name == LEADERBOARD_CHANNEL:
+            asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.name == TWITCH_CHANNEL:
-            await twitch(client, channel)
+            asyncio.ensure_future(twitch(client, channel))
 
 @client.event
 async def on_message(message):

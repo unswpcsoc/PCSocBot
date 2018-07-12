@@ -6,11 +6,13 @@ import re
 import asyncio
 import os
 from utils.embed_table import EmbedTable
+from discord import Embed
 
-TWITCH_CHANNEL = 'weeb-cave-2'
+TWITCH_CHANNEL = 'stream'
 TWITCH_FILE = "files/twitch.json"
+TWITCH_COLOR = int('6441a4', 16)
 HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 'Client-ID': os.environ['CLIENT_ID'] }
-SLEEP_INTERVAL = 10
+SLEEP_INTERVAL = 60
 
 async def twitch(client, channel):
     status = dict()
@@ -34,20 +36,30 @@ async def twitch(client, channel):
             req = urllib.request.Request('https://api.twitch.tv/kraken/streams/' + id, data=None, headers=HEADERS)
             res = urllib.request.urlopen(req)
             data = json.loads(res.read().decode('utf-8'))
+            stream = data['stream']
             
             # skip if channel is not live
-            if data['stream'] is None:
+            if stream is None:
                 status[key] = False
                 continue
 
-            # skip if already live
+            # skip if live already announced
             if key in status and status[key] == True:
                 continue
 
-            # print message
-            message = code(name) + ' is now live!'
+            # set message
+            message = 'Hey guys, %s is now live on %s ! Go check it out!' % (name, stream['channel']['url'])
+            description = '[%s](%s)' % (stream['channel']['status'], stream['channel']['url'])
 
-            await client.send_message(channel, message)
+            # set embed contents
+            embed = Embed(description=description, colour=TWITCH_COLOR)
+            embed.set_author(name=name, icon_url=stream['channel']['logo'])
+            embed.set_image(url=stream['preview']['large'])
+            embed.set_thumbnail(url=stream['channel']['logo'])
+            embed.add_field(name='Game', value=stream['channel']['game'], inline=True)
+            embed.add_field(name='Viewers', value=stream['viewers'], inline=True)
+
+            await client.send_message(channel, message, embed=embed)
 
             #update status
             status[key] = True
@@ -133,7 +145,9 @@ class List(Twitch):
                 channels = json.load(old)
         except FileNotFoundError:
             return "Broadcaster list is empty!"
-        
-        names = sorted([value['name'] for key, value in channels['channels'].items()])
 
-        return EmbedTable(fields=['Broadcasters'], table=names, colour=self.EMBED_COLOR)
+        names = sorted([value['name'] for key, value in channels['channels'].items()])
+        if not names:
+            return "Broadcaster list is empty!"
+
+        return EmbedTable(fields=['Broadcasters'], table=[(name,) for name in names], colour=TWITCH_COLOR)
