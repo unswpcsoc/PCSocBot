@@ -8,4 +8,5 @@ from commands.archive import *
 from commands.leaderboard import *
 from commands.playing import *
 from commands.crashme import *
+from commands.twitch import *
 from commands.music import *
