@@ -3,6 +3,7 @@ from helpers import *
 
 import random
 import json
+import re
 
 IDENTIFIER = "{}"
 FORMAT_FILE = "files/formats.json"
@@ -53,7 +54,10 @@ class Someone(Command):
                 formats = json.load(fmt)
 
             # Randomly choose from the people indexing, throws KeyError
-            out = random.choice(formats[str(people)])
+            if len(formats[str(people)]) == 0:
+                raise KeyError
+            else:
+                out = random.choice(formats[str(people)])
 
         except (FileNotFoundError, KeyError):
             # No format for that number of people, use default
@@ -62,7 +66,7 @@ class Someone(Command):
         roll_list = [bold(nick(x)) for x in roll_list]
 
         # Craft output string according to format
-        return out.format(*roll_list)
+        return "\n".join(out.format(*roll_list).split("\\n"))
 
 class Add(Someone):
     desc = """Adds a format template. Mods only. 
@@ -76,7 +80,7 @@ class Add(Someone):
         format_string = " ".join(format_string)
 
         # Count the number of people to generate
-        people = format_string.count(IDENTIFIER)
+        people = count_placeholders(format_string)
 
         # Make sure the number of people is sane
         if people < 1:
@@ -121,7 +125,7 @@ class Remove(Someone):
         except ValueError:
             remove_all = False
             # Get people
-            people = format_string.count(IDENTIFIER)
+            people = count_placeholders(format_string)
 
         try:
             # Open the JSON file or create a new dict to load
@@ -198,3 +202,6 @@ class Ls(Someone):
 class NoFormatsError(Exception):
     pass
 
+def count_placeholders(format_string):
+    return format_string.count(IDENTIFIER) or 1 + \
+        max([int(x) for x in re.findall(r"{(\d*)}", format_string)])

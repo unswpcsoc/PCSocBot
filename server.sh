@@ -1,15 +1,15 @@
 #!/bin/sh
+# Restart the bot everytime it crashes
 
-echo
-echo "Updating bot..."
-git pull
+while true
+do
+    echo
+    echo "Updating bot..."
+    git pull
 
-echo
-echo "Starting bot..."
-
-if [ $# -eq 1 ]
-then
-    python3 bot.py "$1"
-else
+    echo
+    echo "Starting bot..."
     python3 bot.py
-fi
+
+    sleep 10
+done

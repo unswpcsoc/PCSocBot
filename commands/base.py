@@ -7,9 +7,12 @@ import discord
 from pony.orm import db_session
 from mutagen.mp3 import MP3
 
-from helpers import classproperty, code, bold, underline, CommandFailure
+from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
+
+VOLUME = float(30)
+player = None
 
 class Tree(type):
     def __init__(cls, name, bases, clsdict):
@@ -25,6 +28,7 @@ class Tree(type):
 
 class Command(metaclass=Tree):
     roles_required = None
+    channels_required = None
     db_required = False
     desc = bold('PCSocBot') + ' - PC Enthusiasts society Discord bot made with discord.py by Matt Stark'
     pprint = {}
@@ -46,6 +50,7 @@ class Command(metaclass=Tree):
         if len(argspec.args) == len(args) + 1 or argspec.varargs or argspec.defaults:
             try:
                 self.check_permissions()
+                self.check_channels()
                 return await self.eval(*args) if inspect.iscoroutinefunction(self.eval) else self.eval(*args)
             except CommandFailure as e:
                 return e.args[0]
@@ -90,27 +95,50 @@ class Command(metaclass=Tree):
         return discord.utils.find(lambda x: x.name.lower() == name.lower(), self.members)
 
     def check_permissions(self):
-        if self.roles_required is not None:
+        if self.roles_required:
             for role in self.message.author.roles:
                 if role.name.lower() in self.roles_required:
                     return
             raise CommandFailure("You need to be a %s to use that command" % \
                                  " or ".join(self.roles_required))
 
+    def check_channels(self):
+        cr = self.channels_required
+        if cr and len(cr) > 0:
+            if self.message.channel not in cr and None not in cr:
+                raise CommandFailure("You need to use this command in %s" % \
+                                     " or ".join([chan(x.id) for x in cr]))
 
-    audio_playing = False
-    async def play_audio(self, file):
-        channel = self.message.author.voice_channel
-        if channel is None:
+
+    async def play_mp3(self, file):
+        global player
+
+        channel = self.message.author.voice.voice_channel
+
+        if not channel:
             raise CommandFailure("You need to join a voice channel to use this command")
-        if Command.audio_playing:
-            raise CommandFailure("Can only play one audio file at once")
-        Command.audio_playing = True  # coroutines, no mutex required
-        voice = await self.client.join_voice_channel(channel)
-        player = voice.create_ffmpeg_player('files/' + file)
 
+        if player:
+            raise CommandFailure("Already playing something!")
+
+        # Check if bot is connected already in the server
+        vclients = list(self.client.voice_clients)
+        voices = [ x.server for x in vclients ]
+        try:
+            # Get the voice channel
+            v_index = voices.index(self.message.server)
+            voice = vclients[v_index]
+        except ValueError:
+            # Not connected, join a vc
+            voice = await self.client.join_voice_channel(channel)
+
+        player = voice.create_ffmpeg_player('files/' + file)
+        player.volume = VOLUME/100
         player.start()
+
         duration = MP3('files/' + file).info.length
         await asyncio.sleep(duration)
         await voice.disconnect()
-        Command.audio_playing = False
+
+        # Reset player
+        player = None
