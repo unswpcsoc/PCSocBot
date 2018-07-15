@@ -9,3 +9,4 @@ from commands.leaderboard import *
 from commands.playing import *
 from commands.crashme import *
 from commands.music import *
+from commands.poll import *
