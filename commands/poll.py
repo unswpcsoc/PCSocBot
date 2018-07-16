@@ -27,30 +27,34 @@ class Poll(Command):
         if len(entries) > 20:
             raise CommandFailure("Too many entries! (Max 20)")
 
-        try:
-            # Construct the title and footer
-            embed = Embed(colour=self.message.author.colour,
-                          #title=DEFAULT_TITLE,
-                          timestamp=self.message.timestamp)
+        # Remove empty entries
+        i = 0
+        for entry in entries:
+            if not entry: entries.pop(i)
+            i += 1
 
+        try:
+            # Construct embed
+            # Pad final time by time it takes to react
+            # which is, at worst, one second per react
+            embed = Embed(title="Poll:",
+                         colour=self.message.author.colour,
+                         timestamp=self.message.timestamp + 
+                         datetime.timedelta(seconds=DURATION+len(entries)))
+
+            # Add author
             embed.set_author(name=nick(self.message.author),
                             icon_url=AVATAR_FORMAT.format(self.message.author))
 
-            # Construct entries
+            # Add entries
             i = 0
             entries.sort(key=len, reverse=True)
             for entry in entries:
-
-                # Remove empty entries
-                if not entry: 
-                    entries.pop(i) 
-                    continue
-
                 # Construct entry
                 embed.add_field(name=letters(i), value=entry, inline=True)
                 i += 1
 
-            # TODO Make absolute time
+            # Add duration until vote counting
             duration = str(datetime.timedelta(seconds=int(DURATION)))
             embed.set_footer(text="Votes counted in [%s]" % duration)
 
@@ -69,13 +73,13 @@ class Poll(Command):
             new = await self.client.get_message(self.message.channel, msg.id)
 
             # Convert in-place to index from regional_a
-            # unicode to hex to int rep to index from regional_a
+            # unicode char -> hex rep -> int rep -> index from regional_a
             votes = []
             for x in new.reactions:
                 try:
                     votes.append((x.count, \
-                        int(x.emoji.encode('utf8').hex(), \
-                        base=16) - REG_A_INT))
+                                int(x.emoji.encode('utf8').hex(), \
+                                base=16) - REG_A_INT))
                 except AttributeError: continue
 
             # Get only the reactions within A-T
@@ -86,8 +90,8 @@ class Poll(Command):
 
             # Reconstruct embed
             embed = Embed(colour=self.message.author.colour,
-                          #title=DEFAULT_TITLE,
-                          timestamp=self.message.timestamp)
+                         title="Results:",
+                         timestamp=self.message.timestamp)
 
             embed.set_author(name=nick(self.message.author),
                             icon_url=AVATAR_FORMAT.format(self.message.author))
@@ -101,7 +105,32 @@ class Poll(Command):
             await self.client.send_message(self.message.channel, embed=embed)
 
         except (NotFound, Forbidden, HTTPException):
-            CommandFailure("Could not construct poll!")
+            raise CommandFailure("Could not construct poll!")
+
+
+class Duration(Poll):
+    roles_required = [ "mod", "exec" ]
+    desc = "Changes the duration (min) of the poll before votes are counted"
+
+    def eval(self, duration):
+        global DURATION
+
+        try:
+            int(duration)
+        except ValueError:
+            raise CommandFailure("Please enter a valid number of minutes!")
+
+        duration = int(duration)
+
+        if duration < 0: 
+            raise CommandFailure("Please enter a valid number of minutes!")
+
+        # Get minutes
+        DURATION = duration * 60
+
+        # Return confirmation 
+        dur = str(datetime.timedelta(seconds=int(DURATION)))
+        return "Poll duration changed to %s" % dur
 
 
 def letters(index):
