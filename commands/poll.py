@@ -77,7 +77,7 @@ class Poll(Command):
             votes = []
             for x in new.reactions:
                 try:
-                    votes.append((x.count, \
+                    votes.append((x.count-1, \
                                 int(x.emoji.encode('utf8').hex(), \
                                 base=16) - REG_A_INT))
                 except AttributeError: continue
