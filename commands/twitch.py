@@ -5,6 +5,7 @@ import json
 import re
 import asyncio
 import os
+import time
 from utils.embed_table import EmbedTable
 from discord import Embed
 
@@ -54,7 +55,7 @@ async def twitch(client, channel):
             # set embed contents
             embed = Embed(description=description, colour=TWITCH_COLOR)
             embed.set_author(name=name, icon_url=stream['channel']['logo'])
-            embed.set_image(url=stream['preview']['large'])
+            embed.set_image(url=stream['preview']['large']+'?time='+str(int(time.time())))
             embed.set_thumbnail(url=stream['channel']['logo'])
             embed.add_field(name='Game', value=stream['channel']['game'], inline=True)
             embed.add_field(name='Viewers', value=stream['viewers'], inline=True)
