@@ -8,6 +8,7 @@ import re
 IDENTIFIER = "{}"
 FORMAT_FILE = "files/formats.json"
 PEOPLE_LIMIT = 100 # to minimise API spam
+CHAR_LIMIT = 2000
 
 class Someone(Command):
     desc = "This command is used to roll for a random member of the server"
@@ -157,7 +158,7 @@ class Remove(Someone):
 class List(Someone):
     desc = "Lists the formats for the given number of `people`."
 
-    def eval(self, people=None):
+    async def eval(self, people=None):
 
         if people:
             # User has specified number of people
@@ -176,16 +177,48 @@ class List(Someone):
                 if not formats[people]:
                     raise NoFormatsError
                 out = "Formats for " + bold(people) + " `people`:\n" 
-                out += "\n".join(formats[people])
+
+                #out += "\n".join(formats[people])
+                for entry in formats[people]:
+                    tmp = entry + "\n"
+                    if len(out+tmp) > CHAR_LIMIT:
+                        # out exceeds character limit, 
+                        # send message and truncate out
+                        await self.client.send_message(self.message.channel, 
+                                                      out)
+                        out = tmp
+                    else: out += tmp
+
             else:
                 # List all entries
                 out = "All formats:\n"
                 empty = True
-                for k, v in sorted(formats.items()):
+
+                # Sort by numeric value of keys
+                for k, v in sorted(formats.items(), key=lambda x: int(x[0])):
                     if v:
-                        out += "Formats for " + bold(k) + " `people`:\n" 
-                        out += "\n".join(v) + "\n"
                         empty = False 
+                        tmp = "Formats for " + bold(k) + " `people`:\n" 
+
+                        if len(out+tmp) > CHAR_LIMIT:
+                            # out exceeds character limit, 
+                            # send message and truncate out
+                            await self.client.send_message(self.message.channel, 
+                                                        out)
+                            out = tmp
+                        else: out += tmp
+
+                        #tmp += "\n".join(v) + "\n"
+                        for entry in v:
+                            tmp = entry + "\n"
+                            if len(out+tmp) > CHAR_LIMIT:
+                                # out exceeds character limit, 
+                                # send message and truncate out
+                                await self.client.send_message(self.message.channel, 
+                                                            out)
+                                out = tmp
+                            else: out += tmp
+
                 if empty:
                     raise NoFormatsError
 
@@ -196,8 +229,8 @@ class List(Someone):
 
 class Ls(Someone):
     desc = "See " + bold(code("!someone") + " " + code("list")) + "."
-    def eval(self, people=None):
-        return List.eval(self, people)
+    async def eval(self, people=None):
+        return await List.eval(self, people)
 
 class NoFormatsError(Exception):
     pass

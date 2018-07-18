@@ -10,4 +10,4 @@ from commands.playing import *
 from commands.crashme import *
 from commands.music import *
 from commands.poll import *
-from commands.twitch import *
+#from commands.twitch import *

@@ -2,7 +2,7 @@
 
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
-from commands.twitch import twitch, TWITCH_CHANNEL
+#from commands.twitch import twitch, TWITCH_CHANNEL
 
 import json, os, sys
 
@@ -48,8 +48,8 @@ async def on_ready():
         if channel.name == LEADERBOARD_CHANNEL:
             asyncio.ensure_future(leaderboard(client, channel))
 
-        if channel.name == TWITCH_CHANNEL:
-            asyncio.ensure_future(twitch(client, channel))
+        #if channel.name == TWITCH_CHANNEL:
+            #asyncio.ensure_future(twitch(client, channel))
 
 @client.event
 async def on_message(message):
