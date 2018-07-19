@@ -1,7 +1,7 @@
 import urllib.request
 import json
 import asyncio
-from helpers import at
+from helpers import *
 
 LEADERBOARD_CHANNEL = 'commands'
 MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/'
@@ -21,11 +21,18 @@ async def leaderboard(client, channel):
     )
     # Event Loop
     while True:
+        # Sleep
+        await asyncio.sleep(SLEEP_INTERVAL)
+
         # Make MEE6 API Request
-        res = urllib.request.urlopen(req)
-        data = json.loads(res.read().decode('utf-8'))
-        new_list = [player['id'] for player in data['players']]
-        new_positions = invert(new_list)
+        try:
+            res = urllib.request.urlopen(req)
+            data = json.loads(res.read().decode('utf-8'))
+            new_list = [player['id'] for player in data['players']]
+            new_positions = invert(new_list)
+        except urllib.error.URLError as e:
+            print(timestamp() + ' LEADERBOARD: "' + str(e) + '"')
+            continue
 
         # Compare with existing data
         alerts = []
@@ -60,9 +67,6 @@ async def leaderboard(client, channel):
         # Output any alerts
         for alert in alerts:
             await client.send_message(channel, alert)
-
-        # Sleep
-        await asyncio.sleep(SLEEP_INTERVAL)
 
 
 def invert(array):

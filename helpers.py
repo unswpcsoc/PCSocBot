@@ -1,3 +1,5 @@
+from datetime import datetime
+
 class classproperty(object):
     def __init__(self, f):
         self.f = f
@@ -28,6 +30,9 @@ def chan(s):
 
 def nick(m):
     return m.nick or str(m).split("#")[0]
+
+def timestamp():
+    return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 
 class CommandFailure(Exception):
     pass

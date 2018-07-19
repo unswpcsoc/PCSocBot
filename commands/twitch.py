@@ -34,10 +34,14 @@ async def twitch(client, channel):
             id = value['id']
 
             # Check if channel is live
-            req = urllib.request.Request('https://api.twitch.tv/kraken/streams/' + id, data=None, headers=HEADERS)
-            res = urllib.request.urlopen(req)
-            data = json.loads(res.read().decode('utf-8'))
-            stream = data['stream']
+            try:
+                req = urllib.request.Request('https://api.twitch.tv/kraken/streams/' + id, data=None, headers=HEADERS)
+                res = urllib.request.urlopen(req)
+                data = json.loads(res.read().decode('utf-8'))
+                stream = data['stream']
+            except urllib.error.URLError as e:
+                print(timestamp() + ' TWITCH: "' + str(e) + '" for ' + name)
+                continue
             
             # skip if channel is not live
             if stream is None:
