@@ -30,14 +30,18 @@ SAMPLE_RATE = 48000
 VID_PREFIX = "https://www.youtube.com/watch?v="
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
 YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
-PAUSE_UTF = "\u23F8"
-PLAY_UTF = "\u25B6"
+PAUSE_UTF = "\u23F8 "
+PLAY_UTF = "\u25B6 "
+REPEAT_LIST_UTF = "\U0001F501"
+REPEAT_SONG_UTF = "\U0001F502"
 DC_TIMEOUT = 60
 
 bind_channel = None
 paused = False
 player = None
 playlist = []
+repeat = "none"
+presence = CURRENT_PRESENCE
 volume = float(12)
 
 
@@ -52,18 +56,22 @@ class Leave(M):
     async def eval(self):
         global player
         global playlist
+        global presence
 
-        # Checks if joined to a vc in the server
+        # Checksif bot is joined
+        # Don't use check_bot_join()
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
         try:
-            v_index = voices.index(self.message.author.server)
+            v_index = voices.index(self.message.server)
         except ValueError:
-            raise CommandFailure("Not in a voice channel!")
+            # Bot is not connected to a voice channel in this server
+            raise CommandFailure("Please `!join` a voice channel first") 
 
         # Get the voice channel
         voice = vclients[v_index]
 
+        # Check if user is joined
         channel = self.message.author.voice.voice_channel
         if channel:
             await voice.disconnect()
@@ -99,7 +107,8 @@ class Play(M):
         if not channel:
             raise CommandFailure("Please join a voice channel first")
 
-        # Check if bot is connected already in the server
+        # Check if bot is joined
+        # Note: don't use check_bot_join()
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
         try:
@@ -212,6 +221,8 @@ class Pause(M):
         global bind_channel
         global paused
         global player
+        global presence
+        global repeat
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -224,6 +235,9 @@ class Pause(M):
 
         # Change presence
         presence = PAUSE_UTF + player.title
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
         await self.client.change_presence(game=Game(name=presence))
 
         return out
@@ -236,6 +250,7 @@ class Resume(M):
         global bind_channel
         global paused
         global player
+        global presence
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -248,6 +263,9 @@ class Resume(M):
 
         # Change presence
         presence = PLAY_UTF + player.title
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
         await self.client.change_presence(game=Game(name=presence))
 
         return out
@@ -270,13 +288,7 @@ class Skip(M):
             raise CommandFailure("Not playing anything!")
 
         # Check if connected to a voice channel
-        vclients = list(self.client.voice_clients)
-        voices = [ x.server for x in vclients ]
-        try:
-            v_index = voices.index(self.message.server)
-        except ValueError:
-            # Bot is not connected to a voice channel in this server
-            raise CommandFailure("Please `!join` a voice channel first") 
+        check_bot_join(self.client, self.message)
 
         if 0 < pos <= len(playlist):
             # Remove the item from the playlist
@@ -352,12 +364,13 @@ class V(M):
 
 
 class List(M):
-    desc = "Lists the playlist"
+    desc = "Lists the playlist."
 
     async def eval(self):
         global bind_channel
         global paused
         global playlist
+        global repeat
 
         if not player or player.is_done():
             raise CommandFailure("Not playing anything!")
@@ -369,7 +382,7 @@ class List(M):
         state = "Paused" if paused else "Playing"
         state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
-        ti = "Up Next:" if len(playlist) > 0 else ""
+        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 0 else ""
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
         embed.set_footer(text="!m play [link/search]")
@@ -401,6 +414,9 @@ class Shuffle(M):
     def eval(self):
         global playlist
 
+        # Check if connected to a voice channel
+        check_bot_join(self.client, self.message)
+
         if playlist and len(playlist) > 0:
             random.shuffle(playlist)
         else:
@@ -414,6 +430,46 @@ class Sh(M):
 
     def eval(self):
         return Shuffle.eval(self)
+
+
+class Repeat(M):
+    desc = "Toggle repeat for the current song or the whole playlist. "
+    desc += "Accepted arguments are: 'none', `song` and `list`.\n"
+
+    async def eval(self, mode):
+        global repeat
+        global presence
+
+        # Check if connected to a voice channel
+        check_bot_join(self.client, self.message)
+
+        if mode.lower() == "song": 
+            repeat = mode.lower()
+            presence = REPEAT_SONG_UTF + presence
+        elif mode.lower() == "list": 
+            repeat = mode.lower()
+            presence = REPEAT_LIST_UTF + presence
+        elif mode.lower() == "none": 
+            if repeat != "none": presence = presence[1:]
+            repeat = mode.lower()
+        else: 
+            raise CommandFailure("Not a valid argument!")
+
+        # Change presence
+        await self.client.change_presence(game=Game(name=presence))
+
+        return bold("Repeat mode set to: %s" % repeat)
+
+
+
+def check_bot_join(client, message):
+    vclients = list(client.voice_clients)
+    voices = [ x.server for x in vclients ]
+    try:
+        v_index = voices.index(message.server)
+    except ValueError:
+        # Bot is not connected to a voice channel in this server
+        raise CommandFailure("Please `!join` a voice channel first") 
 
 
 async def do_join(client, message):
@@ -442,12 +498,14 @@ async def music(voice, client, channel):
     global bind_channel
     global player
     global playlist
+    global presence
     global volume
 
     # Sentinel value for paused state
     # Could use player.is_playing() but this is faster
     paused_dc = False
     dc_timer = 0
+    was_playing = False
     while True:
 
         # Poll for no player or the player is finished
@@ -456,8 +514,20 @@ async def music(voice, client, channel):
             name = voice.channel.name
 
             if len(playlist) > 0:
+
+                # Check for repeating modes
+                if repeat == "song": pass
+                elif repeat == "list": playlist.append(playlist.pop(0))
+                else: 
+                    # Pops only if the player was playing something
+                    if was_playing: playlist.pop(0)
+                    else: was_playing = True
+
                 # Play the next song in the list
-                song = playlist.pop(0)
+                # Throws IndexError when we've popped the last song
+                try: song = playlist[0]
+                except IndexError: continue
+
                 url = song['webpage_url']
 
                 player = await voice.create_ytdl_player(url)
@@ -472,12 +542,18 @@ async def music(voice, client, channel):
 
                 # Change presence to the currently playing song
                 presence = PLAY_UTF + presence
+                if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
                 await client.change_presence(game=Game(name=presence))
 
             else:
                 if player:
                     # Reset player
                     player = None
+
+                    # Flag that we aren't playing
+                    was_playing = False
 
                     out = bold("Stopped Playing")
                     await client.send_message(bind_channel, out)
@@ -517,6 +593,9 @@ async def music(voice, client, channel):
 
                     # Change presence
                     presence = PAUSE_UTF + player.title
+                    if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                    if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
                     await client.change_presence(game=Game(name=presence))
 
                     out = bold("Nobody listening in %s, Pausing" % code(name))
@@ -553,6 +632,9 @@ async def music(voice, client, channel):
 
                 # Change presence
                 presence = PLAY_UTF + player.title
+                if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
                 await client.change_presence(game=Game(name=presence))
 
                 out = bold("Somebody has joined %s! Resuming" % code(name))
