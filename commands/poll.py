@@ -110,7 +110,8 @@ class Poll(Command):
 
 class Duration(Poll):
     roles_required = [ "mod", "exec" ]
-    desc = "Changes the duration (min) of the poll before votes are counted"
+    desc = "Changes the duration (min) of the poll before votes are counted. "
+    desc = "Mods only.
 
     def eval(self, duration):
         global DURATION
