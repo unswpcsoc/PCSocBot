@@ -1,4 +1,5 @@
 from commands.base import Command
+from commands.playing import CURRENT_PRESENCE
 from helpers import *
 
 from collections import deque
@@ -31,6 +32,7 @@ PLIST_PREFIX = "https://www.youtube.com/playlist?list="
 YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
 PAUSE_UTF = "\u23F8"
 PLAY_UTF = "\u25B6"
+DC_TIMEOUT = 60
 
 bind_channel = None
 paused = False
@@ -65,6 +67,8 @@ class Leave(M):
         channel = self.message.author.voice.voice_channel
         if channel:
             await voice.disconnect()
+            # Change presence back
+            await self.client.change_presence(game=Game(name=CURRENT_PRESENCE))
         else:
             raise CommandFailure("Please join a voice channel first")
 
@@ -182,7 +186,15 @@ class Play(M):
         else:
             # Not a URL, search youtube using yt API
             try:
-                playlist.append(youtube_search(args, self.message.author))
+                song = youtube_search(args, self.message.author)
+                playlist.append(song)
+
+                # Construct add message
+                d = str(datetime.timedelta(seconds=int(song['duration'])))
+                out = bold("Added: [%s] %s" % (d, song['title']))
+
+                await self.client.send_message(bind_channel, out)
+
             except HttpError as e:
                 print('An HTTP error %d occurred:\n%s' \
                         % (e.resp.status, e.content))
@@ -301,7 +313,6 @@ class Stop(M):
             return "Not playing anything!"
 
         player.stop()
-        player = None
         playlist.clear()
 
 
@@ -309,7 +320,7 @@ class Volume(M):
     desc = "Volume adjustment"
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, vol):
+    def eval(self, level):
         global bind_channel
         global player
         global volume
@@ -318,15 +329,15 @@ class Volume(M):
             raise CommandFailure("Not playing anything!")
 
         try:
-            vol = float(vol)
+            level = float(level)
         except ValueError:
             raise CommandFailure("Please enter a number between 0-100")
 
-        if 0 <= vol <= 100:
-            # Change the global volume
-            volume = vol
+        if 0 <= level <= 100:
+            # Change the global levelume
+            volume = level
             player.volume = volume/100
-            out = "Volume changed to %f%%" % vol
+            out = "Volume changed to %f%%" % level
             return out
         else:
             raise CommandFailure("Please enter a number from 0-100")
@@ -336,8 +347,8 @@ class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, vol):
-        return Volume.eval(self, vol)
+    def eval(self, level):
+        return Volume.eval(self, level)
 
 
 class List(M):
@@ -419,7 +430,7 @@ async def do_join(client, message):
 
     out = "Joined %s, " % code(channel.name)
     out += "Binding to %s" % chan(bind_channel.id)
-    await client.send_message(bind_channel, out)
+    await client.send_message(bind_channel, bold(out))
 
     # Set bitrate
     voice.encoder_options(sample_rate=SAMPLE_RATE, channels=2)
@@ -433,40 +444,119 @@ async def music(voice, client, channel):
     global playlist
     global volume
 
+    # Sentinel value for paused state
+    # Could use player.is_playing() but this is faster
+    paused_dc = False
+    dc_timer = 0
     while True:
 
-        # Poll when there is no player or the player is finished
+        # Poll for no player or the player is finished
         if not player or player.is_done():
 
-            try:
+            name = voice.channel.name
+
+            if len(playlist) > 0:
                 # Play the next song in the list
                 song = playlist.pop(0)
                 url = song['webpage_url']
 
-            except IndexError:
-                # Nothing in playlist
-                out = bold("Stopped Playing")
+                player = await voice.create_ytdl_player(url)
+                player.start()
+                player.volume = volume/100  # "That's how you get tinnitus"
+
+                # Print the message in the supplied channel
+                duration = str(datetime.timedelta(seconds=int(song['duration'])))
+                presence = song['title']
+                out = bold("Now Playing: [%s] %s" % (duration, presence))
                 await client.send_message(bind_channel, out)
-                # Reset presence
-                await client.change_presence(game=None)
-                # Reset player
-                player = None
-                # Exit event loop
-                break
 
-            player = await voice.create_ytdl_player(url)
-            player.start()
-            player.volume = volume/100  # "That's how you get tinnitus"
+                # Change presence to the currently playing song
+                presence = PLAY_UTF + presence
+                await client.change_presence(game=Game(name=presence))
 
-            # Print the message in the supplied channel
-            duration = str(datetime.timedelta(seconds=int(song['duration'])))
-            presence = song['title']
-            out = bold("Now playing:") + " [%s] %s" % (duration, presence)
-            await client.send_message(bind_channel, out)
+            else:
+                if player:
+                    # Reset player
+                    player = None
 
-            # Change presence to the currently playing song
-            presence = PLAY_UTF + presence
-            await client.change_presence(game=Game(name=presence))
+                    out = bold("Stopped Playing")
+                    await client.send_message(bind_channel, out)
+
+                    # Change presence back
+                    await client.change_presence(game=Game(\
+                                                name=CURRENT_PRESENCE))
+
+                # Poll for listeners
+                if len(voice.channel.voice_members) <= 1:
+                    dc_timer += 1
+                    if dc_timer == DC_TIMEOUT:
+                        await voice.disconnect()
+
+                        d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
+                        out = "Timeout of [%s] reached," % d
+                        out += " Disconnecting from %s," % code(name)
+                        out += " Unbinding from %s" % chan(bind_channel.id)
+
+                        # Flush channels required
+                        M.channels_required.clear()
+
+                        await client.send_message(bind_channel, bold(out))
+                        break
+
+                else: dc_timer = 0
+
+        else:   # Something is playing
+
+            # Poll for no listeners in channel...
+            if len(voice.channel.voice_members) <= 1:
+
+                # while playing
+                if player.is_playing():
+                    player.pause()
+                    paused_dc = True
+
+                    # Change presence
+                    presence = PAUSE_UTF + player.title
+                    await client.change_presence(game=Game(name=presence))
+
+                    out = bold("Nobody listening in %s, Pausing" % code(name))
+                    await client.send_message(bind_channel, out)
+
+                elif paused_dc:    # Make sure we are the ones who paused
+                    # Careful, if SLEEP_INTERVAL changes, the duration will change
+                    dc_timer += 1
+
+                if dc_timer >= DC_TIMEOUT: 
+                    await voice.disconnect()
+
+                    d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
+                    out = "Timeout of [%s] reached," % d
+                    out += " Disconnecting from %s," % code(name)
+                    out += " Unbinding from %s" % chan(bind_channel.id)
+
+                    # Flush channels required
+                    M.channels_required.clear()
+
+                    await client.send_message(bind_channel, bold(out))
+
+                    # Change presence back
+                    await client.change_presence(game=Game(
+                                                name=CURRENT_PRESENCE))
+                    return
+
+            # Poll for listeners when we have paused_dc ourselves
+            # Since listeners can pause themselves, we must use our own value
+            if len(voice.channel.voice_members) > 1 and paused_dc:
+                player.resume()
+                paused_dc = False
+                dc_timer = 0
+
+                # Change presence
+                presence = PLAY_UTF + player.title
+                await client.change_presence(game=Game(name=presence))
+
+                out = bold("Somebody has joined %s! Resuming" % code(name))
+                await client.send_message(bind_channel, out)
 
         await asyncio.sleep(SLEEP_INTERVAL)
 
@@ -547,4 +637,7 @@ def youtube_search(query, author):
         ).execute()
 
     # Return the first video's info
-    return video_info(search_response['items'][0]['id']['videoId'], author)
+    try:
+        return video_info(search_response['items'][0]['id']['videoId'], author)
+    except IndexError:
+        raise CommandFailure(bold("Couldn't find %s" % query))
