@@ -50,46 +50,6 @@ class M(Command):
     channels_required = []
 
 
-class Leave(M):
-    desc = "Boots the bot from voice channels"
-
-    async def eval(self):
-        global player
-        global playlist
-        global presence
-
-        # Checksif bot is joined
-        # Don't use check_bot_join()
-        vclients = list(self.client.voice_clients)
-        voices = [ x.server for x in vclients ]
-        try:
-            v_index = voices.index(self.message.server)
-        except ValueError:
-            # Bot is not connected to a voice channel in this server
-            raise CommandFailure("Please `!join` a voice channel first") 
-
-        # Get the voice channel
-        voice = vclients[v_index]
-
-        # Check if user is joined
-        channel = self.message.author.voice.voice_channel
-        if channel:
-            await voice.disconnect()
-            # Change presence back
-            await self.client.change_presence(game=Game(name=CURRENT_PRESENCE))
-        else:
-            raise CommandFailure("Please join a voice channel first")
-
-        # Clean player and playlist
-        player = None
-        playlist.clear()
-
-        # Flush channels required
-        M.channels_required.clear()
-        return "Leaving %s, Unbinding from %s" % \
-               (code(voice.channel.name), chan(bind_channel.id))
-
-
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
     desc += "Accepts youtube links, playlists (first %d entries), and more!\n"
@@ -136,7 +96,8 @@ class Play(M):
                     out = bold("Added Songs:") + "\n"
                     for song in songs:
                         d = datetime.timedelta(seconds=int(song['duration']))
-                        out += "[%s] %s\n" % (str(d), song['title'])
+                        out += bold("[%s] %s" % (str(d), song['title']))
+                        out += "\n"
 
                     await self.client.send_message(bind_channel, out)
 
@@ -272,12 +233,31 @@ class Resume(M):
 
 
 class Skip(M):
-    desc = "Skips a song. Defaults to the current song."
+    desc = "Skips the current song. Does not skip if repeat is `song`"
+
+    def eval(self):
+        # Check if connected to a voice channel
+        check_bot_join(self.client, self.message)
+
+        # Construct out message
+        duration = str(datetime.timedelta(seconds=int(player.duration)))
+        out = bold("Skipped: [%s] %s" % (duration, player.title))
+
+        # Stop player, triggers music() to queue up the next song
+        # according to the repeat policy
+        player.stop()
+
+        return out
+
+
+class Remove(M):
+    desc = "Removes a song from the playlist. Defaults to the current song"
 
     def eval(self, pos=0):
         global bind_channel
         global player
         global playlist
+        global repeat
 
         try:
             pos = int(pos)
@@ -299,6 +279,11 @@ class Skip(M):
             out = bold("Removed: [%s] %s" % (duration, song['title']))
 
         elif pos == 0:
+
+            # If we are repeating, the song won't be popped correctly
+            # and needs to be popped
+            if repeat == "song" or repeat == "list": song = playlist.pop(0)
+
             # Construct out message
             duration = str(datetime.timedelta(seconds=int(player.duration)))
             out = bold("Removed: [%s] %s" % (duration, player.title))
@@ -311,6 +296,12 @@ class Skip(M):
             raise CommandFailure("Not a valid position!")
 
         return out
+
+
+class Rm(M):
+    desc = "See " + bold(code("!m") + " " + code("remove")) + "."
+
+    def eval(self, pos=0): return Remove.eval(self, pos)
 
 
 class Stop(M):
@@ -359,8 +350,7 @@ class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, level):
-        return Volume.eval(self, level)
+    def eval(self, level): return Volume.eval(self, level)
 
 
 class List(M):
@@ -382,13 +372,16 @@ class List(M):
         state = "Paused" if paused else "Playing"
         state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
+        # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 0 else ""
+
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
         embed.set_footer(text="!m play [link/search]")
                         
+        # Get fields
         i = 0
-        for song in playlist:
+        for song in playlist[1:]:
             i += 1
 
             duration = datetime.timedelta(seconds=int(song['duration']))
@@ -404,8 +397,7 @@ class List(M):
 class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
 
-    async def eval(self):
-        return await List.eval(self)
+    async def eval(self): return await List.eval(self)
 
 
 class Shuffle(M):
@@ -426,10 +418,9 @@ class Shuffle(M):
 
 
 class Sh(M):
-    desc = "See !m shuffle"
+    desc = "See " + bold(code("!m") + " " + code("shuffle")) + "."
 
-    def eval(self):
-        return Shuffle.eval(self)
+    def eval(self): return Shuffle.eval(self)
 
 
 class Repeat(M):
@@ -496,6 +487,7 @@ async def do_join(client, message):
 
 async def music(voice, client, channel):
     global bind_channel
+    global paused
     global player
     global playlist
     global presence
@@ -590,6 +582,7 @@ async def music(voice, client, channel):
                 if player.is_playing():
                     player.pause()
                     paused_dc = True
+                    paused = True
 
                     # Change presence
                     presence = PAUSE_UTF + player.title
@@ -621,6 +614,9 @@ async def music(voice, client, channel):
                     # Change presence back
                     await client.change_presence(game=Game(
                                                 name=CURRENT_PRESENCE))
+
+                    # Reset paused
+                    paused = False
                     return
 
             # Poll for listeners when we have paused_dc ourselves
@@ -628,6 +624,7 @@ async def music(voice, client, channel):
             if len(voice.channel.voice_members) > 1 and paused_dc:
                 player.resume()
                 paused_dc = False
+                paused = False
                 dc_timer = 0
 
                 # Change presence
@@ -723,3 +720,46 @@ def youtube_search(query, author):
         return video_info(search_response['items'][0]['id']['videoId'], author)
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
+
+
+
+"""
+class Leave(M):
+    desc = "Boots the bot from voice channels"
+
+    async def eval(self):
+        global player
+        global playlist
+        global presence
+
+        # Checksif bot is joined
+        # Don't use check_bot_join()
+        vclients = list(self.client.voice_clients)
+        voices = [ x.server for x in vclients ]
+        try:
+            v_index = voices.index(self.message.server)
+        except ValueError:
+            # Bot is not connected to a voice channel in this server
+            raise CommandFailure("Please `!join` a voice channel first") 
+
+        # Get the voice channel
+        voice = vclients[v_index]
+
+        # Check if user is joined
+        channel = self.message.author.voice.voice_channel
+        if channel:
+            await voice.disconnect()
+            # Change presence back
+            await self.client.change_presence(game=Game(name=CURRENT_PRESENCE))
+        else:
+            raise CommandFailure("Please join a voice channel first")
+
+        # Clean player and playlist
+        player = None
+        playlist.clear()
+
+        # Flush channels required
+        M.channels_required.clear()
+        return "Leaving %s, Unbinding from %s" % \
+               (code(voice.channel.name), chan(bind_channel.id))
+"""
