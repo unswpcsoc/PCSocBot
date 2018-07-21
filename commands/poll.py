@@ -20,9 +20,15 @@ class Poll(Command):
         if not entries:
             raise CommandFailure("Please add some entries!")
 
-        # Split on separator
         entries = " ".join(entries).split(ENTRY_SEPARATOR)
         entries = [ x.strip() for x in entries ]
+
+        # Check for duration argument
+        if entries[0].lower == "duration":
+            try: 
+                float(entries[1])
+                return Duration.eval(self, entries[1])
+            except ValueError: pass
 
         if len(entries) > 20:
             raise CommandFailure("Too many entries! (Max 20)")
