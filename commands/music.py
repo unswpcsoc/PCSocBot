@@ -21,9 +21,6 @@ DEVELOPER_KEY = os.environ['YT_API']
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
-# Max results for playlist
-MAX_RESULTS = 10
-
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
 SAMPLE_RATE = 48000
@@ -43,6 +40,7 @@ playlist = []
 repeat = "none"
 presence = CURRENT_PRESENCE
 volume = float(12)
+list_limit = 10
 
 
 class M(Command):
@@ -53,7 +51,8 @@ class M(Command):
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
     desc += "Accepts youtube links, playlists (first %d entries), and more!\n"
-    desc += noembed(YDL_SITES)
+    desc += noembed(YDL_SITES) + "\n"
+    desc += "Note: Playlists fetching through the YT API is limited to 50 vids"
 
     async def eval(self, *args):
         global bind_channel
@@ -212,6 +211,7 @@ class Resume(M):
         global paused
         global player
         global presence
+        global repeat
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -280,9 +280,7 @@ class Remove(M):
 
         elif pos == 0:
 
-            # If we are repeating, the song won't be popped correctly
-            # and needs to be popped
-            if repeat == "song" or repeat == "list": song = playlist.pop(0)
+            song = playlist.pop(0)
 
             # Construct out message
             duration = str(datetime.timedelta(seconds=int(player.duration)))
@@ -290,7 +288,6 @@ class Remove(M):
 
             # Destroy player
             player.stop()
-            player = None
 
         else:
             raise CommandFailure("Not a valid position!")
@@ -320,7 +317,7 @@ class Stop(M):
 
 
 class Volume(M):
-    desc = "Volume adjustment"
+    desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
 
     def eval(self, level):
@@ -373,7 +370,7 @@ class List(M):
         state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
         # Construct title
-        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 0 else ""
+        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
 
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
@@ -409,7 +406,7 @@ class Shuffle(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if playlist and len(playlist) > 0:
+        if playlist and len(playlist) > 1:
             random.shuffle(playlist)
         else:
             raise CommandFailure("No playlist!")
@@ -435,14 +432,19 @@ class Repeat(M):
         check_bot_join(self.client, self.message)
 
         if mode.lower() == "song": 
-            repeat = mode.lower()
+            if repeat != "none": presence = presence[1:]
             presence = REPEAT_SONG_UTF + presence
-        elif mode.lower() == "list": 
             repeat = mode.lower()
+
+        elif mode.lower() == "list": 
+            if repeat != "none": presence = presence[1:]
             presence = REPEAT_LIST_UTF + presence
+            repeat = mode.lower()
+
         elif mode.lower() == "none": 
             if repeat != "none": presence = presence[1:]
             repeat = mode.lower()
+
         else: 
             raise CommandFailure("Not a valid argument!")
 
@@ -451,6 +453,31 @@ class Repeat(M):
 
         return bold("Repeat mode set to: %s" % repeat)
 
+
+class Rp(M):
+    desc = "See " + bold(code("!m") + " " + code("list")) + "."
+
+    def eval(self, mode): return Repeat.eval(self.mode)
+
+
+class ListLimit(M):
+    desc = "Sets playlist fetch limit. Mods only."
+    roles_required = [ "mod", "exec"]
+
+    def eval(self, limit):
+        global list_limit
+
+        try: limit = int(limit)
+        except ValueError: raise CommandFailure("Please enter a valid integer")
+
+        # API limit is 50 videos
+        if 0 < limit <= 50: list_limit = limit
+        else: raise CommandFailure("Please enter an integer in [0-50]")
+
+        return "Playlist fetch limit set to: %d" % limit
+
+
+# HELPER FUNCTIONS #
 
 
 def check_bot_join(client, message):
@@ -511,20 +538,19 @@ async def music(voice, client, channel):
                 if repeat == "song": pass
                 elif repeat == "list": playlist.append(playlist.pop(0))
                 else: 
-                    # Pops only if the player was playing something
                     if was_playing: playlist.pop(0)
-                    else: was_playing = True
 
                 # Play the next song in the list
-                # Throws IndexError when we've popped the last song
-                try: song = playlist[0]
-                except IndexError: continue
+                if len(playlist) > 0: song = playlist[0]
+                else: continue
 
                 url = song['webpage_url']
 
                 player = await voice.create_ytdl_player(url)
                 player.start()
-                player.volume = volume/100  # "That's how you get tinnitus"
+                player.volume = volume/100  # "That's how you get tinnitus!"
+
+                was_playing = True
 
                 # Print the message in the supplied channel
                 duration = str(datetime.timedelta(seconds=int(song['duration'])))
@@ -544,7 +570,6 @@ async def music(voice, client, channel):
                     # Reset player
                     player = None
 
-                    # Flag that we aren't playing
                     was_playing = False
 
                     out = bold("Stopped Playing")
@@ -575,7 +600,7 @@ async def music(voice, client, channel):
 
         else:   # Something is playing
 
-            # Poll for no listeners in channel...
+            # Poll for no listeners in channel
             if len(voice.channel.voice_members) <= 1:
 
                 # while playing
@@ -617,7 +642,7 @@ async def music(voice, client, channel):
 
                     # Reset paused
                     paused = False
-                    return
+                    break
 
             # Poll for listeners when we have paused_dc ourselves
             # Since listeners can pause themselves, we must use our own value
@@ -686,7 +711,7 @@ def playlist_info(url, author):
     videos = youtube.playlistItems().list(
             part='snippet, contentDetails',
             playlistId=vid,
-            maxResults=MAX_RESULTS
+            maxResults=list_limit
             ).execute()
 
     # Get video metadata
@@ -732,7 +757,7 @@ class Leave(M):
         global playlist
         global presence
 
-        # Checksif bot is joined
+        # Checks if bot is joined
         # Don't use check_bot_join()
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
