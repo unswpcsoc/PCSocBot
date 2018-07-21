@@ -239,6 +239,9 @@ class Skip(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
+        if not player: raise CommandFailure("Not playing anything!")
+        if player.is_done(): raise CommandFailure("Not playing anything!")
+
         # Construct out message
         duration = str(datetime.timedelta(seconds=int(player.duration)))
         out = bold("Skipped: [%s] %s" % (duration, player.title))
@@ -578,6 +581,9 @@ async def music(voice, client, channel):
                     # Change presence back
                     await client.change_presence(game=Game(\
                                                 name=CURRENT_PRESENCE))
+
+                    # Exit the event loop so we can start another one
+                    break
 
                 # Poll for listeners
                 if len(voice.channel.voice_members) <= 1:
