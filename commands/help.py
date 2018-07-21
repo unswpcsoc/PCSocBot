@@ -1,7 +1,8 @@
 from commands.base import Command
+from helpers import *
 
 
-class Help(Command):
+class Helpme(Command):
     desc = 'This help text'
     pprint = dict(args='[<command/subcommand>]')
 
@@ -19,8 +20,13 @@ class Help(Command):
         return cls, args
 
     def eval(self, *args):
-        cls, fn_args = Help.find_command(args)
+        cls, fn_args = Helpme.find_command(args)
         if fn_args:
             return " ".join(args) + " is not a command.\n" + Command.help
         else:
-            return cls.help + '\n\nType ' + Help.tag_markup + ' for more info on a command'
+            return cls.help + '\n\nType ' + Helpme.tag_markup + ' for more info on a command'
+
+class H(Command):
+    desc = "See " + bold(code("!helpme")) + "."
+
+    def eval(args): return Helpme.eval(args)
