@@ -148,9 +148,9 @@ class Play(M):
                         raise CommandFailure(out)
 
             except HttpError as e:
-                print('An HTTP error %d occurred:\n%s' \
-                        % (e.resp.status, e.content))
-                return "Something went wrong!"
+                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                        % (timestamp(), e.resp.status, e.content))
+                return "Invalid link! (or something else went wrong :/)"
 
         else:
             # Not a URL, search youtube using yt API
@@ -165,8 +165,8 @@ class Play(M):
                 await self.client.send_message(bind_channel, out)
 
             except HttpError as e:
-                print('An HTTP error %d occurred:\n%s' \
-                        % (e.resp.status, e.content))
+                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                        % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
         # Nothing is playing, start the music event loop
@@ -751,46 +751,3 @@ def youtube_search(query, author):
         return video_info(search_response['items'][0]['id']['videoId'], author)
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
-
-
-
-"""
-class Leave(M):
-    desc = "Boots the bot from voice channels"
-
-    async def eval(self):
-        global player
-        global playlist
-        global presence
-
-        # Checks if bot is joined
-        # Don't use check_bot_join()
-        vclients = list(self.client.voice_clients)
-        voices = [ x.server for x in vclients ]
-        try:
-            v_index = voices.index(self.message.server)
-        except ValueError:
-            # Bot is not connected to a voice channel in this server
-            raise CommandFailure("Please `!join` a voice channel first") 
-
-        # Get the voice channel
-        voice = vclients[v_index]
-
-        # Check if user is joined
-        channel = self.message.author.voice.voice_channel
-        if channel:
-            await voice.disconnect()
-            # Change presence back
-            await self.client.change_presence(game=Game(name=CURRENT_PRESENCE))
-        else:
-            raise CommandFailure("Please join a voice channel first")
-
-        # Clean player and playlist
-        player = None
-        playlist.clear()
-
-        # Flush channels required
-        M.channels_required.clear()
-        return "Leaving %s, Unbinding from %s" % \
-               (code(voice.channel.name), chan(bind_channel.id))
-"""
