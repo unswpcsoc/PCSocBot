@@ -74,9 +74,11 @@ class Play(M):
             # Get the voice channel
             v_index = voices.index(self.message.server)
             voice = vclients[v_index]
+            was_connected = True
         except ValueError:
             # Not connected, join a vc
             voice = await do_join(self.client, self.message)
+            was_connected = False
             # Set channel required
             M.channels_required.append(bind_channel)
 
@@ -169,8 +171,8 @@ class Play(M):
                         % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
-        # Nothing is playing, start the music event loop
-        if not player or player.is_done():
+        # Nothing is playing and we weren't in vc, start the music event loop
+        if (not player or player.is_done()) and not was_connected:
             await music(voice, self.client, self.message.channel)
 
 
@@ -581,9 +583,6 @@ async def music(voice, client, channel):
                     # Change presence back
                     await client.change_presence(game=Game(\
                                                 name=CURRENT_PRESENCE))
-
-                    # Exit the event loop so we can start another one
-                    break
 
                 # Poll for listeners
                 if len(voice.channel.voice_members) <= 1:
