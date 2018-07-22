@@ -4,7 +4,7 @@ from helpers import *
 import asyncio
 import discord
 
-CURRENT_PRESENCE = "!help"
+CURRENT_PRESENCE = "!helpme"
 
 class Playing(Command):
     desc = "Changes the Playing status of the bot. Mod only."
