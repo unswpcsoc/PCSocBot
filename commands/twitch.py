@@ -14,79 +14,13 @@ TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
 HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
             'Client-ID': os.environ['CLIENT_ID'] }
-SLEEP_INTERVAL = 60
+SLEEP_INTERVAL = 10
 REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
-
-async def twitch(client, channel):
-    status = dict()
-    # Event Loop
-    while True:
-        # Sleep at start
-        await asyncio.sleep(SLEEP_INTERVAL)
-
-        # Open the JSON file, skip if it does not exist
-        try:
-            with open(TWITCH_FILE, 'r') as old:
-                channels = json.load(old)
-        except FileNotFoundError:
-            continue
-
-        for key, value in channels['channels'].items():
-            name = value['name']
-            id = value['id']
-
-            # Check if channel is live
-            try:
-                req = urllib.request.Request(REQUEST_PREFIX + 'streams/' + id, 
-                                            data=None, headers=HEADERS)
-                res = urllib.request.urlopen(req)
-                data = json.loads(res.read().decode('utf-8'))
-                stream = data['stream']
-            except urllib.error.URLError as e:
-                print(timestamp() + ' TWITCH: "' + str(e) + '" for ' + name)
-                continue
-            
-            # skip if channel is not live
-            if stream is None:
-                status[key] = False
-                continue
-
-            # skip if live already announced
-            if key in status and status[key] == True:
-                continue
-
-            # set message
-            message = 'Hey guys, %s is now live on %s ! Go check it out!' % \
-                    (name, stream['channel']['url'])
-            description = '[%s](%s)' % \
-                    (stream['channel']['status'], stream['channel']['url'])
-
-            # set embed contents
-            embed = Embed(description=description, colour=TWITCH_COLOR)
-
-            embed.set_author(name=name, 
-                            icon_url=stream['channel'].get('logo', ''))
-
-            embed.set_image(url=stream['preview'].get('large', '')
-                            +'?time='+str(int(time.time())))
-
-            embed.set_thumbnail(url=stream['channel'].get('logo', ''))
-
-            embed.add_field(name='Game', 
-                            value=stream['channel'].get('game', ''), 
-                            inline=True)
-            embed.add_field(name='Viewers', 
-                            value=stream.get('viewers', ''), 
-                            inline=True)
-
-            await client.send_message(channel, message, embed=embed)
-
-            #update status
-            status[key] = True
 
 
 class Twitch(Command):
     desc = "Twitch go live alerts for #stream"
+
 
 class Add(Twitch):
     desc = "Adds user by Twitch channel name. Mods only."
@@ -156,6 +90,13 @@ class Remove(Twitch):
         
         return code(username) +  ' was removed from the list of broadcasters!'
 
+
+class Rm(Twitch):
+    desc = "See " + bold(code("!twitch") + " " + code("remove")) + "."
+
+    def eval(self, username): return Remove.eval(self, username)
+
+
 class List(Twitch):
     desc = "Lists the stored broadcaster channel names."
 
@@ -173,3 +114,79 @@ class List(Twitch):
         return EmbedTable(fields=['Broadcasters'], 
                          table=[(name,) for name in names], 
                          colour=TWITCH_COLOR)
+
+class Ls(Twitch):
+    desc = "See " + bold(code("!twitch") + " " + code("list")) + "."
+
+    def eval(self): return List.eval(self)
+
+
+# Twitch Alerts Event Loop
+
+
+async def twitch(client, channel):
+    status = dict()
+    # Event Loop
+    while True:
+        # Sleep at start
+        await asyncio.sleep(SLEEP_INTERVAL)
+
+        # Open the JSON file, skip if it does not exist
+        try:
+            with open(TWITCH_FILE, 'r') as old:
+                channels = json.load(old)
+        except FileNotFoundError:
+            continue
+
+        for key, value in channels['channels'].items():
+            name = value['name']
+            id = value['id']
+
+            # Check if channel is live
+            try:
+                req = urllib.request.Request(REQUEST_PREFIX + 'streams/' + id, 
+                                            data=None, headers=HEADERS)
+                res = urllib.request.urlopen(req)
+                data = json.loads(res.read().decode('utf-8'))
+                stream = data['stream']
+            except urllib.error.URLError as e:
+                print(timestamp() + ' TWITCH: "' + str(e) + '" for ' + name)
+                continue
+            
+            # skip if channel is not live
+            if not stream:
+                status[key] = False
+                continue
+
+            # skip if live already announced
+            if key in status and status[key]:
+                continue
+
+            # set message
+            message = 'Hey guys, %s is now live on %s ! Go check it out!' % \
+                    (name, stream['channel']['url'])
+            description = '[%s](%s)' % \
+                    (stream['channel']['status'], stream['channel']['url'])
+
+            # set embed contents
+            icon = stream['channel'].get('logo', '')
+            image = stream['preview'].get('large', '')
+            game = stream['channel']['game']
+            game = game if len(game) > 0 else 'No Game Specified'
+            viewers = stream.get('viewers', '')
+
+            embed = Embed(description=description, colour=TWITCH_COLOR)
+
+            embed.set_author(name=name, icon_url=icon)
+
+            embed.set_image(url=image +'?time='+str(int(time.time())))
+
+            embed.set_thumbnail(url=icon)
+
+            embed.add_field(name='Game', value=game, inline=True)
+            embed.add_field(name='Viewers', value=viewers, inline=True)
+
+            await client.send_message(channel, message, embed=embed)
+
+            #update status
+            status[key] = True
