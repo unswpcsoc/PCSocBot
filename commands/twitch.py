@@ -167,8 +167,6 @@ class List(Twitch):
         except FileNotFoundError:
             return "Broadcaster list is empty!"
 
-            return "Broadcaster list is empty!"
-
         names = [value['name'] for key, value in channels['channels'].items()]
         names = sorted(names)
 
