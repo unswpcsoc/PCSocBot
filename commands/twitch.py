@@ -12,8 +12,10 @@ from discord import Embed
 TWITCH_CHANNEL = 'stream'
 TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
-HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 'Client-ID': os.environ['CLIENT_ID'] }
+HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
+            'Client-ID': os.environ['CLIENT_ID'] }
 SLEEP_INTERVAL = 60
+REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
 
 async def twitch(client, channel):
     status = dict()
@@ -35,7 +37,8 @@ async def twitch(client, channel):
 
             # Check if channel is live
             try:
-                req = urllib.request.Request('https://api.twitch.tv/kraken/streams/' + id, data=None, headers=HEADERS)
+                req = urllib.request.Request(REQUEST_PREFIX + 'streams/' + id, 
+                                            data=None, headers=HEADERS)
                 res = urllib.request.urlopen(req)
                 data = json.loads(res.read().decode('utf-8'))
                 stream = data['stream']
@@ -53,16 +56,28 @@ async def twitch(client, channel):
                 continue
 
             # set message
-            message = 'Hey guys, %s is now live on %s ! Go check it out!' % (name, stream['channel']['url'])
-            description = '[%s](%s)' % (stream['channel']['status'], stream['channel']['url'])
+            message = 'Hey guys, %s is now live on %s ! Go check it out!' % \
+                    (name, stream['channel']['url'])
+            description = '[%s](%s)' % \
+                    (stream['channel']['status'], stream['channel']['url'])
 
             # set embed contents
             embed = Embed(description=description, colour=TWITCH_COLOR)
-            embed.set_author(name=name, icon_url=stream['channel']['logo'])
-            embed.set_image(url=stream['preview']['large']+'?time='+str(int(time.time())))
-            embed.set_thumbnail(url=stream['channel']['logo'])
-            embed.add_field(name='Game', value=stream['channel']['game'], inline=True)
-            embed.add_field(name='Viewers', value=stream['viewers'], inline=True)
+
+            embed.set_author(name=name, 
+                            icon_url=stream['channel'].get('logo', ''))
+
+            embed.set_image(url=stream['preview'].get('large', '')
+                            +'?time='+str(int(time.time())))
+
+            embed.set_thumbnail(url=stream['channel'].get('logo', ''))
+
+            embed.add_field(name='Game', 
+                            value=stream['channel'].get('game', ''), 
+                            inline=True)
+            embed.add_field(name='Viewers', 
+                            value=stream.get('viewers', ''), 
+                            inline=True)
 
             await client.send_message(channel, message, embed=embed)
 
@@ -84,7 +99,8 @@ class Add(Twitch):
             return code(username) +  ' is not a valid Twitch username!'
 
         # check channel exists
-        req = urllib.request.Request('https://api.twitch.tv/kraken/users?login=' + username, data=None, headers=HEADERS)
+        req = urllib.request.Request(REQUEST_PREFIX + 'users?login=' + username, 
+                                    data=None, headers=HEADERS)
         res = urllib.request.urlopen(req)
         data = json.loads(res.read().decode('utf-8'))
         if data['_total'] == 0:
@@ -151,8 +167,11 @@ class List(Twitch):
         except FileNotFoundError:
             return "Broadcaster list is empty!"
 
-        names = sorted([value['name'] for key, value in channels['channels'].items()])
-        if not names:
             return "Broadcaster list is empty!"
 
-        return EmbedTable(fields=['Broadcasters'], table=[(name,) for name in names], colour=TWITCH_COLOR)
+        names = [value['name'] for key, value in channels['channels'].items()]
+        names = sorted(names)
+
+        return EmbedTable(fields=['Broadcasters'], 
+                         table=[(name,) for name in names], 
+                         colour=TWITCH_COLOR)
