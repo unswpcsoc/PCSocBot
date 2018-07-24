@@ -29,4 +29,4 @@ class Helpme(Command):
 class H(Command):
     desc = "See " + bold(code("!helpme")) + "."
 
-    def eval(self, *args): return Helpme.eval(self, args)
+    def eval(self, *args): return Helpme.eval(self, *args)
