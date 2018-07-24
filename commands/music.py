@@ -460,7 +460,7 @@ class Repeat(M):
 
 
 class Rp(M):
-    desc = "See " + bold(code("!m") + " " + code("list")) + "."
+    desc = "See " + bold(code("!m") + " " + code("repeat")) + "."
 
     def eval(self, mode): return Repeat.eval(self.mode)
 
