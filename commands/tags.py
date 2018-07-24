@@ -1,7 +1,7 @@
 from pony.orm import select, count
 
 from commands.base import Command
-from helpers import bold, at, CommandFailure
+from helpers import *
 from models import Tag
 from utils.embed_table import EmbedTable
 
@@ -72,6 +72,13 @@ class Ping(Tags):
         tags = Tag.select_or_err(lambda x: x.platform == platform)
         users = [at(str(tag.user)) for tag in tags]
         return "%s" % (' '.join(users))
+
+class Ask(Command):
+    desc = "See " + bold(code("!tags") + " " + code("ping")) + "."
+    db_required = True
+    pprint = dict(platform="platform/game")
+
+    def eval(self, platform): return Ping.eval(self, platform)
 
 class ModAdd(Tags):
     desc = "Adds/changes a specified player tag with associated platform/game to the list"
