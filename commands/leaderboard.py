@@ -13,8 +13,8 @@ SLEEP_INTERVAL = 60
 
 async def leaderboard(client, channel):
     req = urllib.request.Request(
-        MEE6_URL + channel.server.id, 
-        data=None, 
+        MEE6_URL + channel.server.id,
+        data=None,
         headers={
             'User-Agent': SPOOF_AGENT
         }
@@ -59,10 +59,15 @@ async def leaderboard(client, channel):
                         alerts.append("{} has just entered the top 100.".format(at(user)))
         except FileNotFoundError:
             pass
-        
+
         # Save new data
         with open(DATA_FILE, 'w') as new:
             json.dump(new_positions, new)
+
+        # Prevent PR disaster
+        if len(alerts) > 10:
+            print(timestamp() + ' LEADERBOARD: more than 10 changes to the leaderboard')
+            continue
 
         # Output any alerts
         for alert in alerts:
