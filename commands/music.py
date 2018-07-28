@@ -26,6 +26,7 @@ GEO_REGION = "AU"
 SAMPLE_RATE = 48000
 VID_PREFIX = "https://www.youtube.com/watch?v="
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
+WRONG_PLIST = "https://www.youtube.com/watch?list="
 YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
 PAUSE_UTF = "\u23F8 "
 PLAY_UTF = "\u25B6 "
@@ -102,10 +103,17 @@ class Play(M):
 
                     await self.client.send_message(bind_channel, out)
 
+                elif url.startswith(WRONG_PLIST):
+                    # Incorrect truncation, suggest the correct one
+                    out = "Warning: invalid Playlist URL\n"
+                    out += "Please change `watch` to `playlist`"
+
                 elif url.startswith(VID_PREFIX):
                     # Video, could have playlist, add anyway
                     song = video_info(url, self.message.author)
                     playlist.append(song)
+
+                    await self.client.send_message(bind_channel, out)
 
                     # Construct add message
                     d = str(datetime.timedelta(seconds=int(song['duration'])))
@@ -272,30 +280,21 @@ class Remove(M):
         if not player:
             raise CommandFailure("Not playing anything!")
 
+        if pos < 0 or pos > len(playlist):
+            raise CommandFailure("Not a valid position!")
+
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if 0 < pos <= len(playlist):
-            # Remove the item from the playlist
-            song = playlist.pop(pos-1)
+        # Remove the item from the playlist
+        song = playlist.pop(pos)
 
-            # Construct out message
-            duration = str(datetime.timedelta(seconds=int(song['duration'])))
-            out = bold("Removed: [%s] %s" % (duration, song['title']))
+        # Construct out message
+        duration = str(datetime.timedelta(seconds=int(song['duration'])))
+        out = bold("Removed: [%s] %s" % (duration, song['title']))
 
-        elif pos == 0:
-
-            song = playlist.pop(0)
-
-            # Construct out message
-            duration = str(datetime.timedelta(seconds=int(player.duration)))
-            out = bold("Removed: [%s] %s" % (duration, player.title))
-
-            # Destroy player
-            player.stop()
-
-        else:
-            raise CommandFailure("Not a valid position!")
+        # Kill the player if we remove the currently playing song
+        if pos == 0: player.stop()
 
         return out
 
