@@ -1,12 +1,12 @@
 from commands.base import Command
 from helpers import *
 from discord import Embed
+from datetime import datetime
 
 import random
 import json
 import re
 
-QUOTE_COLOR = int('008000', 16)
 QUOTE_FILE = "files/quotes.json"
 CHAR_LIMIT = 2000
 
@@ -41,9 +41,11 @@ class Quote(Command):
         message = ''
         title = 'Quote #%s' % index
         body = quote['quote']
-        footer = 'Added by %s on %s' %(quote['author'], quote['date'])
+        footer = 'Added by %s' % quote['author']
+        colour = quote['colour']
+        timestamp = datetime.strptime(quote['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
 
-        embed = Embed(description=body, colour=QUOTE_COLOR)
+        embed = Embed(description=body, colour=colour, timestamp=timestamp)
         embed.set_author(name=title)
         embed.set_footer(text=footer)
 
@@ -66,7 +68,8 @@ class Add(Quote):
         quote = {
             'quote': quote_string,
             'author': self.name,
-            'date': timestamp()
+            'timestamp': str(self.message.timestamp),
+            'colour': self.message.author.colour.value
         }
 
         # Add the quote string to the key
