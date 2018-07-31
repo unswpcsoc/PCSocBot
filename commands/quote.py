@@ -111,8 +111,7 @@ class Remove(Quote):
         return 'Quote %s with index %s removed!' % (code(quote['quote']), index)
 
 class List(Quote):
-    desc = "Lists the first 50 characters of all quotes. Mod only."
-    roles_required = ['mod', 'exec']
+    desc = "Lists the first 50 characters of all quotes."
 
     async def eval(self):
         # Open the JSON file or create a new dict to load
@@ -136,3 +135,8 @@ class List(Quote):
                 out += tmp
         
         return out
+
+class Ls(Quote):
+    desc = "See " + bold(code("!quote") + " " + code("list")) + "."
+    async def eval(self):
+        return await List.eval(self)
