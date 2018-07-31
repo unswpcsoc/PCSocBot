@@ -111,7 +111,7 @@ class Remove(Quote):
         return 'Quote %s with index %s removed!' % (code(quote['quote']), index)
 
 class List(Quote):
-    desc = "Lists all quotes. Mod only."
+    desc = "Lists the first 50 characters of all quotes. Mod only."
     roles_required = ['mod', 'exec']
 
     async def eval(self):
@@ -126,7 +126,9 @@ class List(Quote):
         # print list of quotes
         out = '**List of Quotes:**\n'
         for i in range(len(quotes)):
-            tmp = '**#%s:** %s\n' % (i, quotes[i]['quote'])
+            q = quotes[i]['quote'][:50]
+            tmp = '**#%s:** %s' % (i, q)
+            tmp += '[...]\n' if len(q) >= 50 else '\n'
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
                 out = tmp
