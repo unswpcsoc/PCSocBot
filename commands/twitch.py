@@ -14,7 +14,7 @@ TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
 HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
             'Client-ID': os.environ['CLIENT_ID'] }
-SLEEP_INTERVAL = 10
+SLEEP_INTERVAL = 60
 REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
 
 
