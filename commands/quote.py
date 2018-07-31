@@ -61,6 +61,9 @@ class Add(Quote):
         # Get the format string
         quote_string = " ".join(quote_string)
 
+        if not quote_string:
+            raise CommandFailure('Please submit a none empty quote!')
+
         # Open the JSON file or create a new dict to load
         try:
             with open(QUOTE_FILE, 'r') as old:
