@@ -9,6 +9,8 @@ import re
 
 QUOTE_FILE = "files/quotes.json"
 CHAR_LIMIT = 2000
+LIST_LIMIT = 50
+
 
 class Quote(Command):
     desc = "Quote storage and retrieval system. Retrieve by index, or leave blank for random."
@@ -18,7 +20,7 @@ class Quote(Command):
         try:
             index = int(index)
         except ValueError:
-            return "Must supply either an integer or subcommand!"
+            raise CommandFailure("Must supply either an integer or subcommand!")
 
         # Retrieve the quotes list
         try:
@@ -26,13 +28,13 @@ class Quote(Command):
             with open(QUOTE_FILE, 'r') as fmt:
                 quotes = json.load(fmt)
         except FileNotFoundError:
-            return 'Quotes list is empty!'
+            raise CommandFailure('Quotes list is empty!')
 
         # Choose from quotes list
         if len(quotes) == 0:
-            return 'Quotes list is empty!'
+            raise CommandFailure('Quotes list is empty!')
         elif index >= len(quotes):
-            return  'Index out of range!'
+            raise CommandFailure('Index out of range!')
         elif index < 0:
             index = random.randint(0, len(quotes)-1)
         
@@ -50,6 +52,7 @@ class Quote(Command):
         embed.set_footer(text=footer)
 
         await self.client.send_message(self.message.channel, message, embed=embed)
+
 
 class Add(Quote):
     desc = "Adds a quote. Misuse of this command will result in a ban or server mute."
@@ -81,6 +84,7 @@ class Add(Quote):
 
         return 'Your quote %s has been added at index %s!' % (code(quote_string), len(quotes)-1)
 
+
 class Remove(Quote):
     desc = "Removes a quote by index. Mods only."
     roles_required = ['mod', 'exec']
@@ -90,17 +94,17 @@ class Remove(Quote):
         try:
             index = int(index)
         except ValueError:
-            return "Must supply an integer!"
+            raise CommandFailure("Must supply an integer!")
 
         # Open the JSON file or create a new dict to load
         try:
             with open(QUOTE_FILE, 'r') as old:
                 quotes = json.load(old)
         except FileNotFoundError:
-            return 'List of quotes is empty!'
+            raise CommandFailure('List of quotes is empty!')
 
         if index < 0 or index >= len(quotes):
-            return 'Invalid index!'
+            raise CommandFailure('Invalid index!')
         
         quote = quotes.pop(index)
 
@@ -109,6 +113,7 @@ class Remove(Quote):
             json.dump(quotes, new)
 
         return 'Quote %s with index %s removed!' % (code(quote['quote']), index)
+
 
 class List(Quote):
     desc = "Lists the first 50 characters of all quotes."
@@ -119,15 +124,14 @@ class List(Quote):
             with open(QUOTE_FILE, 'r') as old:
                 quotes = json.load(old)
         except FileNotFoundError:
-            return 'List of quotes is empty!'
-
+            raise CommandFailure('List of quotes is empty!')
 
         # print list of quotes
         out = '**List of Quotes:**\n'
         for i in range(len(quotes)):
-            q = quotes[i]['quote'][:50]
+            q = quotes[i]['quote'][:LIST_LIMIT]
             tmp = '**#%s:** %s' % (i, q)
-            tmp += '[...]\n' if len(q) >= 50 else '\n'
+            tmp += '[...]\n' if len(q) >= LIST_LIMIT else '\n'
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
                 out = tmp
@@ -135,6 +139,7 @@ class List(Quote):
                 out += tmp
         
         return out
+
 
 class Ls(Quote):
     desc = "See " + bold(code("!quote") + " " + code("list")) + "."

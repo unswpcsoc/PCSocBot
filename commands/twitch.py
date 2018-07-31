@@ -30,7 +30,7 @@ class Add(Twitch):
         # check twitch channel name is valid
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
-            return code(username) +  ' is not a valid Twitch username!'
+            raise CommandFailure(code(username) +  ' is not a valid Twitch username!')
 
         # check channel exists
         req = urllib.request.Request(REQUEST_PREFIX + 'users?login=' + username, 
@@ -38,7 +38,7 @@ class Add(Twitch):
         res = urllib.request.urlopen(req)
         data = json.loads(res.read().decode('utf-8'))
         if data['_total'] == 0:
-            return code(username) + ' channel does not exist!'
+            raise CommandFailure(code(username) + ' channel does not exist!')
 
         key = username.lower()
         name = data['users'][0]['display_name']
@@ -54,7 +54,7 @@ class Add(Twitch):
 
         # Add the format string to the key
         if key in channels['channels']:
-            return code(name) +  ' is already on the list of broadcasters!'
+            raise CommandFailure(code(name) +  ' is already on the list of broadcasters!')
         channel = {'id': id, 'name': name}
         channels['channels'][key] = channel
 
@@ -73,7 +73,7 @@ class Remove(Twitch):
         # check twitch channel name is valid
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
-            return code(username) +  ' is not a valid Twitch username!'
+            raise CommandFailure(code(username) +  ' is not a valid Twitch username!')
 
         # Open the JSON file or create a new dict to load
         try:
@@ -82,7 +82,7 @@ class Remove(Twitch):
             channels['channels'].pop(username.lower())
 
         except (FileNotFoundError, KeyError, ValueError):
-            return "Broadcaster %s not found!" % code(username)
+            raise CommandFailure("Broadcaster %s not found!" % code(username))
 
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
@@ -93,7 +93,6 @@ class Remove(Twitch):
 
 class Rm(Twitch):
     desc = "See " + bold(code("!twitch") + " " + code("remove")) + "."
-
     def eval(self, username): return Remove.eval(self, username)
 
 
@@ -106,7 +105,7 @@ class List(Twitch):
             with open(TWITCH_FILE, 'r') as old:
                 channels = json.load(old)
         except FileNotFoundError:
-            return "Broadcaster list is empty!"
+            raise CommandFailure("Broadcaster list is empty!")
 
         names = [value['name'] for key, value in channels['channels'].items()]
         names = sorted(names)
@@ -115,14 +114,13 @@ class List(Twitch):
                          table=[(name,) for name in names], 
                          colour=TWITCH_COLOR)
 
+
 class Ls(Twitch):
     desc = "See " + bold(code("!twitch") + " " + code("list")) + "."
-
     def eval(self): return List.eval(self)
 
 
 # Twitch Alerts Event Loop
-
 
 async def twitch(client, channel):
     status = dict()
