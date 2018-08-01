@@ -11,7 +11,7 @@ QUOTE_FILE = "files/quotes.json"
 PENDING_FILE = "files/pending.json"
 CHAR_LIMIT = 2000
 LIST_LIMIT = 50
-
+DEFAULT_COLOR = int('000000', 16)
 
 class Quote(Command):
     desc = "Quote storage and retrieval system. Retrieve by index, or leave blank for random."
@@ -49,11 +49,20 @@ class Quote(Command):
             except KeyError:
                 raise CommandFailure('Quote with ID %s does not exist!' % index)
 
+        try:
+            name = self.from_id(quote['author']).name 
+        except AttributeError:
+            name = quote['nick']
+
+        try:
+            colour = self.from_id(quote['author']).colour.value
+        except AttributeError:
+            colour = DEFAULT_COLOR
+
         message = ''
         title = 'Quote #%s' % index
         body = quote['quote']
-        footer = 'Added by %s' % quote['author']
-        colour = quote['colour']
+        footer = 'Added by %s' % name
         timestamp = datetime.strptime(quote['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
 
         embed = Embed(description=body, colour=colour, timestamp=timestamp)
@@ -80,9 +89,9 @@ class Add(Quote):
 
         quote = {
             'quote': quote_string,
-            'author': self.name,
-            'timestamp': str(self.message.timestamp),
-            'colour': self.message.author.colour.value
+            'author': self.user,
+            'nick': self.name,
+            'timestamp': str(self.message.timestamp)
         }
 
         # Add the quote string to the key
@@ -183,7 +192,7 @@ class Approve(Quote):
             json.dump(pending, new)
 
         return "The following quote by %s has been added to the quotes list with ID %s:\n%s"\
-                                % (quote['author'], next_id, codeblock(quote['quote']))
+                    % (self.from_id(quote['author']).name, next_id, codeblock(quote['quote']))
 
 
 
@@ -214,7 +223,7 @@ class Reject(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
-        return 'Pending quote %s with index %s removed!' % (code(quote['quote']), index)
+        return 'Pending quote with index %s removed!' % index
 
 
 class List(Quote):
@@ -268,7 +277,10 @@ class Pending(Quote):
         out = '**List of *Pending* Quotes:**\n'
         for i in range(len(pending)):
             q = pending[i]['quote']
-            a = pending[i]['author']
+            try:
+                a = self.from_id(pending[i]['author']).name
+            except AttributeError:
+                a = pending[i]['nick']
             tmp = '**#%s by %s:** %s\n' % (i, a, q)
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
