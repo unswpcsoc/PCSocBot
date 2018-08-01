@@ -64,11 +64,12 @@ class Quote(Command):
 
 
 class Add(Quote):
-    desc = "Requests a quote to be added to the bot, pending mod approval. Misuse of this command will result in a ban or server mute."
+    desc = "Requests a quote to be added to the bot, pending mod approval."
 
     def eval(self, *quote_string):
         # Get the format string
         quote_string = " ".join(quote_string)
+        quote_string = quote_string.replace('\\n', '\n')
 
         # Open the JSON file or create a new dict to load
         try:
@@ -91,7 +92,8 @@ class Add(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(quotes, new)
 
-        return 'Your quote %s has been added to the pending list at index %s!' % (code(quote_string), len(quotes)-1)
+        return 'The following quote has been added to the pending list at index %s:\n%s'\
+                                                    % (len(quotes)-1, codeblock(quote_string))
 
 
 class Remove(Quote):
@@ -110,7 +112,7 @@ class Remove(Quote):
             with open(QUOTE_FILE, 'r') as old:
                 quotes = json.load(old)
         except FileNotFoundError:
-            raise CommandFailure('List of quotes is empty!')
+            raise CommandFailure('Quotes list is empty!')
 
         if index < 0 or index > quotes['last_id']:
             raise CommandFailure('Invalid index!')
@@ -124,7 +126,7 @@ class Remove(Quote):
         with open(QUOTE_FILE, 'w') as new:
             json.dump(quotes, new)
 
-        return 'Quote %s with index %s removed!' % (code(quote['quote']), index)
+        return 'Quote %s with ID %s removed!' % (code(quote['quote']), index)
 
 
 class Approve(Quote):
@@ -180,8 +182,9 @@ class Approve(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
-        return "%s's quote %s has been added to the quote list with ID %s!"\
-                                % (quote['author'], code(quote['quote']), next_id)
+        return "The following quote by %s has been added to the quotes list with ID %s:\n%s"\
+                                % (quote['author'], next_id, codeblock(quote['quote']))
+
 
 
 class Reject(Quote):
@@ -200,7 +203,7 @@ class Reject(Quote):
             with open(PENDING_FILE, 'r') as old:
                 pending = json.load(old)
         except FileNotFoundError:
-            raise CommandFailure('List of pending quotes is empty!')
+            raise CommandFailure('Pending list is empty!')
 
         if index < 0 or index >= len(pending):
             raise CommandFailure('Invalid index!')
@@ -256,10 +259,10 @@ class Pending(Quote):
             with open(PENDING_FILE, 'r') as old:
                 pending = json.load(old)
         except FileNotFoundError:
-            raise CommandFailure('List of quotes is empty!')
+            raise CommandFailure('Pending list is empty!')
         
         if not pending:
-            raise CommandFailure('List of quotes is empty!')
+            raise CommandFailure('Pending list is empty!')
 
         # print list of quotes
         out = '**List of *Pending* Quotes:**\n'
