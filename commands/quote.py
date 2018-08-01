@@ -49,15 +49,14 @@ class Quote(Command):
             except KeyError:
                 raise CommandFailure('Quote with ID %s does not exist!' % index)
 
-        try:
-            name = self.from_id(quote['author']).name 
-        except AttributeError:
+        # find user and use details, or if they have left, use default
+        user = self.from_id(quote['author'])
+        if user is None:
             name = quote['nick']
-
-        try:
-            colour = self.from_id(quote['author']).colour.value
-        except AttributeError:
             colour = DEFAULT_COLOR
+        else:
+            user = user.name
+            colour = user.colour.value
 
         message = ''
         title = 'Quote #%s' % index
@@ -191,8 +190,14 @@ class Approve(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
+        user = self.from_id(quote['author'])
+        if user is None:
+            name = quote['nick']
+        else:
+            name = user.mention
+
         return "The following quote by %s has been added to the quotes list with ID %s:\n%s"\
-                    % (self.from_id(quote['author']).name, next_id, codeblock(quote['quote']))
+                                                     % (name, next_id, codeblock(quote['quote']))
 
 
 
@@ -276,11 +281,12 @@ class Pending(Quote):
         # print list of quotes
         out = '**List of *Pending* Quotes:**\n'
         for i in range(len(pending)):
-            q = pending[i]['quote']
-            try:
-                a = self.from_id(pending[i]['author']).name
-            except AttributeError:
+            user = self.from_id(pending[i]['author'])
+            if user is None:
                 a = pending[i]['nick']
+            else:
+                a = user.name
+            q = pending[i]['quote']
             tmp = '**#%s by %s:** %s\n' % (i, a, q)
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
