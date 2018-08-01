@@ -148,10 +148,10 @@ class Approve(Quote):
         except FileNotFoundError:
             raise CommandFailure('Pending list is empty!')
 
-        # Choose from pending list
-        if len(pending) == 0:
+        if not pending:
             raise CommandFailure('Pending list is empty!')
-        elif index < 0 or index >= len(pending):
+        
+        if index < 0 or index >= len(pending):
             raise CommandFailure('Index out of range!')
 
         #copy and remove from the pending list
@@ -226,10 +226,10 @@ class List(Quote):
             with open(QUOTE_FILE, 'r') as old:
                 quotes = json.load(old)
         except FileNotFoundError:
-            raise CommandFailure('List of quotes is empty!')
+            raise CommandFailure('Quotes list is empty!')
 
         if not quotes['quotes']:
-            raise CommandFailure('List of quotes is empty!')
+            raise CommandFailure('Quotes list is empty!')
 
         quotes = list(quotes['quotes'].items())
         quotes.sort(key=lambda tup: int(tup[0]))
