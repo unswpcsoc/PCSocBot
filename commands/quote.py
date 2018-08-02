@@ -49,15 +49,16 @@ class Quote(Command):
             except KeyError:
                 raise CommandFailure('Quote with ID %s does not exist!' % index)
 
-        # find user and use details, or if they have left, use default
+        # find user and use details, or if they have left the server, use the default
         user = self.from_id(quote['author'])
         if user is None:
             name = quote['nick']
             colour = DEFAULT_COLOR
         else:
-            user = user.name
+            name = user.name
             colour = user.colour.value
 
+        #construct and send embed
         message = ''
         title = 'Quote #%s' % index
         body = quote['quote']
@@ -82,9 +83,9 @@ class Add(Quote):
         # Open the JSON file or create a new dict to load
         try:
             with open(PENDING_FILE, 'r') as old:
-                quotes = json.load(old)
+                pending = json.load(old)
         except FileNotFoundError:
-            quotes = []
+            pending = []
 
         quote = {
             'quote': quote_string,
@@ -93,19 +94,19 @@ class Add(Quote):
             'timestamp': str(self.message.timestamp)
         }
 
-        # Add the quote string to the key
-        quotes.append(quote)
+        # Add the quote string to the pending list
+        pending.append(quote)
 
-        # Write the formats to the JSON file
+        # Write the quotes list to the JSON file
         with open(PENDING_FILE, 'w') as new:
-            json.dump(quotes, new)
+            json.dump(pending, new)
 
         return 'The following quote has been added to the pending list at index %s:\n%s'\
-                                                    % (len(quotes)-1, codeblock(quote_string))
+                                                    % (len(pending)-1, codeblock(quote_string))
 
 
 class Remove(Quote):
-    desc = "Removes a quote by index from the quotes list. Mods only."
+    desc = "Removes a quote by index from the quotes list and puts it back on the pending list. Mods only."
     roles_required = ['mod', 'exec']
 
     def eval(self, index):
@@ -123,18 +124,32 @@ class Remove(Quote):
             raise CommandFailure('Quotes list is empty!')
 
         if index < 0 or index > quotes['last_id']:
-            raise CommandFailure('Invalid index!')
+            raise CommandFailure('Index out of range!')
         
         try:
             quote = quotes['quotes'].pop(str(index))
         except KeyError:
             raise CommandFailure('Quote with ID %s does not exist!' % index)
 
-        # Write the formats to the JSON file
+        # Open the pending file or create a new dict to load
+        try:
+            with open(PENDING_FILE, 'r') as old:
+                pending = json.load(old)
+        except FileNotFoundError:
+            pending = []
+
+        # Add the quote string to the pending list
+        pending.append(quote)
+
+        # Write the quotes list to the JSON file
         with open(QUOTE_FILE, 'w') as new:
             json.dump(quotes, new)
 
-        return 'Quote %s with ID %s removed!' % (code(quote['quote']), index)
+        # Write the pending list to the JSON file
+        with open(PENDING_FILE, 'w') as new:
+            json.dump(pending, new)
+
+        return 'Quote with ID %s moved to pending list!' % index
 
 
 class Approve(Quote):
@@ -220,7 +235,7 @@ class Reject(Quote):
             raise CommandFailure('Pending list is empty!')
 
         if index < 0 or index >= len(pending):
-            raise CommandFailure('Invalid index!')
+            raise CommandFailure('Index out of range!')
         
         quote = pending.pop(index)
 
@@ -263,6 +278,7 @@ class List(Quote):
         
         return out
 
+
 class Pending(Quote):
     desc = "Displays a list of pending quotes. Mods only."
     roles_required = ['mod', 'exec']
@@ -282,10 +298,7 @@ class Pending(Quote):
         out = '**List of *Pending* Quotes:**\n'
         for i in range(len(pending)):
             user = self.from_id(pending[i]['author'])
-            if user is None:
-                a = pending[i]['nick']
-            else:
-                a = user.name
+            a = pending[i]['nick'] if user is None else user.name
             q = pending[i]['quote']
             tmp = '**#%s by %s:** %s\n' % (i, a, q)
             if len(out+tmp) > CHAR_LIMIT:
@@ -295,6 +308,54 @@ class Pending(Quote):
                 out += tmp
         
         return out
+
+
+class Changeid(Quote):
+    desc = "Changes the ID of a quote on the quotes list. Mods only."
+    roles_required = ['mod', 'exec']
+
+    async def eval(self, oldid, newid):
+        # convert input index to int
+        try:
+            oldid = int(oldid)
+            newid = int(newid)
+        except ValueError:
+            raise CommandFailure("Must supply either an integer or subcommand!")
+
+        # Retrieve the quotes list
+        try:
+            # Get the format dict, throws FileNotFoundError
+            with open(QUOTE_FILE, 'r') as fmt:
+                quotes = json.load(fmt)
+        except FileNotFoundError:
+            raise CommandFailure('Quotes list is empty!')
+
+        # failure conditions
+        if len(quotes['quotes']) == 0:
+            raise CommandFailure('Quotes list is empty!')
+        
+        if oldid > quotes['last_id'] or newid > quotes['last_id']: 
+            raise CommandFailure('Index out of range!')
+
+        #check that quote with ID newid does not exist
+        if str(newid) in quotes['quotes']:
+            raise CommandFailure('Quote with ID %s already exists!' % newid)
+
+        # get quote with ID oldid
+        try:
+            quote = quotes['quotes'].pop(str(oldid))
+        except KeyError:
+            raise CommandFailure('Quote with ID %s does not exist!' % oldid)
+
+        #add quote back with ID newid
+        quotes['quotes'][str(newid)] = quote
+
+        # Write the quotes list to the JSON file
+        with open(QUOTE_FILE, 'w') as new:
+            json.dump(quotes, new)
+
+        return 'ID for quote %s changed to %s!' % (oldid, newid)
+        
 
 class Ls(Quote):
     desc = "See " + bold(code("!quote") + " " + code("list")) + "."
