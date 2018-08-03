@@ -108,12 +108,12 @@ class Play(M):
                     out = "Warning: invalid Playlist URL\n"
                     out += "Please change `watch` to `playlist`"
 
+                    await self.client.send_message(bind_channel, out)
+
                 elif url.startswith(VID_PREFIX):
                     # Video, could have playlist, add anyway
                     song = video_info(url, self.message.author)
                     playlist.append(song)
-
-                    await self.client.send_message(bind_channel, out)
 
                     # Construct add message
                     d = str(datetime.timedelta(seconds=int(song['duration'])))

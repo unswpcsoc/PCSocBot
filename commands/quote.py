@@ -268,6 +268,7 @@ class List(Quote):
         for quote in quotes:
             i = quote[0]
             q = quote[1]['quote'][:LIST_LIMIT]
+
             tmp = '**#%s:** %s' % (i, q)
             tmp += '[...]\n' if len(q) >= LIST_LIMIT else '\n'
             if len(out+tmp) > CHAR_LIMIT:
@@ -355,8 +356,8 @@ class Changeid(Quote):
             json.dump(quotes, new)
 
         return 'ID for quote %s changed to %s!' % (oldid, newid)
-        
 
+      
 class Ls(Quote):
     desc = "See " + bold(code("!quote") + " " + code("list")) + "."
     async def eval(self):
