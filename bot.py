@@ -55,7 +55,7 @@ async def on_ready():
 async def on_message(message):
     try:
         if message.content.startswith(commands.PREFIX):
-            args = message.content[1:].split()
+            args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
                 output = await cls(client, message).init(*args)

@@ -19,6 +19,9 @@ def underline(s):
 def code(s):
     return surround(s, '`')
 
+def codeblock(s):
+    return '```\n' + s + '\n```'
+
 def at(s):
     return "<@%s>" % s
 
