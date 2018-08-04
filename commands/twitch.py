@@ -162,7 +162,7 @@ async def twitch(client, channel):
 
             # set message
             message = 'Hey guys, %s is now live on %s ! Go check it out!' % \
-                    (name, stream['channel']['url'])
+                    (code(name), stream['channel']['url'])
             description = '[%s](%s)' % \
                     (stream['channel']['status'], stream['channel']['url'])
 
