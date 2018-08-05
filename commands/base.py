@@ -31,8 +31,8 @@ class Command(metaclass=Tree):
     channels_required = None
     db_required = False
     desc = 'The Computer Enthusiasts Society Discord Bot '
-    desc += 'built with discord.py by Matthew Stark\n'
-    desc += ', extended by Vincent Chen, Harrison Scott, and David Sison.'
+    desc += 'built with discord.py by Matthew Stark,\n'
+    desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
     pprint = {}
     EMBED_COLOR = int('f0cf20', 16)
 
