@@ -30,7 +30,9 @@ class Command(metaclass=Tree):
     roles_required = None
     channels_required = None
     db_required = False
-    desc = bold('PCSocBot') + ' - PC Enthusiasts society Discord bot made with discord.py by Matt Stark'
+    desc = bold('PCSocBot') + ' - Computer Enthusiasts Society Discord Bot '
+    desc += 'built with discord.py by Matthew Stark'
+    desc += ', extended by Vincent Chen and Harrison Scott.'
     pprint = {}
     EMBED_COLOR = int('f0cf20', 16)
 
