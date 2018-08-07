@@ -51,11 +51,11 @@ async def leaderboard(client, channel):
                 diff_positions = dict()
                 for user, value in new_positions.items():
                     rank = value + 1
-                    user_ping = bold((await client.get_user_info(user)).name) if user in muted_people else at(user) 
+                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
-                            prev_ping = bold((await client.get_user_info(prev)).name) if prev in muted_people else at(prev)
+                            prev_ping = bold((await client.get_user_info(prev)).display_name) if prev in muted_people else at(prev)
                             if rank == 1:
                                 alerts.append("{} has just taken the #1 spot from {}.".format(
                                     user_ping, prev_ping))
