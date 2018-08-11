@@ -109,3 +109,5 @@ venv.bak/
 # vim swap files
 *.*~
 *.*.*~
+
+!files/flags.json
