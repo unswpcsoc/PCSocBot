@@ -43,8 +43,14 @@ class List(Tags):
     def eval(self, platform):
         platform = platform.lower()
         tags = Tag.select_or_err(lambda x: x.platform == platform)
+        tab = []
+        for tag in tags:
+            try:
+                tab.append((self.from_id(tag.user).name, tag.tag))
+            except AttributeError: continue
+
         return EmbedTable(fields=['User', 'Tag'],
-                           table=[(self.from_id(tag.user).name, tag.tag) for tag in tags],
+                           table=tab,
                            title="Showing tags for " + platform.title(), colour=self.EMBED_COLOR)
 
 
