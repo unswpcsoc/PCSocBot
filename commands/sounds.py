@@ -34,5 +34,5 @@ class Water(S):
     #roles_required = ['mod', 'exec']
     async def eval(self):
         await self.client.send_message(self.message.channel, "https://i.imgur.com/vQ0JLpa.png")
-        await self.play_mp3('water.mp3')
+        await self.play_mp3('water.mp3', quiet=True)
         return 
