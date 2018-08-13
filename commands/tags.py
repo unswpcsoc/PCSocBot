@@ -46,7 +46,7 @@ class List(Tags):
         tab = []
         for tag in tags:
             try:
-                tab.append(self.from_id(tag.user).name, tag.tag)
+                tab.append((self.from_id(tag.user).name, tag.tag))
             except AttributeError: continue
 
         return EmbedTable(fields=['User', 'Tag'],
