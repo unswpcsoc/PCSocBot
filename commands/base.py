@@ -112,16 +112,16 @@ class Command(metaclass=Tree):
                                      " or ".join([chan(x.id) for x in cr]))
 
 
-    async def play_mp3(self, file):
+    async def play_mp3(self, file, quiet=False):
         global player
 
         channel = self.message.author.voice.voice_channel
 
         if not channel:
-            raise CommandFailure("You need to join a voice channel to use this command")
+            raise CommandFailure("You need to join a voice channel to use this command") if not quiet else return
 
         if player:
-            raise CommandFailure("Already playing something!")
+            raise CommandFailure("Already playing something!") if not quiet else return
 
         # Check if bot is connected already in the server
         vclients = list(self.client.voice_clients)
