@@ -6,8 +6,10 @@ import re
 import asyncio
 import os
 import time
+import datetime
 from utils.embed_table import EmbedTable
 from discord import Embed
+
 
 TWITCH_CHANNEL = 'stream'
 TWITCH_FILE = "files/twitch.json"
@@ -124,6 +126,7 @@ class Ls(Twitch):
 
 async def twitch(client, channel):
     status = dict()
+    messages = dict()
     # Event Loop
     while True:
         # Sleep at start
@@ -156,15 +159,17 @@ async def twitch(client, channel):
                 status[key] = False
                 continue
 
-            # skip if live already announced
-            if key in status and status[key]:
-                continue
+            # # skip if live already announced
+            # if key in status and status[key]:
+            #     continue
 
             # set message
-            message = 'Hey guys, %s is now live on %s ! Go check it out!' % \
+            body = 'Hey guys, %s is now live on %s ! Go check it out!' % \
                     (code(name), stream['channel']['url'])
             description = '[%s](%s)' % \
                     (stream['channel']['status'], stream['channel']['url'])
+            timestamp = datetime.datetime.now()
+            footer = 'Last updated' 
 
             # set embed contents
             icon = stream['channel'].get('logo', '')
@@ -173,7 +178,7 @@ async def twitch(client, channel):
             game = game if len(game) > 0 else 'No Game Specified'
             viewers = stream.get('viewers', '')
 
-            embed = Embed(description=description, colour=TWITCH_COLOR)
+            embed = Embed(description=description, timestamp=timestamp, colour=TWITCH_COLOR)
 
             embed.set_author(name=name, icon_url=icon)
 
@@ -181,10 +186,20 @@ async def twitch(client, channel):
 
             embed.set_thumbnail(url=icon)
 
+            embed.set_footer(text=footer)
+
             embed.add_field(name='Game', value=game, inline=True)
             embed.add_field(name='Viewers', value=viewers, inline=True)
 
-            await client.send_message(channel, message, embed=embed)
+            #edit existing message if it exists, or create new message
+            if name in messages:
+                await client.edit_message(messages[name], embed=embed)
 
-            #update status
-            status[key] = True
+            else:
+                message = await client.send_message(channel, body, embed=embed)
+
+                # store message in messages
+                messages[name] = message
+
+                #update status
+                status[key] = True
