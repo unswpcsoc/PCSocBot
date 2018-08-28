@@ -16,7 +16,7 @@ TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
 HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
             'Client-ID': os.environ['CLIENT_ID'] }
-SLEEP_INTERVAL = 60
+SLEEP_INTERVAL = 300
 REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
 
 
@@ -122,10 +122,83 @@ class Ls(Twitch):
     def eval(self): return List.eval(self)
 
 
+class Setm(Twitch):
+    desc = "Sets the custom go live message for a specified twitch channel. Mods only."
+    roles_required = ['mod', 'exec']
+
+    def eval(self, username, *message_string):
+        # Get the message string
+        message_string = " ".join(message_string)
+        message_string = message_string.replace('\\n', '\n')
+
+        # Open the JSON file and attempt to write the message
+        try:
+            with open(TWITCH_FILE, 'r') as old:
+                channels = json.load(old)
+            channels['channels'][username.lower()]['message'] = message_string
+            name = channels['channels'][username.lower()]['name']
+
+        except (FileNotFoundError, KeyError, ValueError):
+            raise CommandFailure("Broadcaster %s not found!" % code(username))
+
+        # Write the formats to the JSON file
+        with open(TWITCH_FILE, 'w') as new:
+            json.dump(channels, new)
+
+        return "Message for %s set to %s!" %(code(name), code(message_string))
+
+
+class Removem(Twitch):
+    desc = "Removes the custom go live message for a specified channel if it exists. Mods only."
+    roles_required = ['mod', 'exec']
+
+    def eval(self, username):
+        # Open the JSON file and attempt to get the message
+        try:
+            with open(TWITCH_FILE, 'r') as old:
+                channels = json.load(old)
+            channel = channels['channels'][username.lower()]
+            name = channels['channels'][username.lower()]['name']
+
+        except (FileNotFoundError, KeyError, ValueError):
+            raise CommandFailure("Broadcaster %s not found!" % code(username))
+
+        message = channel.pop('message', None)
+        if message is None:
+            raise CommandFailure("No custom message for %s set!" % code(name))
+
+        # Write the formats to the JSON file
+        with open(TWITCH_FILE, 'w') as new:
+            json.dump(channels, new)
+
+        return "Custom message for %s removed!" % code(name)
+
+
+class Getm(Twitch):
+    desc = "Gets the custom go live message for a specified channel if it exists. Mods only."
+    roles_required = ['mod', 'exec']
+
+    def eval(self, username):
+        # Open the JSON file and attempt to get the message
+        try:
+            with open(TWITCH_FILE, 'r') as old:
+                channels = json.load(old)
+            channel = channels['channels'][username.lower()]
+            name = channels['channels'][username.lower()]['name']
+
+        except (FileNotFoundError, KeyError, ValueError):
+            raise CommandFailure("Broadcaster %s not found!" % code(username))
+
+        message = channel.get('message', None)
+        if message is None:
+            raise CommandFailure("No custom message for %s set!" % code(name))
+
+        return "Message for %s is %s!" %(code(name), code(message))
+
+
 # Twitch Alerts Event Loop
 
 async def twitch(client, channel):
-    status = dict()
     messages = dict()
     # Event Loop
     while True:
@@ -142,6 +215,7 @@ async def twitch(client, channel):
         for key, value in channels['channels'].items():
             name = value['name']
             id = value['id']
+            message = value.get('message', None)
 
             # Check if channel is live
             try:
@@ -156,20 +230,19 @@ async def twitch(client, channel):
             
             # skip if channel is not live
             if not stream:
-                status[key] = False
+                messages.pop(key, None) #remove stored message
                 continue
 
-            # # skip if live already announced
-            # if key in status and status[key]:
-            #     continue
-
             # set message
-            body = 'Hey guys, %s is now live on %s ! Go check it out!' % \
-                    (code(name), stream['channel']['url'])
+            if message is None:
+                body = 'Hey guys, %s is now live on %s ! Go check it out!' % \
+                        (code(name), stream['channel']['url'])
+            else:
+                body = message
             description = '[%s](%s)' % \
                     (stream['channel']['status'], stream['channel']['url'])
-            timestamp = datetime.datetime.now()
-            footer = 'Last updated' 
+            ts = datetime.datetime.utcnow()
+            footer = 'Last updated'
 
             # set embed contents
             icon = stream['channel'].get('logo', '')
@@ -178,7 +251,7 @@ async def twitch(client, channel):
             game = game if len(game) > 0 else 'No Game Specified'
             viewers = stream.get('viewers', '')
 
-            embed = Embed(description=description, timestamp=timestamp, colour=TWITCH_COLOR)
+            embed = Embed(description=description, timestamp=ts, colour=TWITCH_COLOR)
 
             embed.set_author(name=name, icon_url=icon)
 
@@ -201,5 +274,3 @@ async def twitch(client, channel):
                 # store message in messages
                 messages[name] = message
 
-                #update status
-                status[key] = True
