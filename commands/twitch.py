@@ -265,12 +265,12 @@ async def twitch(client, channel):
             embed.add_field(name='Viewers', value=viewers, inline=True)
 
             #edit existing message if it exists, or create new message
-            if name in messages:
-                await client.edit_message(messages[name], embed=embed)
+            if key in messages:
+                await client.edit_message(messages[key], embed=embed)
 
             else:
                 message = await client.send_message(channel, body, embed=embed)
 
                 # store message in messages
-                messages[name] = message
+                messages[key] = message
 
