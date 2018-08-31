@@ -40,7 +40,10 @@ class Translate(Command):
 
             channel = self.message.channel
             header = ''
-            footer = "Translation to %s requested by %s" % (entry.flag, self.name)
+            if type(entry.flag) is str:
+                footer = "Translation to %s requested by %s" % (entry.flag, self.name)
+            else:
+                footer = "Translation requested by %s" % self.name
             await self.client.send_message(channel, header, embed=entry.as_embed(footer))
 
 
@@ -145,8 +148,8 @@ async def create_list(logs):
         reactions = [x.emoji for x in message.reactions]
         lang_list = []
         for r in reactions:
-            if r in flags:
-                lang_list.append(Entry(message, flags[r], r))
+            if str(r) in flags:
+                lang_list.append(Entry(message, flags[str(r)], r))
                 i += 1
 
         if lang_list:
