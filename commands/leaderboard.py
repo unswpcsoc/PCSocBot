@@ -52,22 +52,26 @@ async def leaderboard(client, channel):
                 for user, value in new_positions.items():
                     rank = value + 1
                     user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
+                    alert = ""
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
                             prev_ping = bold((await client.get_user_info(prev)).display_name) if prev in muted_people else at(prev)
                             if rank == 1:
-                                alerts.append("{} has just taken the #1 spot from {}.".format(
+                                alert = "{} has just taken the #1 spot from {}.".format(
                                     user_ping, prev_ping))
                             elif rank in MILESTONES:
-                                alerts.append("{} has just entered the top {}, kicking out {}.".format(
+                                alert = "{} has just entered the top {}, kicking out {}.".format(
                                     user_ping, rank, prev_ping))
                             else:
-                                # TODO implement random messages
-                                alerts.append("{} has overtaken {} and is now rank #{}.".format(
+                                alert = "{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts.append("{} has just entered the top 100.".format(user_ping))
+                        alerts = "{} has just entered the top 100.".format(user_ping))
+
+                    alert += " `!shutup` to stop :ping:"
+                    alerts.append(alert)
+
         except FileNotFoundError:
             pass
 
