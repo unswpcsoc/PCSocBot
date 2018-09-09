@@ -58,19 +58,18 @@ async def leaderboard(client, channel):
                             prev = new_list[rank]
                             prev_ping = bold((await client.get_user_info(prev)).display_name) if prev in muted_people else at(prev)
                             if rank == 1:
-                                alert = "{} has just taken the #1 spot from {}.".format(
+                                alerts.append("{} has just taken the #1 spot from {}.".format(
                                     user_ping, prev_ping))
                             elif rank in MILESTONES:
-                                alert = "{} has just entered the top {}, kicking out {}.".format(
+                                alerts.append("{} has just entered the top {}, kicking out {}.".format(
                                     user_ping, rank, prev_ping))
                             else:
-                                alert = "{} has overtaken {} and is now rank #{}.".format(
+                                alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts = "{} has just entered the top 100.".format(user_ping))
+                        alerts("{} has just entered the top 100.".format(user_ping))
 
-                    alert += " `!shutup` to stop :ping:"
-                    alerts.append(alert)
+                    alerts.append("`!shutup` to stop :ping:")
 
         except FileNotFoundError:
             pass
