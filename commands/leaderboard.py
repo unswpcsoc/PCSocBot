@@ -63,11 +63,13 @@ async def leaderboard(client, channel):
                                 alerts.append("{} has just entered the top {}, kicking out {}.".format(
                                     user_ping, rank, prev_ping))
                             else:
-                                # TODO implement random messages
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
                         alerts.append("{} has just entered the top 100.".format(user_ping))
+
+                    alerts.append("`!shutup` to stop :ping:")
+
         except FileNotFoundError:
             pass
 
