@@ -52,7 +52,6 @@ async def leaderboard(client, channel):
                 for user, value in new_positions.items():
                     rank = value + 1
                     user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
-                    alert = ""
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
@@ -67,7 +66,7 @@ async def leaderboard(client, channel):
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts("{} has just entered the top 100.".format(user_ping))
+                        alerts.append("{} has just entered the top 100.".format(user_ping))
 
                     alerts.append("`!shutup` to stop :ping:")
 
