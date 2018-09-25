@@ -11,7 +11,6 @@ from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
-VOLUME = float(30)
 player = None
 
 class Tree(type):
@@ -112,7 +111,7 @@ class Command(metaclass=Tree):
                                      " or ".join([chan(x.id) for x in cr]))
 
 
-    async def play_mp3(self, file, quiet=False):
+    async def play_mp3(self, file, volume, quiet=False):
         global player
 
         channel = self.message.author.voice.voice_channel
@@ -141,7 +140,7 @@ class Command(metaclass=Tree):
             voice = await self.client.join_voice_channel(channel)
 
         player = voice.create_ffmpeg_player('files/' + file)
-        player.volume = VOLUME/100
+        player.volume = volume/100
         player.start()
 
         duration = MP3('files/' + file).info.length

@@ -15,7 +15,7 @@ class HighNoon(S):
     #roles_required = ['mod', 'exec']
     async def eval(self):
         #raise CommandFailure("Unicode in channel names breaks me")
-        await self.play_mp3('high_noon.mp3')
+        await self.play_mp3('high_noon.mp3', 20)
 
 async def high_noon(client, channel):
     next_noon = datetime.combine(date.today(), time(hour=12))
@@ -34,7 +34,7 @@ class Water(S):
     #roles_required = ['mod', 'exec']
     async def eval(self):
         await self.client.send_message(self.message.channel, "https://i.imgur.com/vQ0JLpa.png")
-        await self.play_mp3('water.mp3', quiet=True)
+        await self.play_mp3('water.mp3', 30, quiet=True)
         return 
 
 class Stop(S): 
@@ -42,5 +42,5 @@ class Stop(S):
     
     #roles_required = ['mod', 'exec']
     async def eval(self):
-        await self.play_mp3('stop.mp3')
+        await self.play_mp3('stop.mp3', 100)
         return 
