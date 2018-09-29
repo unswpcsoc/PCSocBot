@@ -32,7 +32,7 @@ PAUSE_UTF = "\u23F8 "
 PLAY_UTF = "\u25B6 "
 REPEAT_LIST_UTF = "\U0001F501"
 REPEAT_SONG_UTF = "\U0001F502"
-DC_TIMEOUT = 60
+DC_TIMEOUT = 300
 
 bind_channel = None
 paused = False
@@ -527,8 +527,6 @@ async def music(voice, client, channel):
         # Poll for no player or the player is finished
         if not player or player.is_done():
 
-            name = voice.channel.name
-
             if len(playlist) > 0:
 
                 # Check for repeating modes
@@ -579,6 +577,7 @@ async def music(voice, client, channel):
                 if len(voice.channel.voice_members) <= 1:
                     dc_timer += 1
                     if dc_timer == DC_TIMEOUT:
+                        name = voice.channel.name
                         await voice.disconnect()
 
                         d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
@@ -613,6 +612,7 @@ async def music(voice, client, channel):
 
                     await client.change_presence(game=Game(name=presence))
 
+                    name = voice.channel.name
                     out = bold("Nobody listening in %s, Pausing" % code(name))
                     await client.send_message(bind_channel, out)
 
@@ -622,6 +622,7 @@ async def music(voice, client, channel):
                 if dc_timer >= DC_TIMEOUT: 
                     await voice.disconnect()
 
+                    name = voice.channel.name
                     d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
                     out = "Timeout of [%s] reached," % d
                     out += " Disconnecting from %s," % code(name)
@@ -655,6 +656,7 @@ async def music(voice, client, channel):
 
                 await client.change_presence(game=Game(name=presence))
 
+                name = voice.channel.name
                 out = bold("Somebody has joined %s! Resuming" % code(name))
                 await client.send_message(bind_channel, out)
 
