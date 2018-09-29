@@ -37,5 +37,8 @@ def nick(m):
 def timestamp():
     return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 
+def duration(player):
+    return str(datetime.timedelta(seconds=int(player.duration)))
+
 class CommandFailure(Exception):
     pass

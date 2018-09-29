@@ -200,8 +200,7 @@ class Pause(M):
         player.pause()
         paused = True
 
-        duration = str(datetime.timedelta(seconds=int(player.duration)))
-        out = bold("Paused Playing: [%s] %s" % (duration, player.title))
+        out = bold("Paused Playing: [%s] %s" % (duration(player), player.title))
 
         # Change presence
         presence = PAUSE_UTF + player.title
@@ -229,8 +228,7 @@ class Resume(M):
         player.resume()
         paused = False
 
-        duration = str(datetime.timedelta(seconds=int(player.duration)))
-        out = bold("Resumed Playing: [%s] %s" % (duration, player.title))
+        out = bold("Resumed Playing: [%s] %s" % (duration(player), player.title))
 
         # Change presence
         presence = PLAY_UTF + player.title
@@ -253,8 +251,7 @@ class Skip(M):
         if player.is_done(): raise CommandFailure("Not playing anything!")
 
         # Construct out message
-        duration = str(datetime.timedelta(seconds=int(player.duration)))
-        out = bold("Skipped: [%s] %s" % (duration, player.title))
+        out = bold("Skipped: [%s] %s" % (duration(player), player.title))
 
         # Stop player, triggers music() to queue up the next song
         # according to the repeat policy
@@ -290,8 +287,7 @@ class Remove(M):
         song = playlist.pop(pos)
 
         # Construct out message
-        duration = str(datetime.timedelta(seconds=int(song['duration'])))
-        out = bold("Removed: [%s] %s" % (duration, song['title']))
+        out = bold("Removed: [%s] %s" % (duration(player), song['title']))
 
         # Kill the player if we remove the currently playing song
         if pos == 0: player.stop()
@@ -366,12 +362,10 @@ class List(M):
         if not player or player.is_done():
             raise CommandFailure("Not playing anything!")
 
-        duration = str(datetime.timedelta(seconds=int(player.duration)))
-
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration, player.title) 
+        state = "Now " + state + ": [%s] %s" % (duration(player), player.title) 
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -385,8 +379,7 @@ class List(M):
         for song in playlist[1:]:
             i += 1
 
-            duration = datetime.timedelta(seconds=int(song['duration']))
-            title = "%d. [%s] %s" % (i, str(duration), song['title'])
+            title = "%d. [%s] %s" % (i, duration(player), song['title'])
 
             embed.add_field(name=title, 
                             value="Added by: %s" % nick(song['author']), 
@@ -557,9 +550,8 @@ async def music(voice, client, channel):
                 was_playing = True
 
                 # Print the message in the supplied channel
-                duration = str(datetime.timedelta(seconds=int(song['duration'])))
                 presence = song['title']
-                out = bold("Now Playing: [%s] %s" % (duration, presence))
+                out = bold("Now Playing: [%s] %s" % (duration(player), presence))
                 await client.send_message(bind_channel, out)
 
                 # Change presence to the currently playing song
@@ -602,7 +594,8 @@ async def music(voice, client, channel):
 
                 else: dc_timer = 0
 
-        else:   # Something is playing
+        # Something is playing
+        else:   
 
             # Poll for no listeners in channel
             if len(voice.channel.voice_members) <= 1:
@@ -624,8 +617,7 @@ async def music(voice, client, channel):
                     await client.send_message(bind_channel, out)
 
                 elif paused_dc:    # Make sure we are the ones who paused
-                    # Careful, if SLEEP_INTERVAL changes, the duration will change
-                    dc_timer += 1
+                    dc_timer += SLEEP_INTERVAL
 
                 if dc_timer >= DC_TIMEOUT: 
                     await voice.disconnect()
