@@ -244,11 +244,11 @@ class Skip(M):
     desc = "Skips the current song. Does not skip if repeat is `song`"
 
     def eval(self):
-        # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if not player: raise CommandFailure("Not playing anything!")
-        if player.is_done(): raise CommandFailure("Not playing anything!")
+        # Check if playing
+        if not player or player.is_done(): 
+            raise CommandFailure("Not playing anything!")
 
         # Construct out message
         out = bold("Skipped: [%s] %s" % (duration(player), player.title))
@@ -269,15 +269,15 @@ class Remove(M):
         global playlist
         global repeat
 
-        try:
-            pos = int(pos)
-        except ValueError:
-            raise CommandFailure("Not a valid position!")
-
-        if not player:
+        if not player: 
             raise CommandFailure("Not playing anything!")
 
-        if pos < 0 or pos > len(playlist):
+        try: 
+            pos = int(pos)
+        except ValueError: 
+            raise CommandFailure("Not a valid position!")
+
+        if pos < 0 or pos >= len(playlist):
             raise CommandFailure("Not a valid position!")
 
         # Check if connected to a voice channel
@@ -510,30 +510,77 @@ async def do_join(client, message):
 
 
 async def music(voice, client, channel):
+    """ Music event loop
+    This function takes a discord voice session, dicsord client, and channel.
+
+    It then does a bunch of fancy things. From the top level down it checks:
+
+    [1] Player state
+        ? - Player uninitialised OR Player done playing:
+                *Play the next song
+
+        : - Player initialised AND is playing:
+                GOTO [3].
+
+    [2] Playlist state
+        ? - Playlist not empty:
+                Play the next song from playlist according to repeat modes.
+
+        : - Playlist empty:
+                Stop playing without disconnecting. 
+
+    [3]<-[1:] Audience state
+        ? - No Audience
+                GOTO [4]
+
+        : - Audience AND Paused:
+                Resume playing
+
+    [4]<-[3?]<-[1:] No Audience Paused state
+        ? - No Audience, Not Paused:
+                Trigger Audience Paused state
+
+        : - No Audience, Paused:
+                Tick Audience Paused DC_TIMER
+
+        F - No Audience, Paused DC trigger
+                Clean up and disconnect
+
+    * - Songs aren't popped when played; they are read off Playlist's head.
+        We only pop a song when we need to access the next one.
+        This allows us to easily implement a single song repeat policy.
+    """
+
     global bind_channel
     global paused
     global player
     global playlist
     global presence
+    global repeat
     global volume
 
-    # Sentinel value for paused state
-    # Could use player.is_playing() but this is faster
-    paused_dc = False
-    dc_timer = 0
-    was_playing = False
+    # vars for No Audience Self-Paused state ticker
+    dc_ticker = 0
+
+    # Begin event loop
     while True:
 
-        # Poll for no player or the player is finished
+        # [1?] Player is uninitialised or done
         if not player or player.is_done():
 
+            # [2?] Playlist is not empty
             if len(playlist) > 0:
 
-                # Check for repeating modes
-                if repeat == "song": pass
-                elif repeat == "list": playlist.append(playlist.pop(0))
+                # Handle repeating modes
+                if repeat == "song": 
+                    # Don't pop
+                    pass
+                elif repeat == "list": 
+                    # Requeue
+                    playlist.append(playlist.pop(0))
                 else: 
-                    if was_playing: playlist.pop(0)
+                    # Pop if we can
+                    if len(playlist) > 0: playlist.pop(0) 
 
                 # Play the next song in the list
                 if len(playlist) > 0: song = playlist[0]
@@ -544,8 +591,6 @@ async def music(voice, client, channel):
                 player = await voice.create_ytdl_player(url)
                 player.start()
                 player.volume = volume/100  # "That's how you get tinnitus!"
-
-                was_playing = True
 
                 # Print the message in the supplied channel
                 presence = song['title']
@@ -559,47 +604,24 @@ async def music(voice, client, channel):
 
                 await client.change_presence(game=Game(name=presence))
 
-            else:
-                if player:
-                    # Reset player
-                    player = None
+            # [2:] Playlist is empty
+            elif player:
+                # Clean up
+                player = None
 
-                    was_playing = False
+                # Signal
+                out = bold("Stopped Playing")
+                await client.send_message(bind_channel, out)
+                await client.change_presence(game=Game(\
+                                            name=CURRENT_PRESENCE))
 
-                    out = bold("Stopped Playing")
-                    await client.send_message(bind_channel, out)
-
-                    # Change presence back
-                    await client.change_presence(game=Game(\
-                                                name=CURRENT_PRESENCE))
-
-                # Poll for listeners
-                if len(voice.channel.voice_members) <= 1:
-                    dc_timer += 1
-                    if dc_timer == DC_TIMEOUT:
-                        name = voice.channel.name
-                        await voice.disconnect()
-
-                        d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
-                        out = "Timeout of [%s] reached," % d
-                        out += " Disconnecting from %s," % code(name)
-                        out += " Unbinding from %s" % chan(bind_channel.id)
-
-                        # Flush channels required
-                        M.channels_required.clear()
-
-                        await client.send_message(bind_channel, bold(out))
-                        break
-
-                else: dc_timer = 0
-
-        # Something is playing
+        # [1:] Player is playing
         else:   
 
-            # Poll for no listeners in channel
+            # [3?] No Audience
             if len(voice.channel.voice_members) <= 1:
 
-                # while playing
+                # [4?] No Audience, No Paused state
                 if player.is_playing():
                     player.pause()
                     paused_dc = True
@@ -616,10 +638,12 @@ async def music(voice, client, channel):
                     out = bold("Nobody listening in %s, Pausing" % code(name))
                     await client.send_message(bind_channel, out)
 
-                elif paused_dc:    # Make sure we are the ones who paused
-                    dc_timer += SLEEP_INTERVAL
+                # [4:] No Audience, Paused state
+                else:
+                    dc_ticker += SLEEP_INTERVAL
 
-                if dc_timer >= DC_TIMEOUT: 
+                # [4F] No Audience, Paused DC trigger state
+                if dc_ticker >= DC_TIMEOUT: 
                     await voice.disconnect()
 
                     name = voice.channel.name
@@ -639,15 +663,16 @@ async def music(voice, client, channel):
 
                     # Reset paused
                     paused = False
-                    break
+                    
+                    # Escape from this hell
+                    return
 
-            # Poll for listeners when we have paused_dc ourselves
-            # Since listeners can pause themselves, we must use our own value
-            if len(voice.channel.voice_members) > 1 and paused_dc:
+            # [3:] Audience Pause state reset
+            elif len(voice.channel.voice_members) > 1 and !player.is_playing():
                 player.resume()
                 paused_dc = False
                 paused = False
-                dc_timer = 0
+                dc_ticker = 0
 
                 # Change presence
                 presence = PLAY_UTF + player.title
