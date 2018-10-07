@@ -61,8 +61,12 @@ class Auto(M):
 
     async def eval(self):
         global auto
+        global bind_channel
 
-        auto = !auto
+        # Check if connected to a voice channel
+        check_bot_join(self.client, self.message)
+
+        auto = not auto
         out = "Autoplay is now "
         out += bold("on") if auto else bold("off")
         await self.client.send_message(bind_channel, out)
@@ -444,6 +448,23 @@ class Stop(M):
         playlist.clear()
         auto = False
 
+class Suggest(M):
+    desc = "Get YouTube auto-suggestions"
+    async def eval(self, url):
+        if not url.startswith(VID_PREFIX):
+            raise CommandFailure("Please use a valid YouTube Video link!")
+        pending = bold(italics("Fetching Suggestions..."))
+        await self.client.send_message(self.message.channel, pending)
+        results = auto_get(url)
+        out = bold("Autosuggestions for %s" % noembed(url))
+        for r in results:
+            out += "\n%s: " % r['title'] + noembed(r['url'])
+        return out
+
+class Sugg(M):
+    desc = "See " + bold(code("!m") + " " + code("suggest")) + "."
+    async def eval(self, url): return await Suggest.eval(self, url)
+
 class Volume(M):
     desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
@@ -485,7 +506,7 @@ def check_bot_join(client, message):
         v_index = voices.index(message.server)
     except ValueError:
         # Bot is not connected to a voice channel in this server
-        raise CommandFailure("Please `!join` a voice channel first") 
+        raise CommandFailure("Bot is not in a VC yet!") 
 
 async def do_join(client, message):
     global bind_channel
@@ -508,6 +529,124 @@ async def do_join(client, message):
 
     return voice
 
+def video_info(url, author):
+    # This is the only function that gets the video info
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
+
+    # Split the url to get video id
+    if url.startswith("http"):
+        vid = url.split("v=")[1]
+        vid = vid.split("&")[0]
+    else:
+        vid = url
+
+    # API call
+    videos = youtube.videos().list(
+            part='snippet, contentDetails',
+            id=vid
+            ).execute()
+
+    # Using vid id, will always return one item
+    vid = videos['items'][0]
+
+    # Construct info dict and return it
+    info = {}
+    info['title'] = vid['snippet']['title']
+    info['webpage_url'] = VID_PREFIX + vid['id']
+    duration = isodate.parse_duration(vid['contentDetails']['duration'])
+    info['duration'] = duration.seconds
+    info['author'] = author
+    return info
+
+def playlist_info(url, author):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
+
+    # Split the url to get list id
+    if url.startswith("http"):
+        vid = url.split("list=")[1]
+        vid = vid.split("&")[0]
+    else:
+        vid = url
+
+    # API call
+    videos = youtube.playlistItems().list(
+            part='snippet, contentDetails',
+            playlistId=vid,
+            maxResults=list_limit
+            ).execute()
+
+    # Get video metadata
+    info_list = []
+    info = dict()
+    for video in videos['items']:
+        # Create a new dict each iteration and append to list
+        copy = info.copy()
+        copy = video_info(video['contentDetails']['videoId'], author)
+        info_list.append(copy)
+
+    return info_list
+
+def youtube_search(query, author):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+            developerKey=DEVELOPER_KEY)
+
+    # Call the search.list method to retrieve results matching the specified
+    # query term.
+    search_response = youtube.search().list(
+        q=query,
+        part='id',
+        maxResults=1,   # Only 1 video
+        regionCode=GEO_REGION,
+        type='video'
+        ).execute()
+
+    # Return the first video's info
+    try:
+        return video_info(search_response['items'][0]['id']['videoId'], author)
+    except IndexError:
+        raise CommandFailure(bold("Couldn't find %s" % query))
+
+def is_good_response(resp):
+    content_type = resp.headers['Content-Type'].lower()
+    return (resp.status_code == 200
+            and content_type is not None
+            and content_type.find('html') > -1)
+
+def auto_get(url):
+    """ Autosuggest function
+    Takes a URL and spits out a list of the autosuggestions using `requests` and `bs4`
+    Assumes it will receive a Good URL
+    """
+    content = None
+    # Get html response from url
+    try:
+        with closing(get(url, stream=True)) as resp:
+            if is_good_response(resp):
+                content = resp.content
+            else:
+                log_error("Bad Response from %s" % url)
+                return []
+    except RequestException as e:
+        log_error("Error during requests to %s : %s" % (url, str(e)))
+        return []
+
+    # (try) Make soup
+    try:
+        html = BeautifulSoup(content, 'html.parser')
+    except BadHTMLError as e:
+        log_error(e.message)
+
+    # Find autosuggest results
+    results = []
+    for a in html.find_all('a', class_=SUGG_CLASS):
+        entry = {'url':YT_PREFIX + a['href'], 'title':a['title']}
+        results.append(entry)
+    #print("Got: " + str(results))
+    return results
+
+# Big Boi
 async def music(voice, client, channel):
     """ Music event loop
     This function takes a discord voice session, dicsord client, and channel.
@@ -580,7 +719,7 @@ async def music(voice, client, channel):
                 else: 
                     # Handle autoplay
                     if auto and len(playlist) == 1:
-                        result = auto_get(playlist.pop(0)['webpage_url'])
+                        result = auto_get(playlist.pop(0)['webpage_url'])['url']
                         playlist.append(result[0])
 
                     # Pop to access next song
@@ -672,7 +811,7 @@ async def music(voice, client, channel):
                     return
 
             # [3:] Audience Pause state reset
-            elif len(voice.channel.voice_members) > 1 and !player.is_playing():
+            elif len(voice.channel.voice_members) > 1 and not player.is_playing():
                 player.resume()
                 paused_dc = False
                 paused = False
@@ -690,110 +829,3 @@ async def music(voice, client, channel):
                 await client.send_message(bind_channel, out)
 
         await asyncio.sleep(SLEEP_INTERVAL)
-
-def video_info(url, author):
-    # This is the only function that gets the video info
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
-          developerKey=DEVELOPER_KEY)
-
-    # Split the url to get video id
-    if url.startswith("http"):
-        vid = url.split("v=")[1]
-        vid = vid.split("&")[0]
-    else:
-        vid = url
-
-    # API call
-    videos = youtube.videos().list(
-            part='snippet, contentDetails',
-            id=vid
-            ).execute()
-
-    # Using vid id, will always return one item
-    vid = videos['items'][0]
-
-    # Construct info dict and return it
-    info = {}
-    info['title'] = vid['snippet']['title']
-    info['webpage_url'] = VID_PREFIX + vid['id']
-    duration = isodate.parse_duration(vid['contentDetails']['duration'])
-    info['duration'] = duration.seconds
-    info['author'] = author
-    return info
-
-def playlist_info(url, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
-          developerKey=DEVELOPER_KEY)
-
-    # Split the url to get list id
-    if url.startswith("http"):
-        vid = url.split("list=")[1]
-        vid = vid.split("&")[0]
-    else:
-        vid = url
-
-    # API call
-    videos = youtube.playlistItems().list(
-            part='snippet, contentDetails',
-            playlistId=vid,
-            maxResults=list_limit
-            ).execute()
-
-    # Get video metadata
-    info_list = []
-    info = dict()
-    for video in videos['items']:
-        # Create a new dict each iteration and append to list
-        copy = info.copy()
-        copy = video_info(video['contentDetails']['videoId'], author)
-        info_list.append(copy)
-
-    return info_list
-
-def youtube_search(query, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
-            developerKey=DEVELOPER_KEY)
-
-    # Call the search.list method to retrieve results matching the specified
-    # query term.
-    search_response = youtube.search().list(
-        q=query,
-        part='id',
-        maxResults=1,   # Only 1 video
-        regionCode=GEO_REGION,
-        type='video'
-        ).execute()
-
-    # Return the first video's info
-    try:
-        return video_info(search_response['items'][0]['id']['videoId'], author)
-    except IndexError:
-        raise CommandFailure(bold("Couldn't find %s" % query))
-
-def auto_get(url):
-    """ Autosuggest function
-    Takes a URL and spits out a list of the autosuggestions using `requests` and `bs4`
-    Assumes it will receive a Good URL
-    """
-    content = None
-    # Get html response from url
-    try:
-        with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                content = resp.content
-            else:
-                # Fail silently
-                return []
-
-    # (try) Make soup
-    try:
-        html = BeautifulSoup(get_url(args.yt_url), 'html.parser')
-    except BadHTMLError as e:
-        log_error(e.message)
-
-    # Find autosuggest results
-    results = []
-    for a in html.find_all('a', class_=SUGG_CLASS):
-        link = YT_PREFIX+a['href']
-        results.append(link)
-    return results
