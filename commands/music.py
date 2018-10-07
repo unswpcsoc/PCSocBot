@@ -1,26 +1,31 @@
+# Internal imports
 from commands.base import Command
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
 
-from collections import deque
-
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-
+# External imports
 from discord import Game, Embed, Colour
 import asyncio, datetime, isodate, youtube_dl, os, random
 
+# Autosuggest imports
+from requests import get
+from requests.exceptions import RequestException
+from contextlib import closing
+from bs4 import BeautifulSoup
+
+# YouTube API things. Required for all YouTube links, searches, etc.
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
-# Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
+# Set environment variable to the API key value from the APIs & auth > Registered apps
 # tab of
 #   https://cloud.google.com/console
 # Please ensure that you have enabled the YouTube Data API for your project.
-
-# Make sure you set your environment variable
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 DEVELOPER_KEY = os.environ['YT_API']
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
+# Global constants
 SLEEP_INTERVAL = 1
 GEO_REGION = "AU"
 SAMPLE_RATE = 48000
@@ -33,7 +38,10 @@ PLAY_UTF = "\u25B6 "
 REPEAT_LIST_UTF = "\U0001F501"
 REPEAT_SONG_UTF = "\U0001F502"
 DC_TIMEOUT = 300
+SUGG_CLASS = " content-link spf-link yt-uix-sessionlink spf-link "
+YT_PREFIX = 'https://www.youtube.com'
 
+# Global vars
 bind_channel = None
 paused = False
 player = None
@@ -768,3 +776,31 @@ def youtube_search(query, author):
         return video_info(search_response['items'][0]['id']['videoId'], author)
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
+
+def auto_get(url):
+    """ Autosuggest function
+    Takes a URL and spits out a list of the autosuggestions using `requests` and `bs4`
+    Assumes it will receive a Good URL
+    """
+    content = None
+    # Get html response from url
+    try:
+        with closing(get(url, stream=True)) as resp:
+            if is_good_response(resp):
+                content = resp.content
+            else:
+                # Fail silently
+                return []
+
+    # (try) Make soup
+    try:
+        html = BeautifulSoup(get_url(args.yt_url), 'html.parser')
+    except BadHTMLError as e:
+        log_error(e.message)
+
+    # Find autosuggest results
+    results = []
+    for a in html.find_all('a', class_=SUGG_CLASS):
+        link = YT_PREFIX+a['href']
+        results.append(link)
+    return results
