@@ -1,14 +1,10 @@
 #!/bin/sh
 
-# this stuff is required for everything
-sudo pip3 install discord.py
+# WARNING: DO NOT RUN THIS SCRIPT IF YOU KNOW WHAT YOU'RE DOING!!!
+# This is a 'stupid' install, it installs required packages for the user
 
-# this stuff is required for !tags
-sudo pip3 install pony
+# This script ASSUMES the user is using apt-get as their package manager
 
-# this stuff is only required for voice channels and music
-sudo apt install python3-setuptools python3-dev libffi-dev ffmpeg
-sudo pip3 install PyNaCL mutagen youtube_dl isodate
-
-# this stuff is required for music youtube searching
-sudo pip3 install --upgrade google-api-python-client
+test "$(whoami)" != 'root' && (echo "Please use `sudo`"; exit 1)
+sudo apt-get install python3-setuptools python3-dev libffi-dev ffmpeg
+pip3 install --user --upgrade discord.py pony PyNaCL mutagen youtube_dl isodate google-api-python-client requests beautifulsoup4
