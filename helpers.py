@@ -10,6 +10,9 @@ class classproperty(object):
 def surround(s, markup):
     return markup + s + markup[::-1]
 
+def italics(s):
+    return surround(s, '*')
+
 def bold(s):
     return surround(s, '**')
 
@@ -55,8 +58,12 @@ def log_error(e):
     """
     with open("log", "a") as f:
         f.write("log", "[" + datetime.now().ctime() + "] " + e)
-    finally:
         f.close()
+
 
 class CommandFailure(Exception):
     pass
+
+class BadHTMLError(Exception):
+    def __init__(self, message):
+        self.message = message
