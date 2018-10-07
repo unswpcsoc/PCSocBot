@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
+#TODO Fix leaderboard
+#from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
 
 import json, os, sys
@@ -45,8 +46,9 @@ async def on_ready():
         #if channel.name == HIGH_NOON_CHANNEL:
             #await high_noon(client, channel)
 
-        if channel.name == LEADERBOARD_CHANNEL:
-            asyncio.ensure_future(leaderboard(client, channel))
+        #TODO Fix leaderboard
+        #if channel.name == LEADERBOARD_CHANNEL:
+            #asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.name == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
