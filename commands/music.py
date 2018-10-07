@@ -42,20 +42,115 @@ SUGG_CLASS = " content-link spf-link yt-uix-sessionlink spf-link "
 YT_PREFIX = 'https://www.youtube.com'
 
 # Global vars
+auto = True
 bind_channel = None
+list_limit = 10
 paused = False
 player = None
 playlist = []
-repeat = "none"
 presence = CURRENT_PRESENCE
+repeat = "none"
 volume = float(12)
-list_limit = 10
-
 
 class M(Command):
     desc = "Music"
     channels_required = []
 
+class Auto(M):
+    desc = "Toggles autoplay"
+
+    async def eval(self):
+        global auto
+
+        auto = !auto
+        out = "Autoplay is now "
+        out += bold("on") if auto else bold("off")
+        await self.client.send_message(bind_channel, out)
+
+class List(M):
+    desc = "Lists the playlist."
+
+    async def eval(self):
+        global bind_channel
+        global paused
+        global playlist
+        global repeat
+
+        if not player or player.is_done():
+            raise CommandFailure("Not playing anything!")
+
+        # Construct embed
+        col = Colour.red() if paused else Colour.green()
+        state = "Paused" if paused else "Playing"
+        state = "Now " + state + ": [%s] %s" % (duration(player), player.title) 
+
+        # Construct title
+        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
+
+        embed = Embed(title=ti, colour=col)
+        embed.set_author(name=state)
+        embed.set_footer(text="!m play [link/search]")
+                        
+        # Get fields
+        i = 0
+        for song in playlist[1:]:
+            i += 1
+
+            title = "%d. [%s] %s" % (i, duration(player), song['title'])
+
+            embed.add_field(name=title, 
+                            value="Added by: %s" % nick(song['author']), 
+                            inline=False)
+
+        await self.client.send_message(bind_channel, embed=embed)
+
+class Ls(M):
+    desc = "See " + bold(code("!m") + " " + code("list")) + "."
+
+    async def eval(self): return await List.eval(self)
+
+class ListLimit(M):
+    desc = "Sets playlist fetch limit. Mods only."
+    roles_required = [ "mod", "exec"]
+
+    def eval(self, limit):
+        global list_limit
+
+        try: limit = int(limit)
+        except ValueError: raise CommandFailure("Please enter a valid integer")
+
+        # API limit is 50 videos
+        if 0 < limit <= 50: list_limit = limit
+        else: raise CommandFailure("Please enter an integer in [0-50]")
+
+        return "Playlist fetch limit set to: %d" % limit
+
+class Pause(M):
+    desc = "Pauses music"
+
+    async def eval(self):
+        global bind_channel
+        global paused
+        global player
+        global presence
+        global repeat
+
+        if not player:
+            raise CommandFailure("Not playing anything!")
+
+        player.pause()
+        paused = True
+
+        out = bold("Paused Playing: [%s] %s" % (duration(player), player.title))
+
+        # Change presence
+        presence = PAUSE_UTF + player.title
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
+        await self.client.change_presence(game=Game(name=presence))
+
+        return out
 
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
@@ -92,7 +187,6 @@ class Play(M):
             M.channels_required.append(bind_channel)
 
         if args.startswith("http"):
-            # URL
             url = args
 
             # Scrape using yt API
@@ -191,83 +285,6 @@ class Play(M):
         if (not player or player.is_done()) and not was_connected:
             await music(voice, self.client, self.message.channel)
 
-
-class Pause(M):
-    desc = "Pauses music"
-
-    async def eval(self):
-        global bind_channel
-        global paused
-        global player
-        global presence
-        global repeat
-
-        if not player:
-            raise CommandFailure("Not playing anything!")
-
-        player.pause()
-        paused = True
-
-        out = bold("Paused Playing: [%s] %s" % (duration(player), player.title))
-
-        # Change presence
-        presence = PAUSE_UTF + player.title
-        if repeat == "song": presence = REPEAT_SONG_UTF + presence
-        if repeat == "list": presence = REPEAT_LIST_UTF + presence
-
-        await self.client.change_presence(game=Game(name=presence))
-
-        return out
-
-
-class Resume(M):
-    desc = "Resumes music"
-
-    async def eval(self):
-        global bind_channel
-        global paused
-        global player
-        global presence
-        global repeat
-
-        if not player:
-            raise CommandFailure("Not playing anything!")
-
-        player.resume()
-        paused = False
-
-        out = bold("Resumed Playing: [%s] %s" % (duration(player), player.title))
-
-        # Change presence
-        presence = PLAY_UTF + player.title
-        if repeat == "song": presence = REPEAT_SONG_UTF + presence
-        if repeat == "list": presence = REPEAT_LIST_UTF + presence
-
-        await self.client.change_presence(game=Game(name=presence))
-
-        return out
-
-
-class Skip(M):
-    desc = "Skips the current song. Does not skip if repeat is `song`"
-
-    def eval(self):
-        check_bot_join(self.client, self.message)
-
-        # Check if playing
-        if not player or player.is_done(): 
-            raise CommandFailure("Not playing anything!")
-
-        # Construct out message
-        out = bold("Skipped: [%s] %s" % (duration(player), player.title))
-
-        # Stop player, triggers music() to queue up the next song
-        # according to the repeat policy
-        player.stop()
-
-        return out
-
-
 class Remove(M):
     desc = "Removes a song from the playlist. Defaults to the current song"
 
@@ -302,129 +319,6 @@ class Remove(M):
 
         return out
 
-
-class Rm(M):
-    desc = "See " + bold(code("!m") + " " + code("remove")) + "."
-
-    def eval(self, pos=0): return Remove.eval(self, pos)
-
-
-class Stop(M):
-    desc = "Stops playing but persists in voice"
-
-    def eval(self):
-        global bind_channel
-        global player
-        global playlist
-
-        if not player:
-            return "Not playing anything!"
-
-        player.stop()
-        playlist.clear()
-
-
-class Volume(M):
-    desc = "Volume adjustment. Mods only."
-    roles_required = [ "mod", "exec" ]
-
-    def eval(self, level):
-        global bind_channel
-        global player
-        global volume
-
-        if not player:
-            raise CommandFailure("Not playing anything!")
-
-        try:
-            level = float(level)
-        except ValueError:
-            raise CommandFailure("Please enter a number between 0-100")
-
-        if 0 <= level <= 100:
-            # Change the global levelume
-            volume = level
-            player.volume = volume/100
-            out = "Volume changed to %f%%" % level
-            return out
-        else:
-            raise CommandFailure("Please enter a number from 0-100")
-
-
-class V(M):
-    desc = "See " + bold(code("!m") + " " + code("volume")) + "."
-    roles_required = [ "mod", "exec" ]
-
-    def eval(self, level): return Volume.eval(self, level)
-
-
-class List(M):
-    desc = "Lists the playlist."
-
-    async def eval(self):
-        global bind_channel
-        global paused
-        global playlist
-        global repeat
-
-        if not player or player.is_done():
-            raise CommandFailure("Not playing anything!")
-
-        # Construct embed
-        col = Colour.red() if paused else Colour.green()
-        state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration(player), player.title) 
-
-        # Construct title
-        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
-
-        embed = Embed(title=ti, colour=col)
-        embed.set_author(name=state)
-        embed.set_footer(text="!m play [link/search]")
-                        
-        # Get fields
-        i = 0
-        for song in playlist[1:]:
-            i += 1
-
-            title = "%d. [%s] %s" % (i, duration(player), song['title'])
-
-            embed.add_field(name=title, 
-                            value="Added by: %s" % nick(song['author']), 
-                            inline=False)
-
-        await self.client.send_message(bind_channel, embed=embed)
-
-
-class Ls(M):
-    desc = "See " + bold(code("!m") + " " + code("list")) + "."
-
-    async def eval(self): return await List.eval(self)
-
-
-class Shuffle(M):
-    desc = "Shuffles the playlist"
-
-    def eval(self):
-        global playlist
-
-        # Check if connected to a voice channel
-        check_bot_join(self.client, self.message)
-
-        if playlist and len(playlist) > 1:
-            random.shuffle(playlist)
-        else:
-            raise CommandFailure("No playlist!")
-
-        return "Shuffled Playlist!"
-
-
-class Sh(M):
-    desc = "See " + bold(code("!m") + " " + code("shuffle")) + "."
-
-    def eval(self): return Shuffle.eval(self)
-
-
 class Repeat(M):
     desc = "Toggle repeat for the current song or the whole playlist. "
     desc += "Accepted arguments are: 'none', `song` and `list`.\n"
@@ -458,32 +352,131 @@ class Repeat(M):
 
         return bold("Repeat mode set to: %s" % repeat)
 
+class Resume(M):
+    desc = "Resumes music"
+
+    async def eval(self):
+        global bind_channel
+        global paused
+        global player
+        global presence
+        global repeat
+
+        if not player:
+            raise CommandFailure("Not playing anything!")
+
+        player.resume()
+        paused = False
+
+        out = bold("Resumed Playing: [%s] %s" % (duration(player), player.title))
+
+        # Change presence
+        presence = PLAY_UTF + player.title
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
+
+        await self.client.change_presence(game=Game(name=presence))
+
+        return out
+
+class Rm(M):
+    desc = "See " + bold(code("!m") + " " + code("remove")) + "."
+
+    def eval(self, pos=0): return Remove.eval(self, pos)
 
 class Rp(M):
     desc = "See " + bold(code("!m") + " " + code("repeat")) + "."
 
     def eval(self, mode): return Repeat.eval(self.mode)
 
+class Shuffle(M):
+    desc = "Shuffles the playlist"
 
-class ListLimit(M):
-    desc = "Sets playlist fetch limit. Mods only."
-    roles_required = [ "mod", "exec"]
+    def eval(self):
+        global playlist
 
-    def eval(self, limit):
-        global list_limit
+        # Check if connected to a voice channel
+        check_bot_join(self.client, self.message)
 
-        try: limit = int(limit)
-        except ValueError: raise CommandFailure("Please enter a valid integer")
+        if playlist and len(playlist) > 1:
+            random.shuffle(playlist)
+        else:
+            raise CommandFailure("No playlist!")
 
-        # API limit is 50 videos
-        if 0 < limit <= 50: list_limit = limit
-        else: raise CommandFailure("Please enter an integer in [0-50]")
+        return "Shuffled Playlist!"
 
-        return "Playlist fetch limit set to: %d" % limit
+class Sh(M):
+    desc = "See " + bold(code("!m") + " " + code("shuffle")) + "."
 
+    def eval(self): return Shuffle.eval(self)
+
+class Skip(M):
+    desc = "Skips the current song. Does not skip if repeat is `song`"
+
+    def eval(self):
+        check_bot_join(self.client, self.message)
+
+        # Check if playing
+        if not player or player.is_done(): 
+            raise CommandFailure("Not playing anything!")
+
+        # Construct out message
+        out = bold("Skipped: [%s] %s" % (duration(player), player.title))
+
+        # Stop player, triggers music() to queue up the next song
+        # according to the repeat policy
+        player.stop()
+
+        return out
+
+class Stop(M):
+    desc = "Stops playing but persists in voice. Also stops autoplaying."
+
+    def eval(self):
+        global bind_channel
+        global player
+        global playlist
+
+        if not player:
+            return "Not playing anything!"
+
+        player.stop()
+        playlist.clear()
+        auto = False
+
+class Volume(M):
+    desc = "Volume adjustment. Mods only."
+    roles_required = [ "mod", "exec" ]
+
+    def eval(self, level):
+        global bind_channel
+        global player
+        global volume
+
+        if not player:
+            raise CommandFailure("Not playing anything!")
+
+        try:
+            level = float(level)
+        except ValueError:
+            raise CommandFailure("Please enter a number between 0-100")
+
+        if 0 <= level <= 100:
+            # Change the global levelume
+            volume = level
+            player.volume = volume/100
+            out = "Volume changed to %f%%" % level
+            return out
+        else:
+            raise CommandFailure("Please enter a number from 0-100")
+
+class V(M):
+    desc = "See " + bold(code("!m") + " " + code("volume")) + "."
+    roles_required = [ "mod", "exec" ]
+
+    def eval(self, level): return Volume.eval(self, level)
 
 # HELPER FUNCTIONS #
-
 
 def check_bot_join(client, message):
     vclients = list(client.voice_clients)
@@ -493,7 +486,6 @@ def check_bot_join(client, message):
     except ValueError:
         # Bot is not connected to a voice channel in this server
         raise CommandFailure("Please `!join` a voice channel first") 
-
 
 async def do_join(client, message):
     global bind_channel
@@ -515,7 +507,6 @@ async def do_join(client, message):
     voice.encoder_options(sample_rate=SAMPLE_RATE, channels=2)
 
     return voice
-
 
 async def music(voice, client, channel):
     """ Music event loop
@@ -587,8 +578,13 @@ async def music(voice, client, channel):
                     # Requeue
                     playlist.append(playlist.pop(0))
                 else: 
-                    # Pop if we can
-                    if len(playlist) > 0: playlist.pop(0) 
+                    # Handle autoplay
+                    if auto and len(playlist) == 1:
+                        result = auto_get(playlist.pop(0)['webpage_url'])
+                        playlist.append(result[0])
+
+                    # Pop to access next song
+                    elif len(playlist) > 0: playlist.pop(0) 
 
                 # Play the next song in the list
                 if len(playlist) > 0: song = playlist[0]
@@ -695,7 +691,6 @@ async def music(voice, client, channel):
 
         await asyncio.sleep(SLEEP_INTERVAL)
 
-
 def video_info(url, author):
     # This is the only function that gets the video info
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
@@ -726,7 +721,6 @@ def video_info(url, author):
     info['author'] = author
     return info
 
-
 def playlist_info(url, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
@@ -755,7 +749,6 @@ def playlist_info(url, author):
         info_list.append(copy)
 
     return info_list
-
 
 def youtube_search(query, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
