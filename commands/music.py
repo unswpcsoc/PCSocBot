@@ -48,6 +48,33 @@ class M(Command):
     desc = "Music"
     channels_required = []
 
+class Leave(M):
+    desc = "Boots the bot from voice channels"
+
+    async def eval(self):
+        global player
+        global playlist
+
+        # Checks if joined to a vc in the server
+        vclients = list(self.client.voice_clients)
+        voices = [ x.server for x in vclients ]
+        try:
+            v_index = voices.index(self.message.author.server)
+        except ValueError:
+            raise CommandFailure("Not in a voice channel!")
+
+        # Get the voice channel
+        voice = vclients[v_index]
+		await voice.disconnect()
+
+        # Clean player and playlist
+        player = None
+        playlist.clear()
+
+        # Flush channels required
+        M.channels_required.clear()
+        return "Leaving %s, Unbinding from %s" % \
+               (code(voice.channel.name), chan(bind_channel.id))
 
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
@@ -371,7 +398,7 @@ class List(M):
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration, player.title) 
+        state = "Now " + state + ": [%s] %s" % (duration, player.title)
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -379,7 +406,7 @@ class List(M):
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
         embed.set_footer(text="!m play [link/search]")
-                        
+
         # Get fields
         i = 0
         for song in playlist[1:]:
@@ -388,8 +415,8 @@ class List(M):
             duration = datetime.timedelta(seconds=int(song['duration']))
             title = "%d. [%s] %s" % (i, str(duration), song['title'])
 
-            embed.add_field(name=title, 
-                            value="Added by: %s" % nick(song['author']), 
+            embed.add_field(name=title,
+                            value="Added by: %s" % nick(song['author']),
                             inline=False)
 
         await self.client.send_message(bind_channel, embed=embed)
@@ -435,21 +462,21 @@ class Repeat(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if mode.lower() == "song": 
+        if mode.lower() == "song":
             if repeat != "none": presence = presence[1:]
             presence = REPEAT_SONG_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "list": 
+        elif mode.lower() == "list":
             if repeat != "none": presence = presence[1:]
             presence = REPEAT_LIST_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "none": 
+        elif mode.lower() == "none":
             if repeat != "none": presence = presence[1:]
             repeat = mode.lower()
 
-        else: 
+        else:
             raise CommandFailure("Not a valid argument!")
 
         # Change presence
@@ -491,7 +518,7 @@ def check_bot_join(client, message):
         v_index = voices.index(message.server)
     except ValueError:
         # Bot is not connected to a voice channel in this server
-        raise CommandFailure("Please `!join` a voice channel first") 
+        raise CommandFailure("Please `!join` a voice channel first")
 
 
 async def do_join(client, message):
@@ -541,7 +568,7 @@ async def music(voice, client, channel):
                 # Check for repeating modes
                 if repeat == "song": pass
                 elif repeat == "list": playlist.append(playlist.pop(0))
-                else: 
+                else:
                     if was_playing: playlist.pop(0)
 
                 # Play the next song in the list
@@ -627,7 +654,7 @@ async def music(voice, client, channel):
                     # Careful, if SLEEP_INTERVAL changes, the duration will change
                     dc_timer += 1
 
-                if dc_timer >= DC_TIMEOUT: 
+                if dc_timer >= DC_TIMEOUT:
                     await voice.disconnect()
 
                     d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
@@ -671,7 +698,7 @@ async def music(voice, client, channel):
 
 def video_info(url, author):
     # This is the only function that gets the video info
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
           developerKey=DEVELOPER_KEY)
 
     # Split the url to get video id
@@ -701,7 +728,7 @@ def video_info(url, author):
 
 
 def playlist_info(url, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
           developerKey=DEVELOPER_KEY)
 
     # Split the url to get list id
@@ -731,7 +758,7 @@ def playlist_info(url, author):
 
 
 def youtube_search(query, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
             developerKey=DEVELOPER_KEY)
 
     # Call the search.list method to retrieve results matching the specified
