@@ -8,6 +8,7 @@ Bot for UNSW PCSoc Discord. Currently keeps track of game/application tags for m
 ### Dependencies
 
 It's preferred to run the bot on Ubuntu. If you are, run the following command to get dependencies:
+
 ```sudo apt install python3-setuptools python3-dev libffi-dev ffmpeg```
 
 ## Contributing
