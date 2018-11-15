@@ -65,7 +65,7 @@ class Leave(M):
 
         # Get the voice channel
         voice = vclients[v_index]
-		await voice.disconnect()
+        await voice.disconnect()
 
         # Clean player and playlist
         player = None
@@ -74,7 +74,7 @@ class Leave(M):
         # Flush channels required
         M.channels_required.clear()
         return "Leaving %s, Unbinding from %s" % \
-               (code(voice.channel.name), chan(bind_channel.id))
+            (code(voice.channel.name), chan(bind_channel.id))
 
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
@@ -184,10 +184,10 @@ class Play(M):
                         out = "Unsupported URL, see %s" % noembed(YDL_SITES)
                         raise CommandFailure(out)
 
-            except HttpError as e:
-                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                        % (timestamp(), e.resp.status, e.content))
-                return "Invalid link! (or something else went wrong :/)"
+                    except HttpError as e:
+                        print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                              % (timestamp(), e.resp.status, e.content))
+                        return "Invalid link! (or something else went wrong :/)"
 
         else:
             # Not a URL, search youtube using yt API
@@ -203,7 +203,7 @@ class Play(M):
 
             except HttpError as e:
                 print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                        % (timestamp(), e.resp.status, e.content))
+                      % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
         # Nothing is playing and we weren't in vc, start the music event loop
@@ -608,7 +608,7 @@ async def music(voice, client, channel):
 
                     # Change presence back
                     await client.change_presence(game=Game(\
-                                                name=CURRENT_PRESENCE))
+                                                           name=CURRENT_PRESENCE))
 
                 # Poll for listeners
                 if len(voice.channel.voice_members) <= 1:
@@ -627,9 +627,9 @@ async def music(voice, client, channel):
                         await client.send_message(bind_channel, bold(out))
                         break
 
-                else: dc_timer = 0
+                    else: dc_timer = 0
 
-        else:   # Something is playing
+                else:   # Something is playing
 
             # Poll for no listeners in channel
             if len(voice.channel.voice_members) <= 1:
@@ -669,7 +669,7 @@ async def music(voice, client, channel):
 
                     # Change presence back
                     await client.change_presence(game=Game(
-                                                name=CURRENT_PRESENCE))
+                        name=CURRENT_PRESENCE))
 
                     # Reset paused
                     paused = False
@@ -699,7 +699,7 @@ async def music(voice, client, channel):
 def video_info(url, author):
     # This is the only function that gets the video info
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-          developerKey=DEVELOPER_KEY)
+                    developerKey=DEVELOPER_KEY)
 
     # Split the url to get video id
     if url.startswith("http"):
@@ -710,9 +710,9 @@ def video_info(url, author):
 
     # API call
     videos = youtube.videos().list(
-            part='snippet, contentDetails',
-            id=vid
-            ).execute()
+        part='snippet, contentDetails',
+        id=vid
+    ).execute()
 
     # Using vid id, will always return one item
     vid = videos['items'][0]
@@ -729,7 +729,7 @@ def video_info(url, author):
 
 def playlist_info(url, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-          developerKey=DEVELOPER_KEY)
+                    developerKey=DEVELOPER_KEY)
 
     # Split the url to get list id
     if url.startswith("http"):
@@ -740,10 +740,10 @@ def playlist_info(url, author):
 
     # API call
     videos = youtube.playlistItems().list(
-            part='snippet, contentDetails',
-            playlistId=vid,
-            maxResults=list_limit
-            ).execute()
+        part='snippet, contentDetails',
+        playlistId=vid,
+        maxResults=list_limit
+    ).execute()
 
     # Get video metadata
     info_list = []
@@ -759,7 +759,7 @@ def playlist_info(url, author):
 
 def youtube_search(query, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-            developerKey=DEVELOPER_KEY)
+                    developerKey=DEVELOPER_KEY)
 
     # Call the search.list method to retrieve results matching the specified
     # query term.
@@ -769,7 +769,7 @@ def youtube_search(query, author):
         maxResults=1,   # Only 1 video
         regionCode=GEO_REGION,
         type='video'
-        ).execute()
+    ).execute()
 
     # Return the first video's info
     try:
