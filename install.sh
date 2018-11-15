@@ -1,14 +1,13 @@
 #!/bin/sh
 
 # this stuff is required for everything
-sudo pip3 install discord.py
+pip3 install --user discord.py
 
 # this stuff is required for !tags
-sudo pip3 install pony
+pip3 install --user pony
 
 # this stuff is only required for voice channels and music
-sudo apt install python3-setuptools python3-dev libffi-dev ffmpeg
-sudo pip3 install PyNaCL mutagen youtube_dl isodate
+pip3 install --user PyNaCL mutagen youtube_dl isodate
 
 # this stuff is required for music youtube searching
-sudo pip3 install --upgrade google-api-python-client
+pip3 install --user --upgrade google-api-python-client
