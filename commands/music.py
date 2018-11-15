@@ -48,33 +48,6 @@ class M(Command):
     desc = "Music"
     channels_required = []
 
-class Leave(M):
-    desc = "Boots the bot from voice channels"
-
-    async def eval(self):
-        global player
-        global playlist
-
-        # Checks if joined to a vc in the server
-        vclients = list(self.client.voice_clients)
-        voices = [ x.server for x in vclients ]
-        try:
-            v_index = voices.index(self.message.author.server)
-        except ValueError:
-            raise CommandFailure("Not in a voice channel!")
-
-        # Get the voice channel
-        voice = vclients[v_index]
-        await voice.disconnect()
-
-        # Clean player and playlist
-        player = None
-        playlist.clear()
-
-        # Flush channels required
-        M.channels_required.clear()
-        return "Leaving %s, Unbinding from %s" % \
-            (code(voice.channel.name), chan(bind_channel.id))
 
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked.\n"
@@ -184,10 +157,10 @@ class Play(M):
                         out = "Unsupported URL, see %s" % noembed(YDL_SITES)
                         raise CommandFailure(out)
 
-                    except HttpError as e:
-                        print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                              % (timestamp(), e.resp.status, e.content))
-                        return "Invalid link! (or something else went wrong :/)"
+            except HttpError as e:
+                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                        % (timestamp(), e.resp.status, e.content))
+                return "Invalid link! (or something else went wrong :/)"
 
         else:
             # Not a URL, search youtube using yt API
@@ -203,7 +176,7 @@ class Play(M):
 
             except HttpError as e:
                 print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                      % (timestamp(), e.resp.status, e.content))
+                        % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
         # Nothing is playing and we weren't in vc, start the music event loop
@@ -398,7 +371,7 @@ class List(M):
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration, player.title)
+        state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -406,7 +379,7 @@ class List(M):
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
         embed.set_footer(text="!m play [link/search]")
-
+                        
         # Get fields
         i = 0
         for song in playlist[1:]:
@@ -415,8 +388,8 @@ class List(M):
             duration = datetime.timedelta(seconds=int(song['duration']))
             title = "%d. [%s] %s" % (i, str(duration), song['title'])
 
-            embed.add_field(name=title,
-                            value="Added by: %s" % nick(song['author']),
+            embed.add_field(name=title, 
+                            value="Added by: %s" % nick(song['author']), 
                             inline=False)
 
         await self.client.send_message(bind_channel, embed=embed)
@@ -462,21 +435,21 @@ class Repeat(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if mode.lower() == "song":
+        if mode.lower() == "song": 
             if repeat != "none": presence = presence[1:]
             presence = REPEAT_SONG_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "list":
+        elif mode.lower() == "list": 
             if repeat != "none": presence = presence[1:]
             presence = REPEAT_LIST_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "none":
+        elif mode.lower() == "none": 
             if repeat != "none": presence = presence[1:]
             repeat = mode.lower()
 
-        else:
+        else: 
             raise CommandFailure("Not a valid argument!")
 
         # Change presence
@@ -518,7 +491,7 @@ def check_bot_join(client, message):
         v_index = voices.index(message.server)
     except ValueError:
         # Bot is not connected to a voice channel in this server
-        raise CommandFailure("Please `!join` a voice channel first")
+        raise CommandFailure("Please `!join` a voice channel first") 
 
 
 async def do_join(client, message):
@@ -568,7 +541,7 @@ async def music(voice, client, channel):
                 # Check for repeating modes
                 if repeat == "song": pass
                 elif repeat == "list": playlist.append(playlist.pop(0))
-                else:
+                else: 
                     if was_playing: playlist.pop(0)
 
                 # Play the next song in the list
@@ -608,7 +581,7 @@ async def music(voice, client, channel):
 
                     # Change presence back
                     await client.change_presence(game=Game(\
-                                                           name=CURRENT_PRESENCE))
+                                                name=CURRENT_PRESENCE))
 
                 # Poll for listeners
                 if len(voice.channel.voice_members) <= 1:
@@ -627,9 +600,9 @@ async def music(voice, client, channel):
                         await client.send_message(bind_channel, bold(out))
                         break
 
-                    else: dc_timer = 0
+                else: dc_timer = 0
 
-                else:   # Something is playing
+        else:   # Something is playing
 
             # Poll for no listeners in channel
             if len(voice.channel.voice_members) <= 1:
@@ -654,7 +627,7 @@ async def music(voice, client, channel):
                     # Careful, if SLEEP_INTERVAL changes, the duration will change
                     dc_timer += 1
 
-                if dc_timer >= DC_TIMEOUT:
+                if dc_timer >= DC_TIMEOUT: 
                     await voice.disconnect()
 
                     d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
@@ -669,7 +642,7 @@ async def music(voice, client, channel):
 
                     # Change presence back
                     await client.change_presence(game=Game(
-                        name=CURRENT_PRESENCE))
+                                                name=CURRENT_PRESENCE))
 
                     # Reset paused
                     paused = False
@@ -698,8 +671,8 @@ async def music(voice, client, channel):
 
 def video_info(url, author):
     # This is the only function that gets the video info
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
 
     # Split the url to get video id
     if url.startswith("http"):
@@ -710,9 +683,9 @@ def video_info(url, author):
 
     # API call
     videos = youtube.videos().list(
-        part='snippet, contentDetails',
-        id=vid
-    ).execute()
+            part='snippet, contentDetails',
+            id=vid
+            ).execute()
 
     # Using vid id, will always return one item
     vid = videos['items'][0]
@@ -728,8 +701,8 @@ def video_info(url, author):
 
 
 def playlist_info(url, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
 
     # Split the url to get list id
     if url.startswith("http"):
@@ -740,10 +713,10 @@ def playlist_info(url, author):
 
     # API call
     videos = youtube.playlistItems().list(
-        part='snippet, contentDetails',
-        playlistId=vid,
-        maxResults=list_limit
-    ).execute()
+            part='snippet, contentDetails',
+            playlistId=vid,
+            maxResults=list_limit
+            ).execute()
 
     # Get video metadata
     info_list = []
@@ -758,8 +731,8 @@ def playlist_info(url, author):
 
 
 def youtube_search(query, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+            developerKey=DEVELOPER_KEY)
 
     # Call the search.list method to retrieve results matching the specified
     # query term.
@@ -769,7 +742,7 @@ def youtube_search(query, author):
         maxResults=1,   # Only 1 video
         regionCode=GEO_REGION,
         type='video'
-    ).execute()
+        ).execute()
 
     # Return the first video's info
     try:
