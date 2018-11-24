@@ -143,8 +143,8 @@ class Pause(M):
         player.pause()
         paused = True
 
-        out = bold("Paused Playing: [%s] %s" % \
-                (duration(player.duration), player.title))
+        out = bold("Paused Playing:") + "[%s] %s" % \
+                (duration(player.duration), player.title)
 
         # Change presence
         presence = PAUSE_UTF + player.title
@@ -372,8 +372,8 @@ class Resume(M):
         player.resume()
         paused = False
 
-        out = bold("Resumed Playing: [%s] %s" % \
-                (duration(player.duration), player.title))
+        out = bold("Resumed Playing:") + "[%s] %s" % \
+                (duration(player.duration), player.title)
 
         # Change presence
         presence = PLAY_UTF + player.title
@@ -752,8 +752,8 @@ async def music(voice, client, channel):
 
                 # Signal
                 presence = song['title']
-                out = bold("Now Playing: [%s] %s" % (duration(player.duration),\
-                    presence))
+                out = bold("Now Playing:") + "[%s] %s" % (duration(player.duration),\
+                    presence)
                 await client.send_message(bind_channel, out)
 
                 presence = PLAY_UTF + presence
