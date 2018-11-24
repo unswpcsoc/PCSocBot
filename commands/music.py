@@ -50,7 +50,7 @@ player = None
 playlist = []
 presence = CURRENT_PRESENCE
 repeat = "none"
-volume = float(50)
+volume = float(15)
 
 class M(Command):
     desc = "Music"
@@ -86,7 +86,8 @@ class List(M):
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration(player.duration), player.title) 
+        state = "Now " + state + ": [%s] %s" % \
+                (duration(player.duration), player.title) 
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -100,7 +101,8 @@ class List(M):
         for song in playlist[1:]:
             i += 1
 
-            title = "%d. [%s] %s" % (i, duration(player.duration), song['title'])
+            title = "%d. [%s] %s" % \
+                    (i, duration(player.duration), song['title'])
 
             embed.add_field(name=title, 
                             value="Added by: %s" % nick(song['author']), 
@@ -145,7 +147,8 @@ class Pause(M):
         player.pause()
         paused = True
 
-        out = bold("Paused Playing: [%s] %s" % (duration(player.duration), player.title))
+        out = bold("Paused Playing: [%s] %s" % \
+                (duration(player.duration), player.title))
 
         # Change presence
         presence = PAUSE_UTF + player.title
@@ -316,7 +319,8 @@ class Remove(M):
         song = playlist.pop(pos)
 
         # Construct out message
-        out = bold("Removed: [%s] %s" % (duration(player.duration), song['title']))
+        out = bold("Removed: [%s] %s" % \
+                (duration(player.duration), song['title']))
 
         # Kill the player if we remove the currently playing song
         if pos == 0: player.stop()
@@ -372,7 +376,8 @@ class Resume(M):
         player.resume()
         paused = False
 
-        out = bold("Resumed Playing: [%s] %s" % (duration(player.duration), player.title))
+        out = bold("Resumed Playing: [%s] %s" % \
+                (duration(player.duration), player.title))
 
         # Change presence
         presence = PLAY_UTF + player.title
@@ -425,7 +430,8 @@ class Skip(M):
             raise CommandFailure("Not playing anything!")
 
         # Construct out message
-        out = bold("Skipped: [%s] %s" % (duration(player.duration), player.title))
+        out = bold("Skipped: [%s] %s" % \
+                (duration(player.duration), player.title))
 
         # Stop player, triggers music() to queue up the next song
         # according to the repeat policy
@@ -482,7 +488,7 @@ class Volume(M):
         try:
             level = float(level)
         except ValueError:
-            raise CommandFailure("Please enter a number between 0-100")
+            raise CommandFailure("Please use a number")
 
         if 0 <= level <= 100:
             # Change the global levelume
@@ -491,7 +497,7 @@ class Volume(M):
             out = "Volume changed to %f%%" % level
             return out
         else:
-            raise CommandFailure("Please enter a number from 0-100")
+            raise CommandFailure("Please use a number between 0-100")
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
@@ -717,13 +723,16 @@ async def music(voice, client, channel):
                     playlist.append(playlist.pop(0))
                 else: 
                     # Handle autoplay
-                    """
-                    if auto and len(playlist) == 1:
-                        suggestion = auto_get(playlist.pop(0)['webpage_url'])
-                        result = video_info(suggestion, "Autosuggest")
+                    if auto and len(playlist) == 1 and player:
+                        suggestion = auto_get(playlist[0]['webpage_url'])
+                        result = video_info(suggestion, client.user)
                         playlist.append(result)
-                        #print(result)
-                    """
+
+                        # Notify
+                        d = duration(result['duration'])
+                        out = bold("Auto-Added:") + " [%s] %s" % \
+                                (d, result['title'])
+                        await client.send_message(bind_channel, out)
 
                     # Pop to access next song
                     if was_playing: playlist.pop(0) 
@@ -742,12 +751,12 @@ async def music(voice, client, channel):
 
                 was_playing = True
 
-                # Print the message in the supplied channel
+                # Signal
                 presence = song['title']
-                out = bold("Now Playing: [%s] %s" % (duration(player.duration), presence))
+                out = bold("Now Playing: [%s] %s" % (duration(player.duration),\
+                    presence))
                 await client.send_message(bind_channel, out)
 
-                # Change presence to the currently playing song
                 presence = PLAY_UTF + presence
                 if repeat == "song": presence = REPEAT_SONG_UTF + presence
                 if repeat == "list": presence = REPEAT_LIST_UTF + presence
