@@ -55,15 +55,6 @@ def is_good_response(resp):
             and content_type is not None 
             and content_type.find('html') > -1)
 
-def log_error(e):
-    """ Generic Error Logger
-    Print to a logfile
-    """
-    with open("log", "a") as f:
-        f.write("log", "[" + datetime.now().ctime() + "] " + e)
-        f.close()
-
-
 class CommandFailure(Exception):
     pass
 
