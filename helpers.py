@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class classproperty(object):
     def __init__(self, f):
@@ -40,8 +40,8 @@ def nick(m):
 def timestamp():
     return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 
-def duration(player):
-    return str(datetime.timedelta(seconds=int(player.duration)))
+def duration(s):
+    return str(timedelta(seconds=int(s)))
 
 def is_good_response(resp):
     """ For music.py autosuggest fetching

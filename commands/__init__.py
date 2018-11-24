@@ -14,3 +14,5 @@ from commands.poll import *
 from commands.twitch import *
 from commands.mod import *
 from commands.quote import *
+
+from commands.auto import *

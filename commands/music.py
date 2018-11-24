@@ -50,7 +50,7 @@ player = None
 playlist = []
 presence = CURRENT_PRESENCE
 repeat = "none"
-volume = float(12)
+volume = float(50)
 
 class M(Command):
     desc = "Music"
@@ -86,7 +86,7 @@ class List(M):
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration(player), player.title) 
+        state = "Now " + state + ": [%s] %s" % (duration(player.duration), player.title) 
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -100,7 +100,7 @@ class List(M):
         for song in playlist[1:]:
             i += 1
 
-            title = "%d. [%s] %s" % (i, duration(player), song['title'])
+            title = "%d. [%s] %s" % (i, duration(player.duration), song['title'])
 
             embed.add_field(name=title, 
                             value="Added by: %s" % nick(song['author']), 
@@ -145,7 +145,7 @@ class Pause(M):
         player.pause()
         paused = True
 
-        out = bold("Paused Playing: [%s] %s" % (duration(player), player.title))
+        out = bold("Paused Playing: [%s] %s" % (duration(player.duration), player.title))
 
         # Change presence
         presence = PAUSE_UTF + player.title
@@ -203,7 +203,7 @@ class Play(M):
                     # Construct add message
                     out = bold("Added Songs:") + "\n"
                     for song in songs:
-                        d = datetime.timedelta(seconds=int(song['duration']))
+                        d = duration(song['duration'])
                         out += bold("[%s] %s" % (str(d), song['title']))
                         out += "\n"
 
@@ -222,7 +222,7 @@ class Play(M):
                     playlist.append(song)
 
                     # Construct add message
-                    d = str(datetime.timedelta(seconds=int(song['duration'])))
+                    d = duration(song['duration'])
                     out = bold("Added:") + " [%s] %s" % (d, song['title'])
 
                     # Check for list param
@@ -253,7 +253,7 @@ class Play(M):
 
 
                         # Construct add message
-                        d = str(datetime.timedelta(seconds=int(song['duration'])))
+                        d = duration(song['duration'])
                         out = bold("Added: [%s] %s" % (d, song['title']))
 
                         await self.client.send_message(bind_channel, out)
@@ -275,7 +275,7 @@ class Play(M):
                 playlist.append(song)
 
                 # Construct add message
-                d = str(datetime.timedelta(seconds=int(song['duration'])))
+                d = duration(song['duration'])
                 out = bold("Added: [%s] %s" % (d, song['title']))
 
                 await self.client.send_message(bind_channel, out)
@@ -316,7 +316,7 @@ class Remove(M):
         song = playlist.pop(pos)
 
         # Construct out message
-        out = bold("Removed: [%s] %s" % (duration(player), song['title']))
+        out = bold("Removed: [%s] %s" % (duration(player.duration), song['title']))
 
         # Kill the player if we remove the currently playing song
         if pos == 0: player.stop()
@@ -372,7 +372,7 @@ class Resume(M):
         player.resume()
         paused = False
 
-        out = bold("Resumed Playing: [%s] %s" % (duration(player), player.title))
+        out = bold("Resumed Playing: [%s] %s" % (duration(player.duration), player.title))
 
         # Change presence
         presence = PLAY_UTF + player.title
@@ -425,7 +425,7 @@ class Skip(M):
             raise CommandFailure("Not playing anything!")
 
         # Construct out message
-        out = bold("Skipped: [%s] %s" % (duration(player), player.title))
+        out = bold("Skipped: [%s] %s" % (duration(player.duration), player.title))
 
         # Stop player, triggers music() to queue up the next song
         # according to the repeat policy
@@ -448,6 +448,7 @@ class Stop(M):
         playlist.clear()
         auto = False
 
+"""
 class Suggest(M):
     desc = "Get YouTube auto-suggestions"
     async def eval(self, url):
@@ -464,6 +465,7 @@ class Suggest(M):
 class Sugg(M):
     desc = "See " + bold(code("!m") + " " + code("suggest")) + "."
     async def eval(self, url): return await Suggest.eval(self, url)
+"""
 
 class Volume(M):
     desc = "Volume adjustment. Mods only."
@@ -548,7 +550,10 @@ def video_info(url, author):
             ).execute()
 
     # Using vid id, will always return one item
-    vid = videos['items'][0]
+    try:
+        vid = videos['items'][0]
+    except IndexError:
+        raise CommandFailure("Couldn't get info for %s" % url)
 
     # Construct info dict and return it
     info = {}
@@ -608,43 +613,36 @@ def youtube_search(query, author):
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
 
-def is_good_response(resp):
-    content_type = resp.headers['Content-Type'].lower()
-    return (resp.status_code == 200
-            and content_type is not None
-            and content_type.find('html') > -1)
-
 def auto_get(url):
     """ Autosuggest function
-    Takes a URL and spits out a list of the autosuggestions using `requests` and `bs4`
-    Assumes it will receive a Good URL
+    Takes a URL and spits out a list of the autosuggestions using `requests` 
+    and `bs4`. Assumes it will receive a good URL response.
     """
     content = None
     # Get html response from url
     try:
         with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                content = resp.content
-            else:
-                log_error("Bad Response from %s" % url)
-                return []
+            content = resp.content
+
     except RequestException as e:
-        log_error("Error during requests to %s : %s" % (url, str(e)))
-        return []
+        raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
 
     # (try) Make soup
     try:
         html = BeautifulSoup(content, 'html.parser')
     except BadHTMLError as e:
-        log_error(e.message)
+        raise CommandFailure(e.message)
 
     # Find autosuggest results
-    results = []
-    for a in html.find_all('a', class_=SUGG_CLASS):
-        entry = {'url':YT_PREFIX + a['href'], 'title':a['title']}
-        results.append(entry)
+    #results = []
+    #for a in html.find_all('a', class_=SUGG_CLASS, limit=count):
+        #entry = {'url':YT_PREFIX + a['href'], 'title':a['title']}
+        #results.append(entry)
     #print("Got: " + str(results))
-    return results
+
+    a = html.find('a', class_=SUGG_CLASS)
+    result = YT_PREFIX + a['href']
+    return result
 
 # Big Boi
 async def music(voice, client, channel):
@@ -689,6 +687,7 @@ async def music(voice, client, channel):
         This allows us to easily implement a single song repeat policy.
     """
 
+    global auto
     global bind_channel
     global paused
     global player
@@ -697,8 +696,10 @@ async def music(voice, client, channel):
     global repeat
     global volume
 
-    # vars for No Audience Self-Paused state ticker
+    # sentinel vars
     dc_ticker = 0
+    paused_dc = False
+    was_playing = False
 
     # Begin event loop
     while True:
@@ -711,23 +712,27 @@ async def music(voice, client, channel):
 
                 # Handle repeating modes
                 if repeat == "song": 
-                    # Don't pop
                     pass
                 elif repeat == "list": 
-                    # Requeue
                     playlist.append(playlist.pop(0))
                 else: 
                     # Handle autoplay
+                    """
                     if auto and len(playlist) == 1:
-                        result = auto_get(playlist.pop(0)['webpage_url'])['url']
-                        playlist.append(result[0])
+                        suggestion = auto_get(playlist.pop(0)['webpage_url'])
+                        result = video_info(suggestion, "Autosuggest")
+                        playlist.append(result)
+                        #print(result)
+                    """
 
                     # Pop to access next song
-                    elif len(playlist) > 0: playlist.pop(0) 
+                    if was_playing: playlist.pop(0) 
 
                 # Play the next song in the list
-                if len(playlist) > 0: song = playlist[0]
-                else: continue
+                if len(playlist) > 0: 
+                    song = playlist[0]
+                else: 
+                    continue
 
                 url = song['webpage_url']
 
@@ -735,9 +740,11 @@ async def music(voice, client, channel):
                 player.start()
                 player.volume = volume/100  # "That's how you get tinnitus!"
 
+                was_playing = True
+
                 # Print the message in the supplied channel
                 presence = song['title']
-                out = bold("Now Playing: [%s] %s" % (duration(player), presence))
+                out = bold("Now Playing: [%s] %s" % (duration(player.duration), presence))
                 await client.send_message(bind_channel, out)
 
                 # Change presence to the currently playing song
@@ -751,6 +758,7 @@ async def music(voice, client, channel):
             elif player:
                 # Clean up
                 player = None
+                was_playing = False
 
                 # Signal
                 out = bold("Stopped Playing")
@@ -782,7 +790,7 @@ async def music(voice, client, channel):
                     await client.send_message(bind_channel, out)
 
                 # [4:] No Audience, Paused state
-                else:
+                elif paused_dc:
                     dc_ticker += SLEEP_INTERVAL
 
                 # [4F] No Audience, Paused DC trigger state
@@ -790,7 +798,7 @@ async def music(voice, client, channel):
                     await voice.disconnect()
 
                     name = voice.channel.name
-                    d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
+                    d = duration(DC_TIMEOUT)
                     out = "Timeout of [%s] reached," % d
                     out += " Disconnecting from %s," % code(name)
                     out += " Unbinding from %s" % chan(bind_channel.id)
@@ -811,7 +819,7 @@ async def music(voice, client, channel):
                     return
 
             # [3:] Audience Pause state reset
-            elif len(voice.channel.voice_members) > 1 and not player.is_playing():
+            if len(voice.channel.voice_members) > 1 and paused_dc:
                 player.resume()
                 paused_dc = False
                 paused = False
