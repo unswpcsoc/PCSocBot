@@ -34,8 +34,11 @@ def noembed(s):
 def chan(s):
     return "<#%s>" % s
 
-def nick(m):
-    return m.nick or str(m).split("#")[0]
+def nick(u):
+    try:
+        return u.nick or str(u).split("#")[0]
+    except AttributeError:
+        return str(u).split("#")[0]
 
 def timestamp():
     return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
