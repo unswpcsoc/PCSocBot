@@ -1,13 +1,9 @@
-# Internal imports
 from commands.base import Command
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
 
-# External imports
 from discord import Game, Embed, Colour
 import asyncio, datetime, isodate, youtube_dl, os, random
-
-# Autosuggest imports
 from requests import get
 from requests.exceptions import RequestException
 from contextlib import closing
@@ -622,13 +618,16 @@ def youtube_search(query, author):
 def auto_get(url):
     """ Autosuggest function
     Takes a URL and spits out a list of the autosuggestions using `requests` 
-    and `bs4`. Assumes it will receive a good URL response.
+    and `bs4`.
     """
     content = None
     # Get html response from url
     try:
         with closing(get(url, stream=True)) as resp:
-            content = resp.content
+            if is_good_response(resp):
+                content = resp.content
+            else:
+                raise CommandFailure("Bad Response from %s" % url)
 
     except RequestException as e:
         raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
