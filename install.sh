@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# WARNING: DO NOT RUN THIS SCRIPT IF YOU KNOW WHAT YOU'RE DOING!!!
+# WARNING: THIS SCRIPT IS DEPRECATED, REFER TO README FOR INSTALLATION!
 # This is a 'stupid' install, it installs required packages for the user
 
 # This script ASSUMES the user is using apt-get as their package manager
