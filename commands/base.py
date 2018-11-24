@@ -146,9 +146,9 @@ class Command(metaclass=Tree):
         player.volume = volume/100
         player.start()
 
-        #duration = MP3('files/' + file).info.length
-        #await asyncio.sleep(duration)
-        #await voice.disconnect()
+        duration = MP3('files/' + file).info.length
+        await asyncio.sleep(duration)
+        await voice.disconnect()
 
         # Reset player
         player = None
