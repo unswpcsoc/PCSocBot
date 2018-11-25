@@ -6,7 +6,7 @@ class PigLatin(Command):
     def eval(self, *args):
         suffix = 'ay'
         res = []
-        if args and self.message.author != self.client.user:
+        if args:
             # There are arguments and it's not PCSocBot conducting the command
             for arg in args:
                 if arg[0].lower() in 'aeiou':
