@@ -54,7 +54,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
     try:
-        if message.content.startswith(commands.PREFIX):
+        if message.content.startswith(commands.PREFIX) and message.author != client.user:
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
