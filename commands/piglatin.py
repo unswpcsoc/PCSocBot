@@ -1,5 +1,4 @@
 from commands.base import Command
-# from helpers import *
 
 class PigLatin(Command):
     desc = "This command is used to translate a given sentence into Pig Latin."
@@ -17,6 +16,6 @@ class PigLatin(Command):
                     # Consonant
                     res.append(arg[1:] + arg[0] + suffix)
                 else:
-                    # Anything else...
+                    # Anything else (eg emotes, mentions)
                     res.append(arg)
         return ' '.join(res) if res else None
