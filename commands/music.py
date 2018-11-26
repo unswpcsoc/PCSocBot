@@ -48,6 +48,29 @@ presence = CURRENT_PRESENCE
 repeat = "none"
 volume = float(15)
 
+# Singleton pattern for state
+"""
+class State:
+    class __State:
+        def __init__(self):
+            __auto = True
+            __bind_channel = None
+            __list_limit = 10
+            __paused = False
+            __player = None
+            __playlist = []
+            __presence = CURRENT_PRESENCE
+            __repeat = "none"
+            __volume = float(15)
+
+        def 
+
+    INSTANCE = __State()
+
+    def __init__(self):
+        pass
+"""
+
 class M(Command):
     desc = "Music"
     channels_required = []
@@ -56,8 +79,7 @@ class Auto(M):
     desc = "Toggles autoplay"
 
     async def eval(self):
-        global auto
-        global bind_channel
+        global auto, bind_channel
 
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
@@ -67,14 +89,47 @@ class Auto(M):
         out += bold("on") if auto else bold("off")
         await self.client.send_message(bind_channel, out)
 
+class Add(Auto):
+    desc = "Adds the autoplay suggestion for a playlist index. Defaults \
+            to the 0th."
+
+    def eval(self, index=0):
+        global playlist
+
+        check_playlist_index(index)
+
+        url = auto_get(playlist[index]['webpage_url'])
+        playlist.append(video_info(url, self.client.user))
+
+        out = bold("Added:") + " [%s] %s" % \
+                (duration(item['duration']), item['title'])
+
+        return out
+
+class Get(Auto):
+    desc = "Gets the autoplay suggestion for a playlist index. Defaults \
+            to the 0th."
+
+    def eval(self, index=0):
+        global playlist
+
+        check_playlist_index(index)
+
+        url = auto_get(playlist[index]['webpage_url'])
+        item = video_info(url, self.client.user)
+
+        out = bold("Got autosuggestion for")
+        out += " %s:" % (playlist[index]['title']))
+        out += "\n[%s] %s" % (duration(item['duration']), item['title'])
+        out += "\nLink: " + noembed(url)
+
+        return out
+
 class List(M):
     desc = "Lists the playlist."
 
     async def eval(self):
-        global bind_channel
-        global paused
-        global playlist
-        global repeat
+        global bind_channel, paused, playlist, repeat
 
         if not player or player.is_done():
             raise CommandFailure("Not playing anything!")
@@ -131,11 +186,7 @@ class Pause(M):
     desc = "Pauses music"
 
     async def eval(self):
-        global bind_channel
-        global paused
-        global player
-        global presence
-        global repeat
+        global bind_channel, paused, player, presence, repeat
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -162,9 +213,7 @@ class Play(M):
     desc += "Note: Playlists fetching through the YT API is limited to 50 vids"
 
     async def eval(self, *args):
-        global bind_channel
-        global player
-        global playlist
+        global bind_channel, player, playlist
 
         args = " ".join(args)
 
@@ -291,35 +340,26 @@ class Play(M):
 class Remove(M):
     desc = "Removes a song from the playlist. Defaults to the current song"
 
-    def eval(self, pos=0):
-        global bind_channel
-        global player
-        global playlist
-        global repeat
+    def eval(self, index=0):
+        global bind_channel, player, playlist, repeat
 
         if not player: 
             raise CommandFailure("Not playing anything!")
 
-        try: 
-            pos = int(pos)
-        except ValueError: 
-            raise CommandFailure("Not a valid position!")
-
-        if pos < 0 or pos >= len(playlist):
-            raise CommandFailure("Not a valid position!")
+        check_playlist_index(index)
 
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
         # Remove the item from the playlist
-        song = playlist.pop(pos)
+        song = playlist.pop(index)
 
         # Construct out message
         out = bold("Removed: [%s] %s" % \
                 (duration(player.duration), song['title']))
 
         # Kill the player if we remove the currently playing song
-        if pos == 0: player.stop()
+        if index == 0: player.stop()
 
         return out
 
@@ -328,8 +368,7 @@ class Repeat(M):
     desc += "Accepted arguments are: 'none', `song` and `list`.\n"
 
     async def eval(self, mode):
-        global repeat
-        global presence
+        global repeat, presence
 
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
@@ -360,11 +399,7 @@ class Resume(M):
     desc = "Resumes music"
 
     async def eval(self):
-        global bind_channel
-        global paused
-        global player
-        global presence
-        global repeat
+        global bind_channel, paused, player, presence, repeat
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -439,9 +474,7 @@ class Stop(M):
     desc = "Stops playing but persists in voice. Also stops autoplaying."
 
     def eval(self):
-        global bind_channel
-        global player
-        global playlist
+        global bind_channel, player, playlist
 
         if not player:
             return "Not playing anything!"
@@ -450,33 +483,12 @@ class Stop(M):
         playlist.clear()
         auto = False
 
-"""
-class Suggest(M):
-    desc = "Get YouTube auto-suggestions"
-    async def eval(self, url):
-        if not url.startswith(VID_PREFIX):
-            raise CommandFailure("Please use a valid YouTube Video link!")
-        pending = bold(italics("Fetching Suggestions..."))
-        await self.client.send_message(self.message.channel, pending)
-        results = auto_get(url)
-        out = bold("Autosuggestions for %s" % noembed(url))
-        for r in results:
-            out += "\n%s: " % r['title'] + noembed(r['url'])
-        return out
-
-class Sugg(M):
-    desc = "See " + bold(code("!m") + " " + code("suggest")) + "."
-    async def eval(self, url): return await Suggest.eval(self, url)
-"""
-
 class Volume(M):
     desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
 
     def eval(self, level):
-        global bind_channel
-        global player
-        global volume
+        global bind_channel, player, volume
 
         if not player:
             raise CommandFailure("Not playing anything!")
@@ -532,6 +544,18 @@ async def do_join(client, message):
     voice.encoder_options(sample_rate=SAMPLE_RATE, channels=2)
 
     return voice
+
+def check_playlist_index(index):
+    try:
+        index = int(index)
+    except ValueError:
+        raise CommandFailure("Please use a number!")
+
+    if not playlist or len(playlist) == 0:
+        raise CommandFailure("Playlist is Empty!")
+    
+    if index >= len(playlist):
+        raise CommandFailure("Index out of playlist range")
 
 def video_info(url, author):
     # This is the only function that gets the video info
@@ -617,7 +641,7 @@ def youtube_search(query, author):
 
 def auto_get(url):
     """ Autosuggest function
-    Takes a URL and spits out a list of the autosuggestions using `requests` 
+    Takes a URL and spits out the first autosuggestion using `requests` 
     and `bs4`.
     """
     content = None
@@ -692,14 +716,7 @@ async def music(voice, client, channel):
         This allows us to easily implement a single song repeat policy.
     """
 
-    global auto
-    global bind_channel
-    global paused
-    global player
-    global playlist
-    global presence
-    global repeat
-    global volume
+    global auto, bind_channel, paused, player, playlist, presence, repeat, volume
 
     # sentinel vars
     dc_ticker = 0
@@ -752,8 +769,8 @@ async def music(voice, client, channel):
 
                 # Signal
                 presence = song['title']
-                out = bold("Now Playing:") + "[%s] %s" % (duration(player.duration),\
-                    presence)
+                out = bold("Now Playing:") + " [%s] %s" % \
+                        (duration(player.duration), presence)
                 await client.send_message(bind_channel, out)
 
                 presence = PLAY_UTF + presence
