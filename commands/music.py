@@ -61,9 +61,15 @@ class State:
         __repeat = "none"
         __volume = float(15)
         __was_playing = False
+        running = False
 
         def __init__(self):
             pass
+
+        def addSong(self, song):
+            self.__playlist.append(song)
+            return bold("Added:") + " [%s] %s" % \
+                    (duration(song['duration']), song['title'])
 
         def checkListIndex(self, index):
             try:
@@ -85,26 +91,27 @@ class State:
             except AttributeError:
                 pass
 
-        def enqueue(self, song):
-            self.__playlist.append(song)
-
         def getAuto(self):
             return self.__auto
+
+        def getChannel(self):
+            return self.__channel
 
         def getListLimit(self):
             return self.__list_limit
 
-        def getPresence(self):
-            return self.__presence
-
-        def getChannel(self):
-            return self.__channel
+        def getSong(self, index):
+            self.checkListIndex(index)
+            return self.__playlist[index]
 
         def getNext(self):
             if len(self.__playlist) > 0:
                 return self.__playlist[0]
             else:
                 return None
+
+        def getPresence(self):
+            return self.__presence
 
         def handlePop(self):
             if repeat == "song": 
@@ -142,6 +149,16 @@ class State:
         def setChannel(self, channel):
             self.__channel = channel
 
+        def stat(self):
+            col = Colour.red() if self.__paused else Colour.green()
+            sta = "Paused" if self.__paused else "Playing"
+            sta = "Now " + sta + ": [%s] %s" % \
+                    (self.playerDuration(), self.playerTitle())
+            ti = ""
+            if len(self.__playlist) > 1:
+                ti = "Up Next: (Repeat: %s)" % repeat 
+            return out, sta, ti
+
         def pause(self):
             if not self.__player:
                 raise CommandFailure("Not playing anything!")
@@ -159,6 +176,15 @@ class State:
 
             return bold("Paused Playing:") + " [%s] %s" % \
                         (self.playerDuration(), self.playerTitle())
+
+        def remove(self, index):
+            self.checkListIndex(index)
+            song = self.__playlist.pop(index)
+
+            # Kill the player if we remove the currently playing song
+            if index == 0: self.stop()
+            return bold("Removed: [%s] %s" % \
+                    (song['duration'], song['title']))
 
         def repeat(self, mode):
             presence = ""
@@ -270,72 +296,44 @@ class Add(Auto):
             to the 0th."
 
     def eval(self, index=0):
-        global playlist
-
-        State.instance.checkListIndex(index)
-
-        url = auto_get(playlist[index]['webpage_url'])
-        playlist.append(video_info(url, self.client.user))
-
-        out = bold("Added:") + " [%s] %s" % \
-                (duration(item['duration']), item['title'])
-
-        return out
+        url = auto_get(State.getSong(index)['webpage_url'])
+        return State.instance.addSong(video_info(url, self.client.user))
 
 class Get(Auto):
     desc = "Gets the autoplay suggestion for a playlist index. Defaults \
             to the 0th."
 
     def eval(self, index=0):
-        global playlist
+        song = State.instance.getSong(index)
+        item = video_info(auto_get(song['webpage_url']), self.client.user)
 
-        State.instance.checkListIndex(index)
-
-        url = auto_get(playlist[index]['webpage_url'])
-        item = video_info(url, self.client.user)
-
-        out = bold("Got autosuggestion for")
-        out += " %s:" % (playlist[index]['title'])
+        out = bold("Got autosuggestion for") + " %s:" % (song['title'])
         out += "\n[%s] %s" % (duration(item['duration']), item['title'])
-        out += "\nLink: " + noembed(url)
-
+        out += "\nLink: " + noembed(item['webpage_url'])
         return out
 
 class List(M):
     desc = "Lists the playlist."
 
     async def eval(self):
-        global bind_channel, paused, playlist, repeat
-
         if not State.instance.isPlaying():
             raise CommandFailure("Not playing anything!")
 
-        # Construct embed
-        col = Colour.red() if paused else Colour.green()
-        state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % \
-                (State.instance.playerDuration(), State.instance.playerTitle())
-
-        # Construct title
-        ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
-
-        embed = Embed(title=ti, colour=col)
-        embed.set_author(name=state)
+        status, colour, title = State.instance.stat()
+        embed = Embed(title=title, colour=colour)
+        embed.set_author(name=status)
         embed.set_footer(text="!m play [link/search]")
                         
-        # Get fields
         i = 0
         for song in playlist[1:]:
             i += 1
-
             title = "%d. [%s] %s" % \
                     (i, State.instance.playerDuration(), song['title'])
-
             embed.add_field(name=title, 
                             value="Added by: %s" % nick(song['author']), 
                             inline=False)
 
-        await self.client.send_message(bind_channel, embed=embed)
+        await State.instance.embed(self.client, embed)
 
 class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
@@ -373,17 +371,10 @@ class Play(M):
     desc += "Note: Playlists fetching through the YT API is limited to 50 vids"
 
     async def eval(self, *args):
-        global bind_channel, playlist
-
         args = " ".join(args)
 
-        # Check if user is connected to a vc
-        channel = self.message.author.voice.voice_channel
-        if not channel:
-            raise CommandFailure("Please join a voice channel first")
+        channel = get_user_voice(self.message)
 
-        # Check if bot is joined
-        # Note: don't use check_bot_join()
         vclients = list(self.client.voice_clients)
         voices = [ x.server for x in vclients ]
         try:
@@ -394,135 +385,82 @@ class Play(M):
         except ValueError:
             # Not connected, join a vc
             voice, out = do_join(self.client, self.message)
-            await State.instance.send_message(out)
+            await State.instance.message(self.client, out)
             was_connected = False
-            # Set channel required
-            M.channels_required.append(bind_channel)
+            M.channels_required.append(State.instance.getChannel())
 
         if args.startswith("http"):
             url = args
 
-            # Scrape using yt API
-            try:
-                if url.startswith(PLIST_PREFIX):
-                    # Pure playlist
-                    songs = playlist_info(url, self.message.author)
-                    playlist.extend(songs)
+            if url.startswith(PLIST_PREFIX):
+                songs = playlist_info(url, self.message.author)
+                playlist.extend(songs)
 
-                    # Construct add message
-                    out = bold("Added Songs:") + "\n"
-                    for song in songs:
-                        d = duration(song['duration'])
-                        out += bold("[%s] %s" % (str(d), song['title']))
-                        out += "\n"
-
-                    await self.client.send_message(bind_channel, out)
-
-                elif url.startswith(WRONG_PLIST):
-                    # Incorrect truncation, suggest the correct one
-                    out = "Warning: invalid Playlist URL\n"
-                    out += "Please change `watch` to `playlist`"
-
-                    await self.client.send_message(bind_channel, out)
-
-                elif url.startswith(VID_PREFIX):
-                    # Video, could have playlist, add anyway
-                    song = video_info(url, self.message.author)
-                    playlist.append(song)
-
-                    # Construct add message
+                out = bold("Added Songs:") + "\n"
+                for song in songs:
                     d = duration(song['duration'])
-                    out = bold("Added:") + " [%s] %s" % (d, song['title'])
-
-                    # Check for list param
-                    if len(url.split("list=")) > 1:
-                        out += "\nWarning: You have added a video that is "
-                        out += "part of a playlist.Use this URL to add the "
-                        out += "playlist:\n"
-                        nu = PLIST_PREFIX + url.split("list=")[1].split("&")[0]
-                        out += noembed(nu)
-
-                    await self.client.send_message(bind_channel, out)
-
-                else:
-                    try:
-                        # Not a youtube link, use youtube_dl
-                        # Get from youtube_dl
-                        ydl_opts = {'geo_bypass_country': GEO_REGION}
-                        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                            info = ydl.extract_info(url, download=False)
-
-                        # Add to playlist
-                        song = {}
-                        song['webpage_url'] = info['webpage_url']
-                        song['duration'] = info['duration']
-                        song['title'] = info['title']
-                        song['author'] = self.message.author
-                        playlist.append(song)
-
-
-                        # Construct add message
-                        d = duration(song['duration'])
-                        out = bold("Added: [%s] %s" % (d, song['title']))
-
-                        await self.client.send_message(bind_channel, out)
-
-                    except:
-                        # Unsupported URL
-                        out = "Unsupported URL, see %s" % noembed(YDL_SITES)
-                        raise CommandFailure(out)
-
-            except HttpError as e:
-                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                        % (timestamp(), e.resp.status, e.content))
-                return "Invalid link! (or something else went wrong :/)"
-
-        else:
-            # Not a URL, search youtube using yt API
-            try:
-                song = youtube_search(args, self.message.author)
-                playlist.append(song)
-
-                # Construct add message
-                d = duration(song['duration'])
-                out = bold("Added: [%s] %s" % (d, song['title']))
+                    out += bold("[%s] %s" % (str(d), song['title']))
+                    out += "\n"
 
                 await self.client.send_message(bind_channel, out)
 
-            except HttpError as e:
-                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
-                        % (timestamp(), e.resp.status, e.content))
-                return "Invalid link! (or something else went wrong :/)"
+            elif url.startswith(WRONG_PLIST):
+                out = "Warning: invalid Playlist URL\n"
+                out += "Please change `watch` to `playlist`"
+                await State.instance.message(self.client, out)
 
-        # Nothing is playing and we weren't in vc, start the music event loop
-        if State.instance.isPlaying() and not was_connected:
+            elif url.startswith(VID_PREFIX):
+                # Video, could have playlist, add anyway
+                song = video_info(url, self.message.author)
+                out = State.instance.addSong(song)
+
+                if len(url.split("list=")) > 1:
+                    out += "\nYou have added a video that is "
+                    out += "part of a playlist. Use this URL to add the "
+                    out += "playlist:\n"
+                    nu = PLIST_PREFIX + url.split("list=")[1].split("&")[0]
+                    out += noembed(nu)
+
+                await State.instance.message(self.client, out)
+
+            else:
+                try:
+                    # Not a youtube link, use youtube_dl
+                    # Get from youtube_dl
+                    ydl_opts = {'geo_bypass_country': GEO_REGION}
+                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(url, download=False)
+
+                    song = {}
+                    song['webpage_url'] = info['webpage_url']
+                    song['duration'] = info['duration']
+                    song['title'] = info['title']
+                    song['author'] = self.message.author
+
+                    out = State.instance.addSong(song)
+                    await State.instance.message(self.client, out)
+                except:
+                    # Unsupported URL
+                    out = "Unsupported URL, see %s" % noembed(YDL_SITES)
+                    raise CommandFailure(out)
+
+        else:
+            # Not a URL, search YouTube
+            song = youtube_search(args, self.message.author)
+            out = State.instance.addSong(song)
+            await State.instance.message(self.client, out)
+
+        # Music not running, start it
+        if not State.instance.running:
+            State.instance.running = True
             await music(voice, self.client, self.message.channel)
 
 class Remove(M):
     desc = "Removes a song from the playlist. Defaults to the current song"
 
     def eval(self, index=0):
-        global bind_channel, playlist, repeat
-
-        if not State.instance.isPlaying(): 
-            raise CommandFailure("Not playing anything!")
-
-        State.instance.checkListIndex(index)
-
-        # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
-
-        # Remove the item from the playlist
-        song = playlist.pop(index)
-
-        # Construct out message
-        out = bold("Removed: [%s] %s" % \
-                (song['duration'], song['title']))
-
-        # Kill the player if we remove the currently playing song
-        if index == 0: State.instance.stop()
-
-        return out
+        return State.instance.remove(index)
 
 class Repeat(M):
     desc = "Toggle repeat for the current song or the whole playlist. "
@@ -635,6 +573,12 @@ def do_join(client, message):
         return voice, out
     raise CommandFailure("Please join a voice channel first")
 
+def get_user_voice(message):
+    channel = message.author.voice.voice_channel
+    if not channel:
+        raise CommandFailure("Please join a voice channel first")
+    return channel
+
 def video_info(url, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
@@ -645,10 +589,15 @@ def video_info(url, author):
     else:
         vid = url
 
-    videos = youtube.videos().list(
-            part='snippet, contentDetails',
-            id=vid
-            ).execute()
+    try:
+        videos = youtube.videos().list(
+                part='snippet, contentDetails',
+                id=vid
+                ).execute()
+    except HttpError as e:
+        print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                % (timestamp(), e.resp.status, e.content))
+        return None
 
     try:
         vid = videos['items'][0]
@@ -667,21 +616,23 @@ def playlist_info(url, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
 
-    # Split the url to get list id
     if url.startswith("http"):
         vid = url.split("list=")[1]
         vid = vid.split("&")[0]
     else:
         vid = url
 
-    # API call
-    videos = youtube.playlistItems().list(
-            part='snippet, contentDetails',
-            playlistId=vid,
-            maxResults=list_limit
-            ).execute()
+    try:
+        videos = youtube.playlistItems().list(
+                part='snippet, contentDetails',
+                playlistId=vid,
+                maxResults=list_limit
+                ).execute()
+    except HttpError as e:
+        print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                % (timestamp(), e.resp.status, e.content))
+        return None
 
-    # Get video metadata
     info_list = []
     info = dict()
     for video in videos['items']:
@@ -696,51 +647,39 @@ def youtube_search(query, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
             developerKey=DEVELOPER_KEY)
 
-    # Call the search.list method to retrieve results matching the specified
-    # query term.
-    search_response = youtube.search().list(
-        q=query,
-        part='id',
-        maxResults=1,   # Only 1 video
-        regionCode=GEO_REGION,
-        type='video'
-        ).execute()
+    try:
+        search_response = youtube.search().list(
+            q=query,
+            part='id',
+            maxResults=1,
+            regionCode=GEO_REGION,
+            type='video'
+            ).execute()
+    except HttpError as e:
+        print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                % (timestamp(), e.resp.status, e.content))
+        return None
 
-    # Return the first video's info
     try:
         return video_info(search_response['items'][0]['id']['videoId'], author)
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
 
 def auto_get(url):
-    """ Autosuggest function
-    Takes a URL and spits out the first autosuggestion using `requests` 
-    and `bs4`.
-    """
     content = None
-    # Get html response from url
     try:
         with closing(get(url, stream=True)) as resp:
             if is_good_response(resp):
                 content = resp.content
             else:
                 raise CommandFailure("Bad Response from %s" % url)
-
     except RequestException as e:
         raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
 
-    # (try) Make soup
     try:
         html = BeautifulSoup(content, 'html.parser')
     except BadHTMLError as e:
         raise CommandFailure(e.message)
-
-    # Find autosuggest results
-    #results = []
-    #for a in html.find_all('a', class_=SUGG_CLASS, limit=count):
-        #entry = {'url':YT_PREFIX + a['href'], 'title':a['title']}
-        #results.append(entry)
-    #print("Got: " + str(results))
 
     a = html.find('a', class_=SUGG_CLASS)
     result = YT_PREFIX + a['href']
@@ -751,42 +690,9 @@ async def music(voice, client, channel):
     """ Music event loop
     This function takes a discord voice session, dicsord client, and channel.
 
-    It then does a bunch of fancy things. From the top level down it checks:
-
-    [1] Player state
-        ? - Player uninitialised OR Player done playing:
-                *Play the next song
-
-        : - Player initialised AND is playing:
-                GOTO [3].
-
-    [2] Playlist state
-        ? - Playlist not empty:
-                Play the next song from playlist according to repeat modes.
-
-        : - Playlist empty:
-                Stop playing without disconnecting. 
-
-    [3]<-[1:] Audience state
-        ? - No Audience
-                GOTO [4]
-
-        : - Audience AND Paused:
-                Resume playing
-
-    [4]<-[3?]<-[1:] No Audience Paused state
-        ? - No Audience, Not Paused:
-                Trigger Audience Paused state
-
-        : - No Audience, Paused:
-                Tick Audience Paused DC_TIMER
-
-        F - No Audience, Paused DC trigger
-                Clean up and disconnect
-
-    * - Songs aren't popped when played; they are read off Playlist's head.
-        We only pop a song when we need to access the next one.
-        This allows us to toggle single-song repeat for the current song.
+    Note: Songs aren't popped when played; they are read off Playlist's head.
+          We only pop a song when we need to access the next one.
+          This allows us to toggle single-song repeat for the current song.
     """
 
     # sentinel vars
@@ -800,10 +706,7 @@ async def music(voice, client, channel):
         if State.instance.isListEmpty() and State.instance.getAuto():
             suggestion = auto_get(playlist[0]['webpage_url'])
             result = video_info(suggestion, client.user)
-            State.instance.enqueue(result)
-
-            out = bold("Auto-Added:") + " [%s] %s" % \
-                    (duration(result['duration']), result['title'])
+            out = State.instance.addSong(result)
             await State.instance.message(client, out)
 
         # Handle player done
@@ -811,22 +714,11 @@ async def music(voice, client, channel):
             if len(playlist) > 0:
                 State.instance.handlePop()
 
-                song = State.instance.getNext()
-                if song == None: continue
-
-                State.instance.play(song['webpage_url'])
-
-                out = bold("Now Playing:") + " [%s] %s" % \
-                        (State.instance.playerDuration(), presence)
-                await State.instance.message(client, out)
-
-                presence = song['title']
-                presence = PLAY_UTF + presence
-                if repeat == "song": presence = REPEAT_SONG_UTF + presence
-                if repeat == "list": presence = REPEAT_LIST_UTF + presence
+                out = await State.instance.playNext(song['webpage_url'])
+                if out = None: continue
 
                 await State.instance.message(client, out)
-                await State.instance.updatePresence(game=Game(name=presence))
+                await State.instance.updatePresence(client)
 
             else:
                 # Clean up
@@ -841,7 +733,6 @@ async def music(voice, client, channel):
         # Handle no audience
         if len(voice.channel.voice_members) <= 1:   
 
-            # Trigger dc
             if dc_ticker >= DC_TIMEOUT: 
                 State.instance.cleanPlayer()
                 await voice.disconnect()
@@ -855,6 +746,8 @@ async def music(voice, client, channel):
                 await client.send_message(bind_channel, bold(out))
                 await client.change_presence(game=Game(
                                             name=CURRENT_PRESENCE))
+
+                State.instance.running = False
                 return
 
             # Start counting
@@ -872,7 +765,7 @@ async def music(voice, client, channel):
             dc_ticker += SLEEP_INTERVAL
 
         # Someone joined, reset
-        elif len(voice.channel.voice_members) > 1 and paused_dc:
+        if len(voice.channel.voice_members) > 1 and paused_dc:
             paused_dc = False
             dc_ticker = 0
 
