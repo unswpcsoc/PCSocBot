@@ -1,6 +1,7 @@
 # State class and helpers for music.py
+from commands.playing import CURRENT_PRESENCE
 from helpers import *
-import os, isodate
+import os, isodate, random
 from discord import Game, Colour
 from requests import get
 from requests.exceptions import RequestException
@@ -83,14 +84,6 @@ class State:
                 raise CommandFailure("Index out of playlist range")
             return index
 
-        def clean(self):
-            try:
-                self.__player.stop()
-                self.__player = None
-                self.__playlist.clear()
-            except AttributeError:
-                pass
-
         def getAuto(self):
             return self.__auto
 
@@ -158,6 +151,9 @@ class State:
 
         def playerTitle(self):
             return self.__player.title
+
+        def setAuto(self, auto):
+            self.__auto = auto
 
         def setChannel(self, channel):
             self.__channel = channel
@@ -247,6 +243,12 @@ class State:
             return bold("Resumed Playing:") + " [%s] %s" % \
                         (self.playerDuration(), self.playerTitle())
 
+        def shuffle(self):
+            if len(self.__playlist) == 0: 
+                raise CommandFailure("Playlist empty!")
+            random.shuffle(self.__playlist)
+            return "Shuffled Playlist!"
+
         def stop(self):
             try: 
                 self.__player.stop()
@@ -265,6 +267,13 @@ class State:
                     return "Volume changed to %f%%" % lvl
             except ValueError:
                 raise CommandFailure("Please use a number between 0-100")
+
+        async def clean(self):
+            if self.__player: 
+                self.__player.stop()
+                self.__player = None
+            self.__playlist.clear()
+            await client.change_presence(game=Game(name=CURRENT_PRESENCE))
 
         async def embed(self, client, emb):
             await client.send_message(self.__channel, embed=emb)

@@ -1,10 +1,9 @@
 from commands.base import Command
-from commands.playing import CURRENT_PRESENCE
 from commands.state import *
 from helpers import *
 
 from discord import Game, Embed
-import asyncio, youtube_dl, os, random
+import asyncio, youtube_dl, os
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
@@ -171,7 +170,7 @@ class Remove(M):
 
 class Repeat(M):
     desc = "Toggle repeat for the current song or the whole playlist. "
-    desc += "Accepted arguments are: 'none', `song` and `list`.\n"
+    desc += "Accepted arguments are: 'none', `song` and `list`."
 
     async def eval(self, mode):
         check_bot_join(self.client, self.message)
@@ -201,17 +200,8 @@ class Shuffle(M):
     desc = "Shuffles the playlist"
 
     def eval(self):
-        global playlist
-
-        # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
-
-        if playlist and len(playlist) > 1:
-            random.shuffle(playlist)
-        else:
-            raise CommandFailure("No playlist!")
-
-        return "Shuffled Playlist!"
+        return State.instance.shuffle()
 
 class Sh(M):
     desc = "See " + bold(code("!m") + " " + code("shuffle")) + "."
@@ -232,14 +222,13 @@ class Skip(M):
         return out
 
 class Stop(M):
-    desc = "Stops playing but persists in voice. Also stops autoplaying."
+    desc = "Stops playing but persists in voice. Also turns auto off."
 
-    def eval(self):
+    async def eval(self):
         if not State.instance.isPlaying():
             return "Not playing anything!"
-
-        State.instance.clean()
-        auto = False
+        await State.instance.clean()
+        State.instance.setAuto(False)
 
 class Volume(M):
     desc = "Volume adjustment. Mods only."
@@ -263,23 +252,18 @@ async def music(voice, client, channel):
         # Handle player done
         if State.instance.isDone():
             if State.instance.isListEmpty() and State.instance.hasPlayer():
-                State.instance.clean()
+                await State.instance.clean()
                 was_playing = False
-
                 out = bold("Stopped Playing")
                 await State.instance.message(client, out)
-                await client.change_presence(game=Game(\
-                                            name=CURRENT_PRESENCE))
 
             if not State.instance.isListEmpty():
                 if was_playing: 
                     out = State.instance.handlePop(client)
                     if out: await State.instance.message(client, out)
                 was_playing = True
-
                 out = await State.instance.playNext()
                 if out == None: continue
-
                 await State.instance.message(client, out)
                 await State.instance.updatePresence(client)
 
@@ -287,27 +271,20 @@ async def music(voice, client, channel):
         if len(voice.channel.voice_members) <= 1:   
 
             if dc_ticker >= DC_TIMEOUT: 
-                State.instance.clean()
+                await State.instance.clean()
                 await voice.disconnect()
-
+                M.channels_required.clear()
                 out = "Timeout of [%s] reached," % duration(DC_TIMEOUT)
                 out += " Disconnecting from %s," % code(voice.channel.name)
                 out += " Unbinding from %s" % \
                         chan(State.instance.getChannel().id)
-
-                M.channels_required.clear()
                 await State.instance.message(client, out)
-                await client.change_presence(game=Game(
-                                            name=CURRENT_PRESENCE))
                 break
 
             # Start counting
             if not paused_dc:
                 paused_dc = True
-
-                await client.change_presence(game=Game(name= \
-                    State.instance.pause()))
-
+                State.instance.pause()
                 name = voice.channel.name
                 out = bold("Nobody listening in %s, Pausing" % code(name))
                 await State.instance.message(client)
@@ -319,7 +296,6 @@ async def music(voice, client, channel):
         if len(voice.channel.voice_members) > 1 and paused_dc:
             paused_dc = False
             dc_ticker = 0
-
             State.instance.resume()
             name = voice.channel.name
             out = bold("Somebody has joined %s! Resuming" % code(name))
