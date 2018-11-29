@@ -249,6 +249,13 @@ async def music(voice, client, channel):
     was_playing = False
 
     while True:
+        """ Multiprocessing notes
+        - run music in a different process, need to add arg for Queue
+        - actions are sent to the process through the shared Queue
+        - action handler inside this loop to handle actions from the queue
+        - make a router for actions to the State.instance
+        """
+
         # Handle player done
         if State.instance.isDone():
             if State.instance.isListEmpty() and State.instance.hasPlayer():
@@ -287,7 +294,7 @@ async def music(voice, client, channel):
                 State.instance.pause()
                 name = voice.channel.name
                 out = bold("Nobody listening in %s, Pausing" % code(name))
-                await State.instance.message(client)
+                await State.instance.message(client, out)
                 await State.instance.updatePresence(client)
 
             dc_ticker += SLEEP_INTERVAL

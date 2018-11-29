@@ -1,7 +1,7 @@
 # State class and helpers for music.py
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
-import os, isodate, random
+import os, isodate, multiprocessing, random
 from discord import Game, Colour
 from requests import get
 from requests.exceptions import RequestException
@@ -84,14 +84,11 @@ class State:
                 raise CommandFailure("Index out of playlist range")
             return index
 
-        def getAuto(self):
-            return self.__auto
+        def getAuto(self): return self.__auto
 
-        def getChannel(self):
-            return self.__channel
+        def getChannel(self): return self.__channel
 
-        def getListLimit(self):
-            return self.__list_limit
+        def getListLimit(self): return self.__list_limit
 
         def getSong(self, index):
             index = self.checkListIndex(index)
@@ -101,14 +98,11 @@ class State:
             if len(self.__playlist) > 0: return self.__playlist[0]
             else: return None
 
-        def getPlaylist(self):
-            return self.__playlist
+        def getPlaylist(self): return self.__playlist
 
-        def getPresence(self):
-            return self.__presence
+        def getPresence(self): return self.__presence
 
-        def getVoice(self):
-            return self.__voice
+        def getVoice(self): return self.__voice
 
         def handlePop(self, client):
             out = None
@@ -124,8 +118,7 @@ class State:
                     out = self.addSong(result)
             return out
 
-        def hasPlayer(self):
-            return True if self.__player else False
+        def hasPlayer(self): return True if self.__player else False
 
         def isDone(self):
             try:
@@ -133,8 +126,7 @@ class State:
             except AttributeError:
                 return True
 
-        def isListEmpty(self):
-            return len(self.__playlist) == 0
+        def isListEmpty(self): return len(self.__playlist) == 0
 
         def isPlaying(self):
             try:
@@ -146,17 +138,13 @@ class State:
             self.__auto = not self.__auto
             return "on" if self.__auto else "off"
 
-        def playerDuration(self):
-            return duration(self.__player.duration)
+        def playerDuration(self): return duration(self.__player.duration)
 
-        def playerTitle(self):
-            return self.__player.title
+        def playerTitle(self): return self.__player.title
 
-        def setAuto(self, auto):
-            self.__auto = auto
+        def setAuto(self, auto): self.__auto = auto
 
-        def setChannel(self, channel):
-            self.__channel = channel
+        def setChannel(self, channel): self.__channel = channel
 
         def setLimit(self, limit):
             self.__list_limit = limit
