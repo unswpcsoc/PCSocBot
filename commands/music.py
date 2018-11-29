@@ -250,10 +250,10 @@ async def music(voice, client, channel):
 
     while True:
         """ Multiprocessing notes
-        - run music in a different process, need to add arg for Queue
-        - actions are sent to the process through the shared Queue
-        - action handler inside this loop to handle actions from the queue
-        - make a router for actions to the State.instance
+        - Can't run coroutines in different processes using multiprocessing
+        - New solution: run expensive synchronous actions (auto_get, 
+          playlist_info, etc.) in new process and read from queue in every 
+          event loop iteration
         """
 
         # Handle player done

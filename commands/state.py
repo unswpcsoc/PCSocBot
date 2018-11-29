@@ -313,8 +313,6 @@ class State:
     def __init__(self):
         pass
 
-# Helpers
-
 def check_bot_join(client, message):
     voices = [ x.server for x in list(client.voice_clients) ]
     try:
@@ -355,7 +353,7 @@ def video_info(url, author):
     info['author'] = author
     return info
 
-def playlist_info(url, author):
+def playlist_info(url, author): # Expensive
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
           developerKey=DEVELOPER_KEY)
 
@@ -369,7 +367,7 @@ def playlist_info(url, author):
         videos = youtube.playlistItems().list(
                 part='snippet, contentDetails',
                 playlistId=vid,
-                maxResults=list_limit
+                maxResults=State.instance.getListLimit()
                 ).execute()
     except HttpError as e:
         print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
@@ -408,7 +406,7 @@ def youtube_search(query, author):
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
 
-def auto_get(url):
+def auto_get(url): # Expensive
     content = None
     try:
         with closing(get(url, stream=True)) as resp:
