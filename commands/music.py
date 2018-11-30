@@ -3,7 +3,7 @@ from commands.state import *
 from helpers import *
 
 from discord import Game, Embed
-import asyncio, youtube_dl, os
+import asyncio, os, queue, youtube_dl
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
@@ -31,8 +31,9 @@ class Add(Auto):
             to the last item."
 
     def eval(self, index=-1):
-        url = auto_get(State.instance.getSong(index)['webpage_url'])
-        return State.instance.addSong(video_info(url, self.client.user))
+        list_url = State.instance.getSong(index)['webpage_url']
+        # Expensive call, use mp
+        mp_call(auto_info, list_url, self.message.author)
 
 class Get(Auto):
     desc = "Gets the autoplay suggestion for a playlist index. Defaults \
@@ -108,9 +109,8 @@ class Play(M):
             url = args
 
             if url.startswith(PLIST_PREFIX):
-                songs = playlist_info(url, self.message.author)
-                out = State.instance.addList(songs)
-                await State.instance.message(self.client, out)
+                # Expensive call, use mp
+                mp_call(playlist_info, url, self.message.author)
 
             elif url.startswith(WRONG_PLIST):
                 out = "Warning: invalid Playlist URL\n"
@@ -255,6 +255,13 @@ async def music(voice, client, channel):
           playlist_info, etc.) in new process and read from queue in every 
           event loop iteration
         """
+        # Poll multiprocessing queue
+        song = State.instance.qGet()
+        if song: 
+            State.instance.addSong(song)
+            out = bold("Added:") + " [%s] %s" % \
+                    (duration(song['duration']), song['title'])
+            await State.instance.message(client, out)
 
         # Handle player done
         if State.instance.isDone():

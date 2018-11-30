@@ -1,7 +1,8 @@
 # State class and helpers for music.py
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
-import os, isodate, multiprocessing, random
+import os, isodate, queue, random
+import multiprocessing as mp
 from discord import Game, Colour
 from requests import get
 from requests.exceptions import RequestException
@@ -39,6 +40,7 @@ class State:
         __player = None
         __playlist = []
         __presence = ""
+        __q = mp.Queue()
         __repeat = "none"
         __voice = None
         __volume = float(15)
@@ -141,6 +143,14 @@ class State:
         def playerDuration(self): return duration(self.__player.duration)
 
         def playerTitle(self): return self.__player.title
+
+        def qGet(self):
+            try: return self.__q.get_nowait()
+            except queue.Empty: return None
+
+        def qPut(self, song):
+            try: self.__q.put_nowait(song)
+            except queue.Full: CommandFailure("Multiprocessing queue full!")
 
         def setAuto(self, auto): self.__auto = auto
 
@@ -313,6 +323,33 @@ class State:
     def __init__(self):
         pass
 
+def mp_call(func, *args):
+    # A non-blocking process is spawned 
+    # Not able to pass up return values, use mp.Queue()
+    p = mp.Process(target=func, args=args)
+    p.start()
+
+def auto_info(url, author): # Expensive
+    content = None
+    try:
+        with closing(get(url, stream=True)) as resp:
+            if is_good_response(resp):
+                content = resp.content
+            else:
+                raise CommandFailure("Bad Response from %s" % url)
+    except RequestException as e:
+        raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
+
+    try:
+        html = BeautifulSoup(content, 'html.parser')
+    except BadHTMLError as e:
+        raise CommandFailure(e.message)
+
+    a = html.find('a', class_=SUGG_CLASS)
+    result = YT_PREFIX + a['href']
+
+    State.instance.qPut(video_info(result, author))
+
 def check_bot_join(client, message):
     voices = [ x.server for x in list(client.voice_clients) ]
     try:
@@ -374,15 +411,12 @@ def playlist_info(url, author): # Expensive
                 % (timestamp(), e.resp.status, e.content))
         return None
 
-    info_list = []
     info = dict()
     for video in videos['items']:
-        # Create a new dict each iteration and append to list
+        # MP Create a new dict each iteration and append to mp queue
         copy = info.copy()
         copy = video_info(video['contentDetails']['videoId'], author)
-        info_list.append(copy)
-
-    return info_list
+        State.instance.qPut(copy)
 
 def youtube_search(query, author):
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
@@ -405,23 +439,3 @@ def youtube_search(query, author):
         return video_info(search_response['items'][0]['id']['videoId'], author)
     except IndexError:
         raise CommandFailure(bold("Couldn't find %s" % query))
-
-def auto_get(url): # Expensive
-    content = None
-    try:
-        with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                content = resp.content
-            else:
-                raise CommandFailure("Bad Response from %s" % url)
-    except RequestException as e:
-        raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
-
-    try:
-        html = BeautifulSoup(content, 'html.parser')
-    except BadHTMLError as e:
-        raise CommandFailure(e.message)
-
-    a = html.find('a', class_=SUGG_CLASS)
-    result = YT_PREFIX + a['href']
-    return result
