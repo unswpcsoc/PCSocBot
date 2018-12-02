@@ -1,9 +1,11 @@
+import asyncio
+
+import youtube_dl
+from discord import Embed
+
 from commands.base import Command
 from commands.state import *
 from helpers import *
-
-from discord import Game, Embed
-import asyncio, os, queue, youtube_dl
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
@@ -41,7 +43,8 @@ class Get(Auto):
 
     def eval(self, index=0):
         song = State.instance.getSong(index)
-        item = video_info(auto_get(song['webpage_url']), self.client.user)
+        url = auto_info(song['webpage_url'], self.client.user)
+        item = video_info(url, self.client.user)
 
         out = bold("Got autosuggestion for") + " %s:" % (song['title'])
         out += "\n[%s] %s" % (duration(item['duration']), item['title'])
@@ -158,8 +161,8 @@ class Play(M):
         # Music not running, start it
         if not State.instance.running:
             State.instance.running = True
-            await music(State.instance.getVoice(), self.client, \
-                    self.message.channel)
+            await music(State.instance.getVoice(), self.client,
+                        self.message.channel)
 
 class Remove(M):
     desc = "Removes a song from the playlist. Defaults to the current song"
@@ -194,7 +197,7 @@ class Rm(M):
 class Rp(M):
     desc = "See " + bold(code("!m") + " " + code("repeat")) + "."
 
-    def eval(self, mode): return Repeat.eval(self.mode)
+    def eval(self, mode): return Repeat.eval(self.mode, mode)
 
 class Shuffle(M):
     desc = "Shuffles the playlist"
@@ -217,8 +220,8 @@ class Skip(M):
             raise CommandFailure("Not playing anything!")
 
         State.instance.stop()
-        out = bold("Skipped: [%s] %s" % \
-                (State.instance.playerDuration(), State.instance.playerTitle()))
+        out = bold("Skipped:") + " [%s] %s" % \
+              (State.instance.playerDuration(), State.instance.playerTitle())
         return out
 
 class Stop(M):
