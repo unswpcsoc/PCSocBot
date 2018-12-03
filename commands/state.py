@@ -115,10 +115,8 @@ class State:
             else: 
                 song = self.__playlist.pop(0) 
                 if self.__auto and self.isListEmpty():
-                    suggestion = auto_get(song['webpage_url'])
-                    result = video_info(suggestion, client.user)
-                    out = self.addSong(result)
-            return out
+                    item = auto_info(song['webpage_url'], client.user)
+                    self.addSong(item)
 
         def hasPlayer(self): return True if self.__player else False
 
@@ -254,24 +252,25 @@ class State:
                 pass
 
         def volume(self, lvl):
-            if not player:
-                raise CommandFailure("Not playing anything!")
+            if not self.hasPlayer():
+                raise CommandFailure("Nothing playing!")
 
             try:
                 lvl = float(lvl)
                 if 0 <= lvl <= 100:
                     self.__volume = lvl
-                    player.volume = lvl/100
+                    self.__player.volume = lvl/100
                     return "Volume changed to %f%%" % lvl
             except ValueError:
                 raise CommandFailure("Please use a number between 0-100")
 
-        async def clean(self):
+        async def clean(self, client):
             if self.__player: 
                 self.__player.stop()
                 self.__player = None
             self.__playlist.clear()
-            await client.change_presence(game=Game(name=CURRENT_PRESENCE))
+            self.__presence = CURRENT_PRESENCE
+            await updatePresence(client)
 
         async def embed(self, client, emb):
             await client.send_message(self.__channel, embed=emb)
@@ -329,7 +328,7 @@ def mp_call(func, *args):
     p = mp.Process(target=func, args=args)
     p.start()
 
-def auto_info(url, author): # Expensive
+def auto_info(url, author, mp=False): # Expensive
     content = None
     try:
         with closing(get(url, stream=True)) as resp:
@@ -348,7 +347,9 @@ def auto_info(url, author): # Expensive
     a = html.find('a', class_=SUGG_CLASS)
     result = YT_PREFIX + a['href']
 
-    State.instance.qPut(video_info(result, author))
+    info = video_info(result, author)
+    if mp: State.instance.qPut(info)
+    else: return info
 
 def check_bot_join(client, message):
     voices = [ x.server for x in list(client.voice_clients) ]

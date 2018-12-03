@@ -35,21 +35,7 @@ class Add(Auto):
     def eval(self, index=-1):
         list_url = State.instance.getSong(index)['webpage_url']
         # Expensive call, use mp
-        mp_call(auto_info, list_url, self.message.author)
-
-class Get(Auto):
-    desc = "Gets the autoplay suggestion for a playlist index. Defaults \
-            to the 0th."
-
-    def eval(self, index=0):
-        song = State.instance.getSong(index)
-        url = auto_info(song['webpage_url'], self.client.user)
-        item = video_info(url, self.client.user)
-
-        out = bold("Got autosuggestion for") + " %s:" % (song['title'])
-        out += "\n[%s] %s" % (duration(item['duration']), item['title'])
-        out += "\nLink: " + noembed(item['webpage_url'])
-        return out
+        mp_call(auto_info, list_url, self.message.author, True)
 
 class List(M):
     desc = "Lists the playlist."
@@ -261,15 +247,14 @@ async def music(voice, client, channel):
         # Poll multiprocessing queue
         song = State.instance.qGet()
         if song: 
-            State.instance.addSong(song)
-            out = bold("Added:") + " [%s] %s" % \
-                    (duration(song['duration']), song['title'])
+            out = State.instance.addSong(song)
             await State.instance.message(client, out)
 
         # Handle player done
         if State.instance.isDone():
-            if State.instance.isListEmpty() and State.instance.hasPlayer():
-                await State.instance.clean()
+            if State.instance.isListEmpty() and State.instance.hasPlayer() \
+                    and not State.instance.getAuto():
+                await State.instance.clean(client)
                 was_playing = False
                 out = bold("Stopped Playing")
                 await State.instance.message(client, out)
