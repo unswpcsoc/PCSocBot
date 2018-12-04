@@ -19,7 +19,7 @@ class M(Command):
     channels_required = []
 
 class Auto(M):
-    desc = "Toggles autoplay"
+    desc = "Toggles autoplay."
 
     async def eval(self):
         check_bot_join(self.client, self.message)
@@ -37,6 +37,14 @@ class Add(Auto):
         # Expensive call, use mp
         mp_call(auto_info, list_url, self.message.author, True)
 
+class Reset(Auto):
+    desc = "Resets the http session for autoplay i.e. cleans what Youtube has \
+            seen from autosuggestion requests"
+
+    async def eval(self):
+        out = State.instance.resetSession()
+        await State.instance.message(self.client, out)
+
 class List(M):
     desc = "Lists the playlist."
 
@@ -44,18 +52,21 @@ class List(M):
         if not State.instance.isPlaying():
             raise CommandFailure("Not playing anything!")
 
-        status, colour, title = State.instance.stat()
+        status, colour, title, footer = State.instance.stat()
+        footer += " | `!m play [link/search]` or `!m auto add [index]`"
         embed = Embed(title=title, colour=colour)
         embed.set_author(name=status)
-        embed.set_footer(text="!m play [link/search]")
+        embed.set_footer(text=footer)
+        embed.set_thumbnail(url=State.instance.getSong()['thumb'])
                         
         i = 0
         for song in State.instance.getPlaylist()[1:]:
             i += 1
             title = "%d. [%s] %s" % \
-                    (i, duration(song['duration']), song['title'])
+            (i, duration(song['duration']), song['title'])
             embed.add_field(name=title, 
-                            value="Added by: %s" % nick(song['author']), 
+                            value="[Added by: %s](%s)" \
+                            % (nick(song['author']), song['webpage_url']), 
                             inline=False)
 
         await State.instance.embed(self.client, embed)
@@ -75,7 +86,7 @@ class ListLimit(M):
         return State.instance.setLimit(limit)
 
 class Pause(M):
-    desc = "Pauses music"
+    desc = "Pauses music."
 
     async def eval(self):
         out = State.instance.pause()
@@ -83,9 +94,10 @@ class Pause(M):
         return out
 
 class Play(M):
-    desc = "Plays music. Binds commands to the channel invoked.\n"
-    desc += "Accepts youtube links, playlists (first %d entries), and more!\n"
-    desc += noembed(YDL_SITES)
+    desc = "Plays music. Binds commands to the channel invoked. Accepts YouTube"
+    desc += " links, playlists (first %d entries), and more!\n" \
+            % State.instance.getListLimit()
+    desc += "Accepted site links: " + noembed(YDL_SITES)
 
     async def eval(self, *args):
         args = " ".join(args)
@@ -130,6 +142,7 @@ class Play(M):
                     song['webpage_url'] = info['webpage_url']
                     song['duration'] = info['duration']
                     song['title'] = info['title']
+                    song['thumb'] = info['thumbnail']
                     song['author'] = self.message.author
 
                     out = State.instance.addSong(song)
@@ -151,7 +164,7 @@ class Play(M):
                         self.message.channel)
 
 class Remove(M):
-    desc = "Removes a song from the playlist. Defaults to the current song"
+    desc = "Removes a song from the playlist. Defaults to the current song."
 
     def eval(self, index=0):
         check_bot_join(self.client, self.message)
@@ -159,7 +172,7 @@ class Remove(M):
 
 class Repeat(M):
     desc = "Toggle repeat for the current song or the whole playlist. "
-    desc += "Accepted arguments are: 'none', `song` and `list`."
+    desc += "Accepted arguments are: `none`, `song` and `list`."
 
     async def eval(self, mode):
         check_bot_join(self.client, self.message)
@@ -168,7 +181,7 @@ class Repeat(M):
         return bold("Repeat mode set to: %s" % out)
 
 class Resume(M):
-    desc = "Resumes music"
+    desc = "Resumes music."
 
     async def eval(self):
         out = State.instance.resume()
@@ -186,7 +199,7 @@ class Rp(M):
     def eval(self, mode): return Repeat.eval(self.mode, mode)
 
 class Shuffle(M):
-    desc = "Shuffles the playlist"
+    desc = "Shuffles the playlist in place."
 
     def eval(self):
         check_bot_join(self.client, self.message)
@@ -198,7 +211,7 @@ class Sh(M):
     def eval(self): return Shuffle.eval(self)
 
 class Skip(M):
-    desc = "Skips the current song. Does not skip if repeat is `song`"
+    desc = "Skips the current song."
 
     def eval(self):
         check_bot_join(self.client, self.message)
@@ -216,7 +229,7 @@ class Stop(M):
     async def eval(self):
         if not State.instance.isPlaying():
             return "Not playing anything!"
-        await State.instance.clean()
+        await State.instance.clean(self.client)
         State.instance.setAuto(False)
 
 class Volume(M):
@@ -233,78 +246,86 @@ class V(M):
     def eval(self, level): return Volume.eval(self, level)
 
 async def music(voice, client, channel):
-    dc_ticker = 0
-    paused_dc = False
-    was_playing = False
+    try:
+        dc_ticker = 0
+        paused_dc = False
+        was_playing = False
 
-    while True:
-        """ Multiprocessing notes
-        - Can't run coroutines in different processes using multiprocessing
-        - New solution: run expensive synchronous actions (auto_get, 
-          playlist_info, etc.) in new process and read from queue in every 
-          event loop iteration
-        """
-        # Poll multiprocessing queue
-        song = State.instance.qGet()
-        if song: 
-            out = State.instance.addSong(song)
-            await State.instance.message(client, out)
-
-        # Handle player done
-        if State.instance.isDone():
-            if State.instance.isListEmpty() and State.instance.hasPlayer() \
-                    and not State.instance.getAuto():
-                await State.instance.clean(client)
-                was_playing = False
-                out = bold("Stopped Playing")
+        # Begin http session for better autoplay suggestions
+        State.instance.beginSession()
+        while True:
+            """ Multiprocessing notes
+            - Can't run coroutines in different processes using multiprocessing
+            - New solution: run expensive synchronous actions (auto_get, 
+            playlist_info, etc.) in new process and read from queue in every 
+            event loop iteration
+            """
+            # Poll multiprocessing queue
+            song = State.instance.qGet()
+            if song: 
+                out = State.instance.addSong(song)
                 await State.instance.message(client, out)
 
-            if not State.instance.isListEmpty():
-                if was_playing: 
-                    out = State.instance.handlePop(client)
-                    if out: await State.instance.message(client, out)
-                was_playing = True
-                out = await State.instance.playNext()
-                if out == None: continue
-                await State.instance.message(client, out)
-                await State.instance.updatePresence(client)
+            # Handle player done
+            if State.instance.isDone():
+                if State.instance.isListEmpty() and State.instance.hasPlayer() \
+                        and not State.instance.getAuto():
+                    await State.instance.stop(client)
+                    was_playing = False
+                    out = bold("Stopped Playing")
+                    await State.instance.message(client, out)
+                    continue
 
-        # Handle no audience
-        if len(voice.channel.voice_members) <= 1:   
+                if not State.instance.isListEmpty():
+                    if was_playing: 
+                        print("-------")
+                        print("BLOCKED")
+                        out = State.instance.handlePop(client)
+                        print("UNBLOCKED")
+                        if out: await State.instance.message(client, out)
+                    was_playing = True
+                    out = await State.instance.playNext()
+                    if out == None: continue
+                    await State.instance.message(client, out)
+                    await State.instance.updatePresence(client)
 
-            if dc_ticker >= DC_TIMEOUT: 
-                await State.instance.clean()
-                await voice.disconnect()
-                M.channels_required.clear()
-                out = "Timeout of [%s] reached," % duration(DC_TIMEOUT)
-                out += " Disconnecting from %s," % code(voice.channel.name)
-                out += " Unbinding from %s" % \
-                        chan(State.instance.getChannel().id)
-                await State.instance.message(client, out)
-                break
+            # Handle no audience
+            if len(voice.channel.voice_members) <= 1:   
 
-            # Start counting
-            if not paused_dc:
-                paused_dc = True
-                State.instance.pause()
+                if dc_ticker >= DC_TIMEOUT: 
+                    out = "Timeout of [%s] reached," % duration(DC_TIMEOUT)
+                    out += " Disconnecting from %s," % code(voice.channel.name)
+                    out += " Unbinding from %s" % \
+                            chan(State.instance.getChannel().id)
+                    await State.instance.message(client, out)
+                    break
+
+                # Start counting
+                if not paused_dc:
+                    paused_dc = True
+                    State.instance.pause()
+                    name = voice.channel.name
+                    out = bold("Nobody listening in %s, Pausing" % code(name))
+                    await State.instance.message(client, out)
+                    await State.instance.updatePresence(client)
+
+                dc_ticker += SLEEP_INTERVAL
+
+            # Someone joined, reset
+            if len(voice.channel.voice_members) > 1 and paused_dc:
+                paused_dc = False
+                dc_ticker = 0
+                State.instance.resume()
                 name = voice.channel.name
-                out = bold("Nobody listening in %s, Pausing" % code(name))
+                out = bold("Somebody has joined %s! Resuming" % code(name))
                 await State.instance.message(client, out)
                 await State.instance.updatePresence(client)
 
-            dc_ticker += SLEEP_INTERVAL
-
-        # Someone joined, reset
-        if len(voice.channel.voice_members) > 1 and paused_dc:
-            paused_dc = False
-            dc_ticker = 0
-            State.instance.resume()
-            name = voice.channel.name
-            out = bold("Somebody has joined %s! Resuming" % code(name))
-            await State.instance.message(client, out)
-            await State.instance.updatePresence(client)
-
-        await asyncio.sleep(SLEEP_INTERVAL)
-
-    State.instance.running = False
-    return
+            await asyncio.sleep(SLEEP_INTERVAL)
+    finally:
+        await voice.disconnect()
+        M.channels_required.clear()
+        await State.instance.stop(client)
+        State.instance.running = False
+        State.instance.cleanSession()
+        return

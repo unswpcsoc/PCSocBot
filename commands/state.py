@@ -4,9 +4,8 @@ from helpers import *
 import os, isodate, queue, random
 import multiprocessing as mp
 from discord import Game, Colour
-from requests import get
+from requests import get, Session
 from requests.exceptions import RequestException
-from contextlib import closing
 from bs4 import BeautifulSoup
 # YouTube API things. Required for all YouTube links, searches, etc.
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
@@ -42,6 +41,7 @@ class State:
         __presence = ""
         __q = mp.Queue()
         __repeat = "none"
+        __session = None
         __voice = None
         __volume = float(15)
         running = False
@@ -77,6 +77,12 @@ class State:
                 out += bold("[%s] %s" % (d, elm['title']))
             return out
 
+        def beginSession(self): self.__session = Session()
+
+        def cleanSession(self):
+            self.__session.close()
+            self.__session = None
+
         def checkListIndex(self, index):
             try: index = int(index)
             except ValueError: raise CommandFailure("Please use a number!")
@@ -92,7 +98,9 @@ class State:
 
         def getListLimit(self): return self.__list_limit
 
-        def getSong(self, index):
+        def getSession(self): return self.__session
+
+        def getSong(self, index=0):
             index = self.checkListIndex(index)
             return self.__playlist[index]
 
@@ -150,6 +158,11 @@ class State:
             try: self.__q.put_nowait(song)
             except queue.Full: CommandFailure("Multiprocessing queue full!")
 
+        def resetSession(self): 
+            self.__session.close()
+            self.__session = Session()
+            return "HTTP Session reset!"
+
         def setAuto(self, auto): self.__auto = auto
 
         def setChannel(self, channel): self.__channel = channel
@@ -164,13 +177,15 @@ class State:
 
         def stat(self):
             col = Colour.red() if self.__paused else Colour.green()
-            sta = "Paused" if self.__paused else "Playing"
-            sta = "Now " + sta + ": [%s] %s" % \
-                    (self.playerDuration(), self.playerTitle())
+            sta = " Now "
+            sta += "Paused" if self.__paused else "Playing"
+            sta += ": [%s] %s" % (self.playerDuration(), self.playerTitle())
             ti = ""
             if len(self.__playlist) > 1:
-                ti = "Up Next: (Repeat: %s)" % self.__repeat 
-            return sta, col, ti
+                ti = "Up Next:"
+            au = "on" if self.__auto else "off"
+            fo = "Repeat: %s | Auto: %s" % (self.__repeat, au)
+            return sta, col, ti, fo
 
         def pause(self):
             if not self.__player:
@@ -264,14 +279,6 @@ class State:
             except ValueError:
                 raise CommandFailure("Please use a number between 0-100")
 
-        async def clean(self, client):
-            if self.__player: 
-                self.__player.stop()
-                self.__player = None
-            self.__playlist.clear()
-            self.__presence = CURRENT_PRESENCE
-            await updatePresence(client)
-
         async def embed(self, client, emb):
             await client.send_message(self.__channel, embed=emb)
 
@@ -314,6 +321,14 @@ class State:
             return bold("Now Playing:") + " [%s] %s" % \
                     (self.playerDuration(), self.playerTitle())
 
+        async def stop(self, client):
+            if self.__player: 
+                self.__player.stop()
+                self.__player = None
+            self.__playlist.clear()
+            self.__presence = CURRENT_PRESENCE
+            await self.updatePresence(client)
+
         async def updatePresence(self, client):
             await client.change_presence(game=Game(name=self.__presence))
 
@@ -331,11 +346,11 @@ def mp_call(func, *args):
 def auto_info(url, author, mp=False): # Expensive
     content = None
     try:
-        with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                content = resp.content
-            else:
-                raise CommandFailure("Bad Response from %s" % url)
+        resp = State.instance.getSession().get(url, stream=True)
+        if is_good_response(resp):
+            content = resp.content
+        else:
+            raise CommandFailure("Bad Response from %s" % url)
     except RequestException as e:
         raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
 
@@ -388,6 +403,7 @@ def video_info(url, author):
     info['webpage_url'] = VID_PREFIX + vid['id']
     duration = isodate.parse_duration(vid['contentDetails']['duration'])
     info['duration'] = duration.seconds
+    info['thumb'] = vid['snippet']['thumbnails']['default']['url']
     info['author'] = author
     return info
 
