@@ -4,6 +4,7 @@
 from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
 from commands.report import report, REPORT_CHANNEL
+from commands.emoji import emojistats
 
 import json, os, sys
 
@@ -49,8 +50,8 @@ async def on_ready():
         #if channel.name == HIGH_NOON_CHANNEL:
             #await high_noon(client, channel)
 
-        if channel.name == LEADERBOARD_CHANNEL:
-            asyncio.ensure_future(leaderboard(client, channel))
+        # if channel.name == LEADERBOARD_CHANNEL:
+        #     asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.name == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
@@ -63,6 +64,8 @@ async def on_message(message):
     try:
         if report_channel and await report(client, report_channel, message):
             return
+
+        await emojistats(message)
             
         if message.content.startswith(commands.PREFIX):
             args = '\\n '.join(message.content[1:].splitlines()).split()
