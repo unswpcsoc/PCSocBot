@@ -231,6 +231,8 @@ class Stop(M):
             return "Not playing anything!"
         await State.instance.clean(self.client)
         State.instance.setAuto(False)
+        out = bold("Stopped Playing")
+        await State.instance.message(self.client, out)
 
 class Volume(M):
     desc = "Volume adjustment. Mods only."
@@ -260,38 +262,37 @@ async def music(voice, client, channel):
             playlist_info, etc.) in new process and read from queue in every 
             event loop iteration
             """
+            await asyncio.sleep(SLEEP_INTERVAL)
+            # MUSIC
             # Poll multiprocessing queue
             song = State.instance.qGet()
             if song: 
                 out = State.instance.addSong(song)
                 await State.instance.message(client, out)
-
+                State.instance.freeLock()
+            # Need to softlock auto-adding from handlePop
+            if State.instance.isLocked(): 
+                was_playing = False
+                continue
             # Handle player done
             if State.instance.isDone():
-                if State.instance.isListEmpty() and State.instance.hasPlayer() \
-                        and not State.instance.getAuto():
-                    await State.instance.stop(client)
+                if State.instance.isListEmpty() and not State.instance.isAuto():
                     was_playing = False
-                    out = bold("Stopped Playing")
-                    await State.instance.message(client, out)
                     continue
-
                 if not State.instance.isListEmpty():
                     if was_playing: 
-                        print("-------")
-                        print("BLOCKED")
                         out = State.instance.handlePop(client)
-                        print("UNBLOCKED")
+                        if State.instance.isLocked(): continue
                         if out: await State.instance.message(client, out)
                     was_playing = True
                     out = await State.instance.playNext()
                     if out == None: continue
                     await State.instance.message(client, out)
                     await State.instance.updatePresence(client)
-
+            # CISUM
+            # AUDIENCE
             # Handle no audience
             if len(voice.channel.voice_members) <= 1:   
-
                 if dc_ticker >= DC_TIMEOUT: 
                     out = "Timeout of [%s] reached," % duration(DC_TIMEOUT)
                     out += " Disconnecting from %s," % code(voice.channel.name)
@@ -299,7 +300,6 @@ async def music(voice, client, channel):
                             chan(State.instance.getChannel().id)
                     await State.instance.message(client, out)
                     break
-
                 # Start counting
                 if not paused_dc:
                     paused_dc = True
@@ -308,9 +308,7 @@ async def music(voice, client, channel):
                     out = bold("Nobody listening in %s, Pausing" % code(name))
                     await State.instance.message(client, out)
                     await State.instance.updatePresence(client)
-
                 dc_ticker += SLEEP_INTERVAL
-
             # Someone joined, reset
             if len(voice.channel.voice_members) > 1 and paused_dc:
                 paused_dc = False
@@ -320,12 +318,11 @@ async def music(voice, client, channel):
                 out = bold("Somebody has joined %s! Resuming" % code(name))
                 await State.instance.message(client, out)
                 await State.instance.updatePresence(client)
-
-            await asyncio.sleep(SLEEP_INTERVAL)
+            # ECNEIDUA
     finally:
         await voice.disconnect()
         M.channels_required.clear()
-        await State.instance.stop(client)
+        await State.instance.clean(client)
         State.instance.running = False
         State.instance.cleanSession()
         return

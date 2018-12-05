@@ -35,6 +35,7 @@ class State:
         __auto = True
         __channel = None
         __list_limit = 10
+        __lock = False
         __paused = False
         __player = None
         __playlist = []
@@ -92,7 +93,7 @@ class State:
                 raise CommandFailure("Index out of playlist range")
             return index
 
-        def getAuto(self): return self.__auto
+        def freeLock(self): self.__lock = False
 
         def getChannel(self): return self.__channel
 
@@ -115,6 +116,7 @@ class State:
         def getVoice(self): return self.__voice
 
         def handlePop(self, client):
+            # Pre: playlist is not empty
             out = None
             if self.__repeat == "song": 
                 pass
@@ -123,10 +125,13 @@ class State:
             else: 
                 song = self.__playlist.pop(0) 
                 if self.__auto and self.isListEmpty():
-                    item = auto_info(song['webpage_url'], client.user)
-                    self.addSong(item)
+                    url = song['webpage_url']
+                    mp_call(auto_info, url, song['author'])
+                    self.lock()
 
         def hasPlayer(self): return True if self.__player else False
+
+        def isAuto(self): return self.__auto
 
         def isDone(self):
             try:
@@ -136,11 +141,15 @@ class State:
 
         def isListEmpty(self): return len(self.__playlist) == 0
 
+        def isLocked(self): return self.__lock
+
         def isPlaying(self):
             try:
                 return self.__player.is_playing() or self.__paused
             except AttributeError:
                 return False
+
+        def lock(self): self.__lock = True
 
         def toggleAuto(self):
             self.__auto = not self.__auto
@@ -279,6 +288,14 @@ class State:
             except ValueError:
                 raise CommandFailure("Please use a number between 0-100")
 
+        async def clean(self, client):
+            if self.__player: 
+                self.__player.stop()
+                self.__player = None
+            self.__playlist.clear()
+            self.__presence = CURRENT_PRESENCE
+            await self.updatePresence(client)
+
         async def embed(self, client, emb):
             await client.send_message(self.__channel, embed=emb)
 
@@ -321,14 +338,6 @@ class State:
             return bold("Now Playing:") + " [%s] %s" % \
                     (self.playerDuration(), self.playerTitle())
 
-        async def stop(self, client):
-            if self.__player: 
-                self.__player.stop()
-                self.__player = None
-            self.__playlist.clear()
-            self.__presence = CURRENT_PRESENCE
-            await self.updatePresence(client)
-
         async def updatePresence(self, client):
             await client.change_presence(game=Game(name=self.__presence))
 
@@ -343,7 +352,7 @@ def mp_call(func, *args):
     p = mp.Process(target=func, args=args)
     p.start()
 
-def auto_info(url, author, mp=False): # Expensive
+def auto_info(url, author): # Expensive
     content = None
     try:
         resp = State.instance.getSession().get(url, stream=True)
@@ -353,18 +362,13 @@ def auto_info(url, author, mp=False): # Expensive
             raise CommandFailure("Bad Response from %s" % url)
     except RequestException as e:
         raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
-
     try:
-        html = BeautifulSoup(content, 'html.parser')
+        html = BeautifulSoup(content, 'lxml')
     except BadHTMLError as e:
         raise CommandFailure(e.message)
-
     a = html.find('a', class_=SUGG_CLASS)
-    result = YT_PREFIX + a['href']
-
-    info = video_info(result, author)
-    if mp: State.instance.qPut(info)
-    else: return info
+    info = video_info(YT_PREFIX + a['href'], author)
+    State.instance.qPut(info)
 
 def check_bot_join(client, message):
     voices = [ x.server for x in list(client.voice_clients) ]
