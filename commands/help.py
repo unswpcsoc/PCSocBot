@@ -12,6 +12,7 @@ class Helpme(Command):
         first_arg = 0
         for arg in args:
             if arg in cls.subcommands:
+                print("%s in commands!" % arg)
                 cls = cls.subcommands[arg]
                 first_arg += 1
             else:

@@ -4,7 +4,7 @@
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
 
-import json, os, sys
+import json, os, sys, configparser
 
 import discord
 import asyncio
@@ -12,6 +12,7 @@ import asyncio
 import commands
 
 client = discord.Client()
+config = configparser.ConfigParser()
 high_noon_channel = None
 
 DEFAULT_PRESENCE = "!helpme"
@@ -58,12 +59,17 @@ async def on_message(message):
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
-                output = await cls(client, message).init(*args)
-                if isinstance(output, discord.Embed):
-                    await client.send_message(message.channel, embed=output)
-                elif output is not None:
-                    await client.send_message(message.channel, output)
+                if config['COMMANDS'].getboolean(cls.__name__):
+                    # Command is not disabled
+                    output = await cls(client, message).init(*args)
+                    if isinstance(output, discord.Embed):
+                        await client.send_message(message.channel, embed=output)
+                    elif output is not None:
+                        await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
         await client.send_message(message.channel, err)
 
-client.run(os.environ['TOKEN'])
+if config.read('config/config.ini'):
+    client.run(config['KEYS']['DiscordToken'])
+else:
+    print("Can't find config file.")
