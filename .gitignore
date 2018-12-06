@@ -111,4 +111,4 @@ venv.bak/
 *.*.*~
 
 # Configuration files
-# config/
+config/
