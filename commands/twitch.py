@@ -7,6 +7,7 @@ import asyncio
 import os
 import time
 import datetime
+import configparser
 from utils.embed_table import EmbedTable
 from discord import Embed
 
@@ -14,8 +15,11 @@ from discord import Embed
 TWITCH_CHANNEL = 'yule-log'
 TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
+
+config = configparser.ConfigParser()
+config.read('config/config.ini')
 HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
-            'Client-ID': os.environ['CLIENT_ID'] }
+            'Client-ID': config['KEYS'].get('TwitchClientID') }
 SLEEP_INTERVAL = 300
 REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
 
