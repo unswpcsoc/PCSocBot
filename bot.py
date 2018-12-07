@@ -72,4 +72,4 @@ async def on_message(message):
 if config.read('config/config.ini'):
     client.run(config['KEYS']['DiscordToken'])
 else:
-    print("Can't find config file.")
+    print("Can't find config file!")
