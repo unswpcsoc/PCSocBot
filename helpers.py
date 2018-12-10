@@ -20,19 +20,22 @@ def code(s):
     return surround(s, '`')
 
 def codeblock(s):
-    return '```\n' + s + '\n```'
+    return surround(s, '```\n')
 
 def at(s):
-    return "<@%s>" % s
+    return f'<@{s}>'
 
 def noembed(s):
-    return "<%s>" % s
+    return f'<{s}>'
 
 def chan(s):
-    return "<#%s>" % s
+    return f'<#{s}>'
 
 def nick(m):
-    return m.nick or str(m).split("#")[0]
+    if m.nick is None:
+        # Default username
+        return str(m).split("#")[0]
+    return m.nick
 
 def timestamp():
     return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
