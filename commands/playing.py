@@ -1,8 +1,9 @@
+import asyncio
+
+import discord
+
 from commands.base import Command
 from helpers import *
-
-import asyncio
-import discord
 
 CURRENT_PRESENCE = "!helpme"
 

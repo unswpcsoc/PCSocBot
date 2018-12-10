@@ -1,8 +1,8 @@
 import asyncio
 from datetime import date, time, timedelta, datetime
-from helpers import *
 
-from commands import Command
+from commands.base import Command
+from helpers import *
 
 #HIGH_NOON_CHANNEL = 'Gaming'
 

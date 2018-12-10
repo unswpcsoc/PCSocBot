@@ -1,15 +1,16 @@
+import asyncio
+import datetime
+import json
+import os
+import re
+import time
+
+from discord import Embed
+import urllib.request
+
 from commands.base import Command
 from helpers import *
-import urllib.request
-import json
-import re
-import asyncio
-import os
-import time
-import datetime
 from utils.embed_table import EmbedTable
-from discord import Embed
-
 
 TWITCH_CHANNEL = 'yule-log'
 TWITCH_FILE = "files/twitch.json"

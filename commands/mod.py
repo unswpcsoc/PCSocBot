@@ -1,7 +1,8 @@
+import random
+
 from commands.base import Command
 from helpers import *
 
-import random
 
 class Mod(Command):
     desc = "This command is used to mention a random mod in times of need. Not a smart idea to abuse this command"

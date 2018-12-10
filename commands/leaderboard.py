@@ -1,7 +1,9 @@
-from commands.base import Command
-import urllib.request
-import json
 import asyncio
+import json
+
+import urllib.request
+
+from commands.base import Command
 from helpers import *
 
 LEADERBOARD_CHANNEL = 'commands'

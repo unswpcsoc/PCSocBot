@@ -1,11 +1,11 @@
 import asyncio
-import os
 from collections import OrderedDict
 import inspect
+import os
 
 import discord
-from pony.orm import db_session
 from mutagen.mp3 import MP3
+from pony.orm import db_session
 
 from helpers import *
 

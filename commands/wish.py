@@ -1,8 +1,8 @@
+import json
+import random
+
 from commands.base import Command
 from helpers import *
-
-import random
-import json
 
 WISH_FILE = "files/wish.json"
 

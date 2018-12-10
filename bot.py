@@ -1,15 +1,16 @@
 #!/usr/bin/python3
 
+import asyncio
+import json
+import os
+import sys
+
+import discord
+
+import commands
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
-
-import json, os, sys
-
-import discord
-import asyncio
-
-import commands
 
 client = discord.Client()
 high_noon_channel = None

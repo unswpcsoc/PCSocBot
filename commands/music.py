@@ -1,14 +1,18 @@
+import asyncio
+from collections import deque
+import datetime
+import os
+import random
+
+from discord import Game, Embed, Colour
+import isodate
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+import youtube_dl
+
 from commands.base import Command
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
-
-from collections import deque
-
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-
-from discord import Game, Embed, Colour
-import asyncio, datetime, isodate, youtube_dl, os, random
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
