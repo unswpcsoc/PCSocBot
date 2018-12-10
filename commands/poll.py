@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import timedelta
 
 from discord import Embed, Emoji, NotFound, Forbidden, HTTPException
 
@@ -25,14 +25,6 @@ class Poll(Command):
         entries = " ".join(entries).split(ENTRY_SEPARATOR)
         entries = [x.strip() for x in entries]
 
-        # Check for duration argument
-        if entries[0].lower == "duration":
-            try:
-                float(entries[1])
-                return Duration.eval(self, entries[1])
-            except ValueError:
-                pass
-
         if len(entries) > 20:
             raise CommandFailure("Too many entries! (Max 20)")
 
@@ -50,7 +42,7 @@ class Poll(Command):
             embed = Embed(title="Poll:",
                           colour=self.message.author.colour,
                           timestamp=self.message.timestamp +
-                          datetime.timedelta(seconds=DURATION+len(entries)))
+                          timedelta(seconds=DURATION+len(entries)))
 
             # Add author
             embed.set_author(name=nick(self.message.author),
@@ -64,9 +56,9 @@ class Poll(Command):
                 embed.add_field(name=letters(i), value=entry, inline=True)
                 i += 1
 
-            # Add duration until vote counting
-            duration = str(datetime.timedelta(seconds=int(DURATION)))
-            embed.set_footer(text="Votes counted in [%s]" % duration)
+            # Add duration until vote counting in the format HH:MM:SS
+            duration = timedelta(seconds=DURATION)
+            embed.set_footer(text=f"Votes counted in [{duration}]")
 
             # Send embed to the current channel
             msg = await self.client.send_message(self.message.channel,
@@ -109,7 +101,7 @@ class Poll(Command):
 
             # Construct results
             for vote in votes:
-                name = "%s %d votes" % (letters(vote[1]), vote[0])
+                name = f"{letters(vote[1])} {vote[0]} votes"
                 value = entries[vote[1]]
                 embed.add_field(name=name, value=value, inline=True)
 
@@ -122,27 +114,24 @@ class Poll(Command):
 class Duration(Poll):
     roles_required = ["mod", "exec"]
     desc = "Changes the duration (min) of the poll before votes are counted. "
-    desc = "Mods only."
+    "Mods only."
 
     def eval(self, duration):
         global DURATION
 
         try:
-            int(duration)
+            duration = int(duration)
+            if duration <= 0:
+                raise ValueError
         except ValueError:
-            raise CommandFailure("Please enter a valid number of minutes!")
-
-        duration = int(duration)
-
-        if duration < 0:
             raise CommandFailure("Please enter a valid number of minutes!")
 
         # Get minutes
         DURATION = duration * 60
 
         # Return confirmation
-        dur = str(datetime.timedelta(seconds=int(DURATION)))
-        return "Poll duration changed to %s" % dur
+        dur = timedelta(seconds=DURATION)
+        return f"Poll duration changed to {dur}"
 
 
 def letters(index):

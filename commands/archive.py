@@ -35,14 +35,14 @@ class Archive(Command):
                     self.client.logs_from(
                         self.message.channel, limit=HISTORY_LIMIT))
                 if not archive or int_index >= len(archive):
-                    return f"Can't find message {bold(index)}!"
+                    raise CommandFailure(f"Can't find message {bold(index)}!")
                 entry = archive[int_index]
         except ValueError:
-            return "Please input a non-negative number!"
+            raise CommandFailure("Please input a non-negative number!")
         except NotFound:
-            return f"Message ID {bold(index)} doesn't exist!"
+            raise CommandFailure(f"Message ID {bold(index)} doesn't exist!")
         except (Forbidden, HTTPException):
-            return f"Could not archive message {bold(index)}!"
+            raise CommandFailure(f"Could not archive message {bold(index)}!")
 
         # Post archive in the archive channel
         channel = self.client.get_channel(ARCHIVE_CHANNEL)
