@@ -14,6 +14,7 @@ CHAR_LIMIT = 2000
 LIST_LIMIT = 50
 DEFAULT_COLOR = int('000000', 16)
 
+
 class Quote(Command):
     desc = "Quote storage and retrieval system. Retrieve by index, or leave blank for random."
 
@@ -22,7 +23,8 @@ class Quote(Command):
         try:
             index = int(index)
         except ValueError:
-            raise CommandFailure("Must supply either an integer or subcommand!")
+            raise CommandFailure(
+                "Must supply either an integer or subcommand!")
 
         # Retrieve the quotes list
         try:
@@ -35,8 +37,8 @@ class Quote(Command):
         # failure conditions
         if len(quotes['quotes']) == 0:
             raise CommandFailure('Quotes list is empty!')
-        
-        if index > quotes['last_id']: 
+
+        if index > quotes['last_id']:
             raise CommandFailure('Index out of range!')
 
         # pick a quote
@@ -48,7 +50,8 @@ class Quote(Command):
             try:
                 quote = quotes['quotes'][str(index)]
             except KeyError:
-                raise CommandFailure('Quote with ID %s does not exist!' % index)
+                raise CommandFailure(
+                    'Quote with ID %s does not exist!' % index)
 
         # find user and use details, or if they have left the server, use the default
         user = self.from_id(quote['author'])
@@ -59,12 +62,13 @@ class Quote(Command):
             name = user.name
             colour = user.colour.value
 
-        #construct and send embed
+        # construct and send embed
         message = ''
         title = 'Quote #%s' % index
         body = quote['quote']
         footer = 'Added by %s' % name
-        timestamp = datetime.strptime(quote['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
+        timestamp = datetime.strptime(
+            quote['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
 
         embed = Embed(description=body, colour=colour, timestamp=timestamp)
         embed.set_author(name=title)
@@ -103,7 +107,7 @@ class Add(Quote):
             json.dump(pending, new)
 
         return 'The following quote has been added to the pending list at index %s:\n%s'\
-                                                    % (len(pending)-1, codeblock(quote_string))
+            % (len(pending)-1, codeblock(quote_string))
 
 
 class Remove(Quote):
@@ -126,7 +130,7 @@ class Remove(Quote):
 
         if index < 0 or index > quotes['last_id']:
             raise CommandFailure('Index out of range!')
-        
+
         try:
             quote = quotes['quotes'].pop(str(index))
         except KeyError:
@@ -162,7 +166,8 @@ class Approve(Quote):
         try:
             index = int(index)
         except ValueError:
-            raise CommandFailure("Must supply either an integer or subcommand!")
+            raise CommandFailure(
+                "Must supply either an integer or subcommand!")
 
         # Retrieve the pending list
         try:
@@ -174,11 +179,11 @@ class Approve(Quote):
 
         if not pending:
             raise CommandFailure('Pending list is empty!')
-        
+
         if index < 0 or index >= len(pending):
             raise CommandFailure('Index out of range!')
 
-        #copy and remove from the pending list
+        # copy and remove from the pending list
         quote = pending.pop(index)
 
         # retrieve the quotes list
@@ -189,7 +194,7 @@ class Approve(Quote):
             quotes = {}
 
         # get ID of last entry
-        if not quotes: #quotes dict is empty
+        if not quotes:  # quotes dict is empty
             next_id = 0
             quotes['quotes'] = {}
         else:
@@ -213,8 +218,7 @@ class Approve(Quote):
             name = user.mention
 
         return "The following quote by %s has been added to the quotes list with ID %s:\n%s"\
-                                                     % (name, next_id, codeblock(quote['quote']))
-
+            % (name, next_id, codeblock(quote['quote']))
 
 
 class Reject(Quote):
@@ -237,7 +241,7 @@ class Reject(Quote):
 
         if index < 0 or index >= len(pending):
             raise CommandFailure('Index out of range!')
-        
+
         quote = pending.pop(index)
 
         # Write the formats to the JSON file
@@ -277,7 +281,7 @@ class List(Quote):
                 out = tmp
             else:
                 out += tmp
-        
+
         return out
 
 
@@ -292,7 +296,7 @@ class Pending(Quote):
                 pending = json.load(old)
         except FileNotFoundError:
             raise CommandFailure('Pending list is empty!')
-        
+
         if not pending:
             raise CommandFailure('Pending list is empty!')
 
@@ -308,7 +312,7 @@ class Pending(Quote):
                 out = tmp
             else:
                 out += tmp
-        
+
         return out
 
 
@@ -322,7 +326,8 @@ class Changeid(Quote):
             oldid = int(oldid)
             newid = int(newid)
         except ValueError:
-            raise CommandFailure("Must supply either an integer or subcommand!")
+            raise CommandFailure(
+                "Must supply either an integer or subcommand!")
 
         # Retrieve the quotes list
         try:
@@ -335,11 +340,11 @@ class Changeid(Quote):
         # failure conditions
         if len(quotes['quotes']) == 0:
             raise CommandFailure('Quotes list is empty!')
-        
-        if oldid > quotes['last_id'] or newid > quotes['last_id']: 
+
+        if oldid > quotes['last_id'] or newid > quotes['last_id']:
             raise CommandFailure('Index out of range!')
 
-        #check that quote with ID newid does not exist
+        # check that quote with ID newid does not exist
         if str(newid) in quotes['quotes']:
             raise CommandFailure('Quote with ID %s already exists!' % newid)
 
@@ -349,7 +354,7 @@ class Changeid(Quote):
         except KeyError:
             raise CommandFailure('Quote with ID %s does not exist!' % oldid)
 
-        #add quote back with ID newid
+        # add quote back with ID newid
         quotes['quotes'][str(newid)] = quote
 
         # Write the quotes list to the JSON file
@@ -358,8 +363,9 @@ class Changeid(Quote):
 
         return 'ID for quote %s changed to %s!' % (oldid, newid)
 
-      
+
 class Ls(Quote):
     desc = "See " + bold(code("!quote") + " " + code("list")) + "."
+
     async def eval(self):
         return await List.eval(self)

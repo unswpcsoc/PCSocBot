@@ -7,6 +7,7 @@ from helpers import *
 
 CURRENT_PRESENCE = "!helpme"
 
+
 class Playing(Command):
     desc = "Changes the Playing status of the bot. Mod only."
     roles_required = ["mod", "exec"]

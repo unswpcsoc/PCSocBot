@@ -15,8 +15,8 @@ from utils.embed_table import EmbedTable
 TWITCH_CHANNEL = 'yule-log'
 TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
-HEADERS = { 'Accept': 'application/vnd.twitchtv.v5+json', 
-            'Client-ID': os.environ['CLIENT_ID'] }
+HEADERS = {'Accept': 'application/vnd.twitchtv.v5+json',
+           'Client-ID': os.environ['CLIENT_ID']}
 SLEEP_INTERVAL = 300
 REQUEST_PREFIX = 'https://api.twitch.tv/kraken/'
 
@@ -33,11 +33,12 @@ class Add(Twitch):
         # check twitch channel name is valid
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
-            raise CommandFailure(code(username) +  ' is not a valid Twitch username!')
+            raise CommandFailure(
+                code(username) + ' is not a valid Twitch username!')
 
         # check channel exists
-        req = urllib.request.Request(REQUEST_PREFIX + 'users?login=' + username, 
-                                    data=None, headers=HEADERS)
+        req = urllib.request.Request(REQUEST_PREFIX + 'users?login=' + username,
+                                     data=None, headers=HEADERS)
         res = urllib.request.urlopen(req)
         data = json.loads(res.read().decode('utf-8'))
         if data['_total'] == 0:
@@ -57,15 +58,16 @@ class Add(Twitch):
 
         # Add the format string to the key
         if key in channels['channels']:
-            raise CommandFailure(code(name) +  ' is already on the list of broadcasters!')
+            raise CommandFailure(
+                code(name) + ' is already on the list of broadcasters!')
         channel = {'id': id, 'name': name}
         channels['channels'][key] = channel
 
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
-        
-        return code(name) +  ' has been added to the list of broadcasters!'
+
+        return code(name) + ' has been added to the list of broadcasters!'
 
 
 class Remove(Twitch):
@@ -76,7 +78,8 @@ class Remove(Twitch):
         # check twitch channel name is valid
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
-            raise CommandFailure(code(username) +  ' is not a valid Twitch username!')
+            raise CommandFailure(
+                code(username) + ' is not a valid Twitch username!')
 
         # Open the JSON file or create a new dict to load
         try:
@@ -90,12 +93,13 @@ class Remove(Twitch):
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
-        
-        return code(username) +  ' was removed from the list of broadcasters!'
+
+        return code(username) + ' was removed from the list of broadcasters!'
 
 
 class Rm(Twitch):
     desc = "See " + bold(code("!twitch") + " " + code("remove")) + "."
+
     def eval(self, username): return Remove.eval(self, username)
 
 
@@ -113,13 +117,14 @@ class List(Twitch):
         names = [value['name'] for key, value in channels['channels'].items()]
         names = sorted(names)
 
-        return EmbedTable(fields=['Broadcasters'], 
-                         table=[(name,) for name in names], 
-                         colour=TWITCH_COLOR)
+        return EmbedTable(fields=['Broadcasters'],
+                          table=[(name,) for name in names],
+                          colour=TWITCH_COLOR)
 
 
 class Ls(Twitch):
     desc = "See " + bold(code("!twitch") + " " + code("list")) + "."
+
     def eval(self): return List.eval(self)
 
 
@@ -146,7 +151,7 @@ class Setm(Twitch):
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
 
-        return "Message for %s set to %s!" %(code(name), code(message_string))
+        return "Message for %s set to %s!" % (code(name), code(message_string))
 
 
 class Removem(Twitch):
@@ -194,7 +199,7 @@ class Getm(Twitch):
         if message is None:
             raise CommandFailure("No custom message for %s set!" % code(name))
 
-        return "Message for %s is %s!" %(code(name), code(message))
+        return "Message for %s is %s!" % (code(name), code(message))
 
 
 # Twitch Alerts Event Loop
@@ -220,28 +225,28 @@ async def twitch(client, channel):
 
             # Check if channel is live
             try:
-                req = urllib.request.Request(REQUEST_PREFIX + 'streams/' + id, 
-                                            data=None, headers=HEADERS)
+                req = urllib.request.Request(REQUEST_PREFIX + 'streams/' + id,
+                                             data=None, headers=HEADERS)
                 res = urllib.request.urlopen(req)
                 data = json.loads(res.read().decode('utf-8'))
                 stream = data['stream']
             except urllib.error.URLError as e:
                 print(timestamp() + ' TWITCH: "' + str(e) + '" for ' + name)
                 continue
-            
+
             # skip if channel is not live
             if not stream:
-                messages.pop(key, None) #remove stored message
+                messages.pop(key, None)  # remove stored message
                 continue
 
             # set message
             if message is None:
                 body = 'Hey guys, %s is now live on %s ! Go check it out!' % \
-                        (code(name), stream['channel']['url'])
+                    (code(name), stream['channel']['url'])
             else:
                 body = message
             description = '[%s](%s)' % \
-                    (stream['channel']['status'], stream['channel']['url'])
+                (stream['channel']['status'], stream['channel']['url'])
             ts = datetime.datetime.utcnow()
             footer = 'Last updated'
 
@@ -252,11 +257,12 @@ async def twitch(client, channel):
             game = game if len(game) > 0 else 'No Game Specified'
             viewers = stream.get('viewers', '')
 
-            embed = Embed(description=description, timestamp=ts, colour=TWITCH_COLOR)
+            embed = Embed(description=description,
+                          timestamp=ts, colour=TWITCH_COLOR)
 
             embed.set_author(name=name, icon_url=icon)
 
-            embed.set_image(url=image +'?time='+str(int(time.time())))
+            embed.set_image(url=image + '?time='+str(int(time.time())))
 
             embed.set_thumbnail(url=icon)
 
@@ -265,7 +271,7 @@ async def twitch(client, channel):
             embed.add_field(name='Game', value=game, inline=True)
             embed.add_field(name='Viewers', value=viewers, inline=True)
 
-            #edit existing message if it exists, or create new message
+            # edit existing message if it exists, or create new message
             if key in messages:
                 await client.edit_message(messages[key], embed=embed)
 
@@ -274,4 +280,3 @@ async def twitch(client, channel):
 
                 # store message in messages
                 messages[key] = message
-

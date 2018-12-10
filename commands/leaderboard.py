@@ -15,6 +15,7 @@ MUTE_FILE = 'files/muted.json'
 MILESTONES = [10, 25, 50]
 SLEEP_INTERVAL = 60
 
+
 async def leaderboard(client, channel):
     req = urllib.request.Request(
         MEE6_URL + channel.server.id,
@@ -53,7 +54,7 @@ async def leaderboard(client, channel):
                 diff_positions = dict()
                 for user, value in new_positions.items():
                     rank = value + 1
-                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
+                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user)
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
@@ -68,7 +69,8 @@ async def leaderboard(client, channel):
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts.append("{} has just entered the top 100.".format(user_ping))
+                        alerts.append(
+                            "{} has just entered the top 100.".format(user_ping))
 
                     alerts.append("`!shutup` to stop :ping:")
 
@@ -95,8 +97,10 @@ def invert(array):
         dictionary[value] = index
     return dictionary
 
+
 class Shutup(Command):
     desc = "Toggles leaderboard notifications."
+
     def eval(self):
         muted_people = []
         try:

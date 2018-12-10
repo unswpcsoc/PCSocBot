@@ -6,6 +6,7 @@ from helpers import *
 
 WISH_FILE = "files/wish.json"
 
+
 class Wish(Command):
     desc = "Wish upon a star!"
 
