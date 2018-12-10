@@ -15,3 +15,4 @@ from commands.mod import *
 from commands.quote import *
 from commands.piglatin import *
 from commands.wish import *
+from commands.roles import *
