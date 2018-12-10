@@ -64,7 +64,7 @@ async def on_message(message):
                     await client.send_message(message.channel, embed=output)
                 elif output is not None:
                     await client.send_message(message.channel, output)
-    except discord.errors.HTTPException as e:
+    except discord.errors.HTTPException:
         await client.send_message(message.channel, err)
 
 client.run(os.environ['TOKEN'])

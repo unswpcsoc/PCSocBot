@@ -26,9 +26,11 @@ class Archive(Command):
                 raise ValueError
 
             if int_index >= HISTORY:
+                # Archive the Message ID given
                 message = await self.client.get_message(self.message.channel, index)
                 entry = Entry(index, message)
             else:
+                # Archive the nth latest scroll-reacted comment
                 archive = await create_archive(
                     self.client.logs_from(
                         self.message.channel, limit=HISTORY_LIMIT))
@@ -42,6 +44,7 @@ class Archive(Command):
         except (Forbidden, HTTPException):
             return f"Could not archive message {bold(index)}!"
 
+        # Post archive in the archive channel
         channel = self.client.get_channel(ARCHIVE_CHANNEL)
         if channel is None:
             raise CommandFailure("Can't find archive channel!")
@@ -52,6 +55,8 @@ class Archive(Command):
 
 
 class List(Archive):
+    # BUG: If the message is greater than 2000 characters,
+    # discord.py will send a 400 BAD REQUEST
     desc = "Lists recent messages available for archiving. Mods only."
 
     async def eval(self):
