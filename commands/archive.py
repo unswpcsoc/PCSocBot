@@ -5,6 +5,7 @@ from discord import Embed, NotFound, Forbidden, HTTPException
 import asyncio
 import datetime
 
+
 HISTORY = 10
 HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
