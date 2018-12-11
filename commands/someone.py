@@ -1,6 +1,7 @@
 from commands.base import Command
 from helpers import *
 
+from collections import defaultdict
 import random
 import json
 import re
@@ -25,12 +26,13 @@ class Someone(Command):
         try:
             people = int(people)
         except ValueError:
-            return "Must supply either an integer or subcommand!"
+            raise CommandFailure(
+                "Must supply either an integer or subcommand!")
 
         # Enforce limit on people requested by the command
         if people > PEOPLE_LIMIT:
-            return "The maximum number of supported " + code("people") + " is " \
-                + bold(str(PEOPLE_LIMIT)) + ". Sorry!"
+            raise CommandFailure(f"The maximum number of supported {code('people')} is "
+                                 f"{bold(PEOPLE_LIMIT)}. Sorry!")
 
         # Assert that people is greater than 0
         people = max(people, 1)
@@ -87,26 +89,32 @@ class Add(Someone):
 
         # Make sure the number of people is sane
         if people < 1:
-            return "Invalid format string, must have at least 1 `{}`!"
+            raise CommandFailure(
+                "Invalid format string, must have at least 1 `{}`!")
+
+        # Check that the string provided can be used with str.format
+        try:
+            format_string.format(*['a']*people)
+        except ValueError:
+            raise CommandFailure(
+                "Invalid format string, please remove single curly braces")
 
         # Open the JSON file or create a new dict to load
+        formats = defaultdict(list)
         try:
             with open(FORMAT_FILE, 'r') as old:
-                formats = json.load(old)
+                formats.update(json.load(old))
         except FileNotFoundError:
-            formats = {}
+            pass
 
         # Add the format string to the key
-        try:
-            formats[str(people)].append(format_string)
-        except KeyError:
-            formats[str(people)] = [format_string]
+        formats[str(people)].append(format_string)
 
         # Write the formats to the JSON file
         with open(FORMAT_FILE, 'w') as new:
             json.dump(formats, new)
 
-        return "Your format %s for %s people has been added!" % (code(format_string), bold(str(people)))
+        return f"Your format {code(format_string)} for {bold(people)} people has been added!"
 
 
 class Remove(Someone):
@@ -121,7 +129,7 @@ class Remove(Someone):
         format_string = " ".join(format_string)
 
         if not format_string:
-            return "Must supply a format string!"
+            raise CommandFailure("Must supply a format string!")
 
         # If a number is passed into the second argument, set remove_all flag
         try:
@@ -140,17 +148,15 @@ class Remove(Someone):
             if remove_all:
                 # Remove all format strings for people
                 del formats[str(people)]
-                out = "Removed all formats for %s people!" % bold(str(people))
-
+                out = f"Removed all formats for {bold(people)} people!"
             else:
                 # Remove format string if in the dict
                 formats[str(people)].remove(format_string)
-                out = "The format " + code(format_string)
-                out += " for " + bold(str(people))
-                out += " people was removed!"
+                out = f"The format {code(format_string)} " \
+                    f"for {bold(people)} people was removed!"
 
         except (FileNotFoundError, KeyError, ValueError):
-            return "Format %s not found!" % code(format_string)
+            return f"Format {code(format_string)} not found!"
 
         # Write the formats to the JSON file
         with open(FORMAT_FILE, 'w') as new:
@@ -164,27 +170,48 @@ class List(Someone):
 
     async def eval(self, people=None):
 
-        if people:
-            # User has specified number of people
-            try:
-                int(people)
-            except ValueError:
-                return "`people` must be an integer value!"
-
         try:
             # Open the JSON file
             with open(FORMAT_FILE, 'r') as fmt:
                 formats = json.load(fmt)
+        except FileNotFoundError:
+            return "No formats."
 
-            if people:
-                # List all the entries for people
-                if not formats[people]:
-                    raise NoFormatsError
-                out = "Formats for " + bold(people) + " `people`:\n"
+        if people is not None:
+            # User has specified number of people
+            try:
+                int(people)
+            except ValueError:
+                raise CommandFailure(f"`people` must be an integer value!")
 
-                #out += "\n".join(formats[people])
-                for entry in formats[people]:
-                    tmp = entry + "\n"
+            # List all the entries for people
+            if not (people in formats and formats[people]):
+                return f"No formats for {bold(people)} people."
+
+            out = f"Formats for {bold(people)} `people`:\n"
+
+            #out += "\n".join(formats[people])
+            for entry in formats[people]:
+                tmp = entry + "\n"
+                if len(out+tmp) > CHAR_LIMIT:
+                    # out exceeds character limit,
+                    # send message and truncate out
+                    await self.client.send_message(self.message.channel,
+                                                   out)
+                    out = tmp
+                else:
+                    out += tmp
+        else:
+            # List all entries
+            out = "All formats:\n"
+            empty = True
+
+            # Sort by numeric value of keys
+            for k, v in sorted(formats.items(), key=lambda x: int(x[0])):
+                if v:
+                    empty = False
+                    tmp = f"Formats for {bold(k)} `people`:\n"
+
                     if len(out+tmp) > CHAR_LIMIT:
                         # out exceeds character limit,
                         # send message and truncate out
@@ -194,17 +221,9 @@ class List(Someone):
                     else:
                         out += tmp
 
-            else:
-                # List all entries
-                out = "All formats:\n"
-                empty = True
-
-                # Sort by numeric value of keys
-                for k, v in sorted(formats.items(), key=lambda x: int(x[0])):
-                    if v:
-                        empty = False
-                        tmp = "Formats for " + bold(k) + " `people`:\n"
-
+                    #tmp += "\n".join(v) + "\n"
+                    for entry in v:
+                        tmp = entry + "\n"
                         if len(out+tmp) > CHAR_LIMIT:
                             # out exceeds character limit,
                             # send message and truncate out
@@ -214,29 +233,14 @@ class List(Someone):
                         else:
                             out += tmp
 
-                        #tmp += "\n".join(v) + "\n"
-                        for entry in v:
-                            tmp = entry + "\n"
-                            if len(out+tmp) > CHAR_LIMIT:
-                                # out exceeds character limit,
-                                # send message and truncate out
-                                await self.client.send_message(self.message.channel,
-                                                               out)
-                                out = tmp
-                            else:
-                                out += tmp
-
-                if empty:
-                    raise NoFormatsError
-
-        except (FileNotFoundError, KeyError, NoFormatsError):
-            out = "No formats for %s people" % people if people else "No formats"
+            if empty:
+                out = "No formats."
 
         return out
 
 
 class Ls(Someone):
-    desc = "See " + bold(code("!someone") + " " + code("list")) + "."
+    desc = f"See {bold(code('!someone'))} {bold(code('list'))}."
 
     async def eval(self, people=None):
         return await List.eval(self, people)
@@ -247,5 +251,9 @@ class NoFormatsError(Exception):
 
 
 def count_placeholders(format_string):
+    """
+    Counts the number of identifiers in the string. If none, defaults to -1.
+    """
     return format_string.count(IDENTIFIER) or 1 + \
-        max([int(x) for x in re.findall(r"{(\d*)}", format_string)])
+        max([int(x)
+             for x in re.findall(r"{(\d*)}", format_string)], default=-1)
