@@ -12,8 +12,6 @@ config = configparser.ConfigParser()
 def toggle_command(key, command):
     if not config['KEYS'].get(key):
         config['COMMANDS'][command] = 'off'
-    else:
-        config['COMMANDS'][command] = 'on'
 
 # Store list of all commands that depend on a certain key
 dependencies = {'YouTube': ['M'],
