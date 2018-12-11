@@ -1,18 +1,14 @@
-import asyncio
-from collections import deque
-import datetime
-import os
-import random
-
-from discord import Game, Embed, Colour
-import isodate
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-import youtube_dl
-
 from commands.base import Command
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
+
+from collections import deque
+
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+from discord import Game, Embed, Colour
+import asyncio, datetime, isodate, youtube_dl, os, random
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
@@ -74,7 +70,7 @@ class Play(M):
         # Check if bot is joined
         # Note: don't use check_bot_join()
         vclients = list(self.client.voice_clients)
-        voices = [x.server for x in vclients]
+        voices = [ x.server for x in vclients ]
         try:
             # Get the voice channel
             v_index = voices.index(self.message.server)
@@ -149,9 +145,9 @@ class Play(M):
                         song['author'] = self.message.author
                         playlist.append(song)
 
+
                         # Construct add message
-                        d = str(datetime.timedelta(
-                            seconds=int(song['duration'])))
+                        d = str(datetime.timedelta(seconds=int(song['duration'])))
                         out = bold("Added: [%s] %s" % (d, song['title']))
 
                         await self.client.send_message(bind_channel, out)
@@ -162,8 +158,8 @@ class Play(M):
                         raise CommandFailure(out)
 
             except HttpError as e:
-                print('%s YOUTUBE: A HTTP error %d occurred:\n%s'
-                      % (timestamp(), e.resp.status, e.content))
+                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                        % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
         else:
@@ -179,8 +175,8 @@ class Play(M):
                 await self.client.send_message(bind_channel, out)
 
             except HttpError as e:
-                print('%s YOUTUBE: A HTTP error %d occurred:\n%s'
-                      % (timestamp(), e.resp.status, e.content))
+                print('%s YOUTUBE: A HTTP error %d occurred:\n%s' \
+                        % (timestamp(), e.resp.status, e.content))
                 return "Invalid link! (or something else went wrong :/)"
 
         # Nothing is playing and we weren't in vc, start the music event loop
@@ -209,10 +205,8 @@ class Pause(M):
 
         # Change presence
         presence = PAUSE_UTF + player.title
-        if repeat == "song":
-            presence = REPEAT_SONG_UTF + presence
-        if repeat == "list":
-            presence = REPEAT_LIST_UTF + presence
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
 
         await self.client.change_presence(game=Game(name=presence))
 
@@ -240,10 +234,8 @@ class Resume(M):
 
         # Change presence
         presence = PLAY_UTF + player.title
-        if repeat == "song":
-            presence = REPEAT_SONG_UTF + presence
-        if repeat == "list":
-            presence = REPEAT_LIST_UTF + presence
+        if repeat == "song": presence = REPEAT_SONG_UTF + presence
+        if repeat == "list": presence = REPEAT_LIST_UTF + presence
 
         await self.client.change_presence(game=Game(name=presence))
 
@@ -257,10 +249,8 @@ class Skip(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if not player:
-            raise CommandFailure("Not playing anything!")
-        if player.is_done():
-            raise CommandFailure("Not playing anything!")
+        if not player: raise CommandFailure("Not playing anything!")
+        if player.is_done(): raise CommandFailure("Not playing anything!")
 
         # Construct out message
         duration = str(datetime.timedelta(seconds=int(player.duration)))
@@ -304,8 +294,7 @@ class Remove(M):
         out = bold("Removed: [%s] %s" % (duration, song['title']))
 
         # Kill the player if we remove the currently playing song
-        if pos == 0:
-            player.stop()
+        if pos == 0: player.stop()
 
         return out
 
@@ -333,7 +322,7 @@ class Stop(M):
 
 class Volume(M):
     desc = "Volume adjustment. Mods only."
-    roles_required = ["mod", "exec"]
+    roles_required = [ "mod", "exec" ]
 
     def eval(self, level):
         global bind_channel
@@ -360,7 +349,7 @@ class Volume(M):
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
-    roles_required = ["mod", "exec"]
+    roles_required = [ "mod", "exec" ]
 
     def eval(self, level): return Volume.eval(self, level)
 
@@ -382,7 +371,7 @@ class List(M):
         # Construct embed
         col = Colour.red() if paused else Colour.green()
         state = "Paused" if paused else "Playing"
-        state = "Now " + state + ": [%s] %s" % (duration, player.title)
+        state = "Now " + state + ": [%s] %s" % (duration, player.title) 
 
         # Construct title
         ti = "Up Next: (Repeat: %s)" % repeat if len(playlist) > 1 else ""
@@ -390,7 +379,7 @@ class List(M):
         embed = Embed(title=ti, colour=col)
         embed.set_author(name=state)
         embed.set_footer(text="!m play [link/search]")
-
+                        
         # Get fields
         i = 0
         for song in playlist[1:]:
@@ -399,8 +388,8 @@ class List(M):
             duration = datetime.timedelta(seconds=int(song['duration']))
             title = "%d. [%s] %s" % (i, str(duration), song['title'])
 
-            embed.add_field(name=title,
-                            value="Added by: %s" % nick(song['author']),
+            embed.add_field(name=title, 
+                            value="Added by: %s" % nick(song['author']), 
                             inline=False)
 
         await self.client.send_message(bind_channel, embed=embed)
@@ -446,24 +435,21 @@ class Repeat(M):
         # Check if connected to a voice channel
         check_bot_join(self.client, self.message)
 
-        if mode.lower() == "song":
-            if repeat != "none":
-                presence = presence[1:]
+        if mode.lower() == "song": 
+            if repeat != "none": presence = presence[1:]
             presence = REPEAT_SONG_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "list":
-            if repeat != "none":
-                presence = presence[1:]
+        elif mode.lower() == "list": 
+            if repeat != "none": presence = presence[1:]
             presence = REPEAT_LIST_UTF + presence
             repeat = mode.lower()
 
-        elif mode.lower() == "none":
-            if repeat != "none":
-                presence = presence[1:]
+        elif mode.lower() == "none": 
+            if repeat != "none": presence = presence[1:]
             repeat = mode.lower()
 
-        else:
+        else: 
             raise CommandFailure("Not a valid argument!")
 
         # Change presence
@@ -480,21 +466,17 @@ class Rp(M):
 
 class ListLimit(M):
     desc = "Sets playlist fetch limit. Mods only."
-    roles_required = ["mod", "exec"]
+    roles_required = [ "mod", "exec"]
 
     def eval(self, limit):
         global list_limit
 
-        try:
-            limit = int(limit)
-        except ValueError:
-            raise CommandFailure("Please enter a valid integer")
+        try: limit = int(limit)
+        except ValueError: raise CommandFailure("Please enter a valid integer")
 
         # API limit is 50 videos
-        if 0 < limit <= 50:
-            list_limit = limit
-        else:
-            raise CommandFailure("Please enter an integer in [0-50]")
+        if 0 < limit <= 50: list_limit = limit
+        else: raise CommandFailure("Please enter an integer in [0-50]")
 
         return "Playlist fetch limit set to: %d" % limit
 
@@ -504,12 +486,12 @@ class ListLimit(M):
 
 def check_bot_join(client, message):
     vclients = list(client.voice_clients)
-    voices = [x.server for x in vclients]
+    voices = [ x.server for x in vclients ]
     try:
         v_index = voices.index(message.server)
     except ValueError:
         # Bot is not connected to a voice channel in this server
-        raise CommandFailure("Please `!join` a voice channel first")
+        raise CommandFailure("Please `!join` a voice channel first") 
 
 
 async def do_join(client, message):
@@ -557,19 +539,14 @@ async def music(voice, client, channel):
             if len(playlist) > 0:
 
                 # Check for repeating modes
-                if repeat == "song":
-                    pass
-                elif repeat == "list":
-                    playlist.append(playlist.pop(0))
-                else:
-                    if was_playing:
-                        playlist.pop(0)
+                if repeat == "song": pass
+                elif repeat == "list": playlist.append(playlist.pop(0))
+                else: 
+                    if was_playing: playlist.pop(0)
 
                 # Play the next song in the list
-                if len(playlist) > 0:
-                    song = playlist[0]
-                else:
-                    continue
+                if len(playlist) > 0: song = playlist[0]
+                else: continue
 
                 url = song['webpage_url']
 
@@ -580,18 +557,15 @@ async def music(voice, client, channel):
                 was_playing = True
 
                 # Print the message in the supplied channel
-                duration = str(datetime.timedelta(
-                    seconds=int(song['duration'])))
+                duration = str(datetime.timedelta(seconds=int(song['duration'])))
                 presence = song['title']
                 out = bold("Now Playing: [%s] %s" % (duration, presence))
                 await client.send_message(bind_channel, out)
 
                 # Change presence to the currently playing song
                 presence = PLAY_UTF + presence
-                if repeat == "song":
-                    presence = REPEAT_SONG_UTF + presence
-                if repeat == "list":
-                    presence = REPEAT_LIST_UTF + presence
+                if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                if repeat == "list": presence = REPEAT_LIST_UTF + presence
 
                 await client.change_presence(game=Game(name=presence))
 
@@ -606,8 +580,8 @@ async def music(voice, client, channel):
                     await client.send_message(bind_channel, out)
 
                     # Change presence back
-                    await client.change_presence(game=Game(
-                        name=CURRENT_PRESENCE))
+                    await client.change_presence(game=Game(\
+                                                name=CURRENT_PRESENCE))
 
                 # Poll for listeners
                 if len(voice.channel.voice_members) <= 1:
@@ -626,8 +600,7 @@ async def music(voice, client, channel):
                         await client.send_message(bind_channel, bold(out))
                         break
 
-                else:
-                    dc_timer = 0
+                else: dc_timer = 0
 
         else:   # Something is playing
 
@@ -642,10 +615,8 @@ async def music(voice, client, channel):
 
                     # Change presence
                     presence = PAUSE_UTF + player.title
-                    if repeat == "song":
-                        presence = REPEAT_SONG_UTF + presence
-                    if repeat == "list":
-                        presence = REPEAT_LIST_UTF + presence
+                    if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                    if repeat == "list": presence = REPEAT_LIST_UTF + presence
 
                     await client.change_presence(game=Game(name=presence))
 
@@ -656,7 +627,7 @@ async def music(voice, client, channel):
                     # Careful, if SLEEP_INTERVAL changes, the duration will change
                     dc_timer += 1
 
-                if dc_timer >= DC_TIMEOUT:
+                if dc_timer >= DC_TIMEOUT: 
                     await voice.disconnect()
 
                     d = str(datetime.timedelta(seconds=int(DC_TIMEOUT)))
@@ -671,7 +642,7 @@ async def music(voice, client, channel):
 
                     # Change presence back
                     await client.change_presence(game=Game(
-                        name=CURRENT_PRESENCE))
+                                                name=CURRENT_PRESENCE))
 
                     # Reset paused
                     paused = False
@@ -687,10 +658,8 @@ async def music(voice, client, channel):
 
                 # Change presence
                 presence = PLAY_UTF + player.title
-                if repeat == "song":
-                    presence = REPEAT_SONG_UTF + presence
-                if repeat == "list":
-                    presence = REPEAT_LIST_UTF + presence
+                if repeat == "song": presence = REPEAT_SONG_UTF + presence
+                if repeat == "list": presence = REPEAT_LIST_UTF + presence
 
                 await client.change_presence(game=Game(name=presence))
 
@@ -702,8 +671,8 @@ async def music(voice, client, channel):
 
 def video_info(url, author):
     # This is the only function that gets the video info
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
 
     # Split the url to get video id
     if url.startswith("http"):
@@ -714,9 +683,9 @@ def video_info(url, author):
 
     # API call
     videos = youtube.videos().list(
-        part='snippet, contentDetails',
-        id=vid
-    ).execute()
+            part='snippet, contentDetails',
+            id=vid
+            ).execute()
 
     # Using vid id, will always return one item
     vid = videos['items'][0]
@@ -732,8 +701,8 @@ def video_info(url, author):
 
 
 def playlist_info(url, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+          developerKey=DEVELOPER_KEY)
 
     # Split the url to get list id
     if url.startswith("http"):
@@ -744,10 +713,10 @@ def playlist_info(url, author):
 
     # API call
     videos = youtube.playlistItems().list(
-        part='snippet, contentDetails',
-        playlistId=vid,
-        maxResults=list_limit
-    ).execute()
+            part='snippet, contentDetails',
+            playlistId=vid,
+            maxResults=list_limit
+            ).execute()
 
     # Get video metadata
     info_list = []
@@ -762,8 +731,8 @@ def playlist_info(url, author):
 
 
 def youtube_search(query, author):
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
-                    developerKey=DEVELOPER_KEY)
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+            developerKey=DEVELOPER_KEY)
 
     # Call the search.list method to retrieve results matching the specified
     # query term.
@@ -773,7 +742,7 @@ def youtube_search(query, author):
         maxResults=1,   # Only 1 video
         regionCode=GEO_REGION,
         type='video'
-    ).execute()
+        ).execute()
 
     # Return the first video's info
     try:
