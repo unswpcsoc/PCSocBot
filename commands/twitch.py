@@ -34,15 +34,15 @@ class Add(Twitch):
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
             raise CommandFailure(
-                code(username) + ' is not a valid Twitch username!')
+                f'{code(username)} is not a valid Twitch username!')
 
         # check channel exists
-        req = urllib.request.Request(REQUEST_PREFIX + 'users?login=' + username,
+        req = urllib.request.Request(f'{REQUEST_PREFIX}users?login={username}',
                                      data=None, headers=HEADERS)
         res = urllib.request.urlopen(req)
         data = json.loads(res.read().decode('utf-8'))
         if data['_total'] == 0:
-            raise CommandFailure(code(username) + ' channel does not exist!')
+            raise CommandFailure(f'{code(username)} channel does not exist!')
 
         key = username.lower()
         name = data['users'][0]['display_name']
@@ -59,7 +59,7 @@ class Add(Twitch):
         # Add the format string to the key
         if key in channels['channels']:
             raise CommandFailure(
-                code(name) + ' is already on the list of broadcasters!')
+                f'{code(name)} is already on the list of broadcasters!')
         channel = {'id': id, 'name': name}
         channels['channels'][key] = channel
 
@@ -67,7 +67,7 @@ class Add(Twitch):
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
 
-        return code(name) + ' has been added to the list of broadcasters!'
+        return f'{code(name)} has been added to the list of broadcasters!'
 
 
 class Remove(Twitch):
@@ -79,7 +79,7 @@ class Remove(Twitch):
         pattern = re.compile("^[a-zA-Z0-9_]{4,25}$")
         if pattern.match(username) is None:
             raise CommandFailure(
-                code(username) + ' is not a valid Twitch username!')
+                f'{code(username)} is not a valid Twitch username!')
 
         # Open the JSON file or create a new dict to load
         try:
@@ -88,19 +88,20 @@ class Remove(Twitch):
             channels['channels'].pop(username.lower())
 
         except (FileNotFoundError, KeyError, ValueError):
-            raise CommandFailure("Broadcaster %s not found!" % code(username))
+            raise CommandFailure(f"Broadcaster {code(username)} not found!")
 
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
 
-        return code(username) + ' was removed from the list of broadcasters!'
+        return f'{code(username)} was removed from the list of broadcasters!'
 
 
 class Rm(Twitch):
-    desc = "See " + bold(code("!twitch") + " " + code("remove")) + "."
+    desc = f"See {bold(code('!twitch'))} {bold(code('remove'))}."
 
-    def eval(self, username): return Remove.eval(self, username)
+    def eval(self, username):
+        return Remove.eval(self, username)
 
 
 class List(Twitch):
@@ -123,9 +124,10 @@ class List(Twitch):
 
 
 class Ls(Twitch):
-    desc = "See " + bold(code("!twitch") + " " + code("list")) + "."
+    desc = f"See {bold(code('!twitch'))} {bold(code('list'))}."
 
-    def eval(self): return List.eval(self)
+    def eval(self):
+        return List.eval(self)
 
 
 class Setm(Twitch):
@@ -145,13 +147,13 @@ class Setm(Twitch):
             name = channels['channels'][username.lower()]['name']
 
         except (FileNotFoundError, KeyError, ValueError):
-            raise CommandFailure("Broadcaster %s not found!" % code(username))
+            raise CommandFailure(f"Broadcaster {code(username)} not found!")
 
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
 
-        return "Message for %s set to %s!" % (code(name), code(message_string))
+        return f"Message for {code(name)} set to {code(message_string)}!"
 
 
 class Removem(Twitch):
@@ -167,17 +169,17 @@ class Removem(Twitch):
             name = channels['channels'][username.lower()]['name']
 
         except (FileNotFoundError, KeyError, ValueError):
-            raise CommandFailure("Broadcaster %s not found!" % code(username))
+            raise CommandFailure(f"Broadcaster {code(username)} not found!")
 
         message = channel.pop('message', None)
         if message is None:
-            raise CommandFailure("No custom message for %s set!" % code(name))
+            raise CommandFailure(f"No custom message for {code(name)} set!")
 
         # Write the formats to the JSON file
         with open(TWITCH_FILE, 'w') as new:
             json.dump(channels, new)
 
-        return "Custom message for %s removed!" % code(name)
+        return f"Custom message for {code(name)} removed!"
 
 
 class Getm(Twitch):
@@ -193,13 +195,13 @@ class Getm(Twitch):
             name = channels['channels'][username.lower()]['name']
 
         except (FileNotFoundError, KeyError, ValueError):
-            raise CommandFailure("Broadcaster %s not found!" % code(username))
+            raise CommandFailure(f"Broadcaster {code(username)} not found!")
 
         message = channel.get('message', None)
         if message is None:
-            raise CommandFailure("No custom message for %s set!" % code(name))
+            raise CommandFailure(f"No custom message for {code(name)} set!")
 
-        return "Message for %s is %s!" % (code(name), code(message))
+        return f"Message for {code(name)} is {code(message)}!"
 
 
 # Twitch Alerts Event Loop
@@ -241,12 +243,10 @@ async def twitch(client, channel):
 
             # set message
             if message is None:
-                body = 'Hey guys, %s is now live on %s ! Go check it out!' % \
-                    (code(name), stream['channel']['url'])
+                body = f'Hey guys, {code(name)} is now live on {stream['channel']['url']} ! Go check it out!'
             else:
                 body = message
-            description = '[%s](%s)' % \
-                (stream['channel']['status'], stream['channel']['url'])
+            description = f"[{stream['channel']['status']}]({stream['channel']['url']})"
             ts = datetime.datetime.utcnow()
             footer = 'Last updated'
 
@@ -261,11 +261,8 @@ async def twitch(client, channel):
                           timestamp=ts, colour=TWITCH_COLOR)
 
             embed.set_author(name=name, icon_url=icon)
-
-            embed.set_image(url=image + '?time='+str(int(time.time())))
-
+            embed.set_image(url=f"{image}?time={int(time.time())}")
             embed.set_thumbnail(url=icon)
-
             embed.set_footer(text=footer)
 
             embed.add_field(name='Game', value=game, inline=True)
@@ -274,7 +271,6 @@ async def twitch(client, channel):
             # edit existing message if it exists, or create new message
             if key in messages:
                 await client.edit_message(messages[key], embed=embed)
-
             else:
                 message = await client.send_message(channel, body, embed=embed)
 
