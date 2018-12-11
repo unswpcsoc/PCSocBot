@@ -10,7 +10,7 @@ HISTORY = 10
 HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels"
-ARCHIVE_CHANNEL = "474009272804442112"
+ARCHIVE_CHANNEL = "463602892717162497"
 AVATAR_FORMAT = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=128"
 IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
