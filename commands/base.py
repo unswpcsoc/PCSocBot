@@ -85,7 +85,7 @@ class Command(metaclass=Tree):
         for parent in parents:
             if parent == Command:
                 # Found this class itself - return previous parent
-                return base
+                break
             base = parent
         
         return base
