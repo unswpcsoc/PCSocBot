@@ -243,7 +243,8 @@ async def twitch(client, channel):
 
             # set message
             if message is None:
-                body = f'Hey guys, {code(name)} is now live on {stream['channel']['url']} ! Go check it out!'
+                body = f"Hey guys, {code(name)} is now live on {stream['channel']['url']} ! " \
+                    f"Go check it out!"
             else:
                 body = message
             description = f"[{stream['channel']['status']}]({stream['channel']['url']})"
