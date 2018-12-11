@@ -77,6 +77,21 @@ class Command(metaclass=Tree):
                ' '.join(underline(code(cls.pprint.get(item, item))) for item in func_args)
 
     @classproperty
+    def base_command(cls):
+        # Gets the base command of a command
+        # For example, Duration is a subclass of the parent Poll command
+        base = cls
+        parents = cls.mro()
+        for parent in parents:
+            if parent == Command:
+                # Found this class itself - return previous parent
+                return base
+            base = parent
+        
+        return base
+
+
+    @classproperty
     def help(cls):
         if cls.subcommands:
             lines = [cls.desc, '', bold('Commands' if cls.__base__ == object else 'Subcommands')]
