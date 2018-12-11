@@ -51,7 +51,6 @@ async def leaderboard(client, channel):
         try:
             with open(DATA_FILE, 'r') as previous:
                 previous_positions = json.load(previous)
-                diff_positions = dict()
                 for user, value in new_positions.items():
                     rank = value + 1
                     user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user)
@@ -60,17 +59,17 @@ async def leaderboard(client, channel):
                             prev = new_list[rank]
                             prev_ping = bold((await client.get_user_info(prev)).display_name) if prev in muted_people else at(prev)
                             if rank == 1:
-                                alerts.append("{} has just taken the #1 spot from {}.".format(
-                                    user_ping, prev_ping))
+                                alerts.append(
+                                    f"{user_ping} has just taken the #1 spot from {prev_ping}.")
                             elif rank in MILESTONES:
-                                alerts.append("{} has just entered the top {}, kicking out {}.".format(
-                                    user_ping, rank, prev_ping))
+                                alerts.append(
+                                    f"{user_ping} has just entered the top {rank}, kicking out {prev_ping}.")
                             else:
-                                alerts.append("{} has overtaken {} and is now rank #{}.".format(
-                                    user_ping, prev_ping, rank))
+                                alerts.append(
+                                    f"{user_ping} has overtaken {prev_ping} and is now rank #{rank}.")
                     except IndexError:
                         alerts.append(
-                            "{} has just entered the top 100.".format(user_ping))
+                            f"{user_ping} has just entered the top 100.")
 
                     alerts.append("`!shutup` to stop :ping:")
 
@@ -114,5 +113,5 @@ class Shutup(Command):
             muted_people.append(self.user)
         with open(MUTE_FILE, 'w') as f:
             json.dump(muted_people, f)
-        return "We'll %s you about your leaderboard movements." % \
-            ("no longer ping" if self.user in muted_people else "resume pinging you")
+        return f"We'll {'no longer ping' if self.user in muted_people else 'resume pinging you'}" \
+            f" you about your leaderboard movements."

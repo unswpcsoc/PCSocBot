@@ -35,7 +35,7 @@ class Quote(Command):
             raise CommandFailure('Quotes list is empty!')
 
         # failure conditions
-        if len(quotes['quotes']) == 0:
+        if not quotes['quotes']:
             raise CommandFailure('Quotes list is empty!')
 
         if index > quotes['last_id']:
@@ -46,12 +46,10 @@ class Quote(Command):
             choice = random.choice(list(quotes['quotes'].items()))
             index = choice[0]
             quote = choice[1]
+        elif str(index) in quotes['quotes']:
+            quote = quotes['quotes'][str(index)]
         else:
-            try:
-                quote = quotes['quotes'][str(index)]
-            except KeyError:
-                raise CommandFailure(
-                    'Quote with ID %s does not exist!' % index)
+            raise CommandFailure(f'Quote with ID {index} does not exist!')
 
         # find user and use details, or if they have left the server, use the default
         user = self.from_id(quote['author'])
@@ -64,9 +62,9 @@ class Quote(Command):
 
         # construct and send embed
         message = ''
-        title = 'Quote #%s' % index
+        title = f'Quote #{index}'
         body = quote['quote']
-        footer = 'Added by %s' % name
+        footer = f'Added by {name}'
         timestamp = datetime.strptime(
             quote['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
 
@@ -106,8 +104,8 @@ class Add(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
-        return 'The following quote has been added to the pending list at index %s:\n%s'\
-            % (len(pending)-1, codeblock(quote_string))
+        return f'The following quote has been added to the pending list at index ' \
+            f'{len(pending)-1}:\n{codeblock(quote_string)}'
 
 
 class Remove(Quote):
@@ -134,7 +132,7 @@ class Remove(Quote):
         try:
             quote = quotes['quotes'].pop(str(index))
         except KeyError:
-            raise CommandFailure('Quote with ID %s does not exist!' % index)
+            raise CommandFailure(f'Quote with ID {index} does not exist!')
 
         # Open the pending file or create a new dict to load
         try:
@@ -154,7 +152,7 @@ class Remove(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
-        return 'Quote with ID %s moved to pending list!' % index
+        return f'Quote with ID {index} moved to pending list!'
 
 
 class Approve(Quote):
@@ -217,8 +215,8 @@ class Approve(Quote):
         else:
             name = user.mention
 
-        return "The following quote by %s has been added to the quotes list with ID %s:\n%s"\
-            % (name, next_id, codeblock(quote['quote']))
+        return f"The following quote by {name} has been added to the quotes list with ID " \
+            f"{next_id}:\n{codeblock(quote['quote'])}"
 
 
 class Reject(Quote):
@@ -248,7 +246,7 @@ class Reject(Quote):
         with open(PENDING_FILE, 'w') as new:
             json.dump(pending, new)
 
-        return 'Pending quote with index %s removed!' % index
+        return f'Pending quote with index {index} removed!'
 
 
 class List(Quote):
@@ -274,7 +272,7 @@ class List(Quote):
             i = quote[0]
             q = quote[1]['quote'][:LIST_LIMIT]
 
-            tmp = '**#%s:** %s' % (i, q)
+            tmp = f'**#{i}:** {q}'
             tmp += '[...]\n' if len(q) >= LIST_LIMIT else '\n'
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
@@ -306,7 +304,7 @@ class Pending(Quote):
             user = self.from_id(pending[i]['author'])
             a = pending[i]['nick'] if user is None else user.name
             q = pending[i]['quote']
-            tmp = '**#%s by %s:** %s\n' % (i, a, q)
+            tmp = f'**#{i} by {a}:** {q}\n'
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
                 out = tmp
@@ -346,13 +344,13 @@ class Changeid(Quote):
 
         # check that quote with ID newid does not exist
         if str(newid) in quotes['quotes']:
-            raise CommandFailure('Quote with ID %s already exists!' % newid)
+            raise CommandFailure(f'Quote with ID {newid} already exists!')
 
         # get quote with ID oldid
         try:
             quote = quotes['quotes'].pop(str(oldid))
         except KeyError:
-            raise CommandFailure('Quote with ID %s does not exist!' % oldid)
+            raise CommandFailure(f'Quote with ID {oldid} does not exist!')
 
         # add quote back with ID newid
         quotes['quotes'][str(newid)] = quote
@@ -361,11 +359,11 @@ class Changeid(Quote):
         with open(QUOTE_FILE, 'w') as new:
             json.dump(quotes, new)
 
-        return 'ID for quote %s changed to %s!' % (oldid, newid)
+        return f'ID for quote {oldid} changed to {newid}!'
 
 
 class Ls(Quote):
-    desc = "See " + bold(code("!quote") + " " + code("list")) + "."
+    desc = f"See {bold(code('!quote'))} {bold(code('list'))}."
 
     async def eval(self):
         return await List.eval(self)
