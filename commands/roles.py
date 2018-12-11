@@ -26,14 +26,14 @@ class Meta(Command):
 async def assign_role(client, message, role_name):
     role = find_role(message.server.roles, role_name)
     if role is None:
-        raise CommandFailure("%s role does not exist!" % role_name)
+        raise CommandFailure(f"{role_name} role does not exist!")
 
     if role in message.author.roles:
         await client.remove_roles(message.author, role)
-        return message.author.mention + " is no longer a " + role_name
+        return f"{message.author.mention} is no longer a {role_name}."
 
     await client.add_roles(message.author, role)
-    return message.author.mention + " is now a " + role_name
+    return f"{message.author.mention} is now a {role_name}."
 
 
 def find_role(roles, role_name):
