@@ -8,7 +8,7 @@ class classproperty(object):
         return self.f(owner)
 
 def surround(s, markup):
-    return markup + s + markup[::-1]
+    return f'{markup}{s}{markup[::-1]}'
 
 def bold(s):
     return surround(s, '**')
