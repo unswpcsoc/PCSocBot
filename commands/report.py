@@ -1,3 +1,4 @@
+from commands.base import Command
 from helpers import *
 from discord import Embed
 from utils.username_generator import *
@@ -11,13 +12,48 @@ help_message = 'Any private message sent to the bot will be forwarded anonymousl
 success_message = "Thank you for your message, it has been forwarded anonymously to the PCSoc Moderation Team 🙂"
 report_message = '❗ @ everyone new mod report ❗'
 
+report_authors = dict()
+
+class Report(Command):
+    desc = "Anonymous mod reporting for the PCSoc Discord Server. PM the bot to make a report."
+
+
+class Reply(Report):
+    desc = "Replies to a mod report."
+    roles_required = ["mod"]
+    async def eval(self, nickname, *message):
+        if not nickname.isalpha():
+            raise CommandFailure("Nickname is invalid!")
+        
+        report_author = report_authors.get(nickname.lower())
+        if report_author is None:
+            raise CommandFailure("Nickname does not exist!")
+
+        message = ' '.join(message)
+        if not message:
+            raise CommandFailure("Message cannot be blank!")
+
+        channel = None
+        for member in self.server.members:
+            if report_author == member.id:
+                channel = member
+                break
+        if channel is None:
+            CommandFailure("Member is no longer in the server!")
+
+        reply_message = "A mod has replied: " + message
+
+        await self.client.send_message(channel, reply_message)
+
+        return "Report reply sent!"
+
 
 async def report(client, channel, message):
     # checks if the message is a PM and not from a bot account
     if message.server is None and not message.author.bot:
         # checks if user is in server
         if message.author not in channel.server.members:
-            await client.send_message(message.author, success_message)
+            await client.send_message(message.author, non_member)
             return True
 
         #returns help message if requested
@@ -25,11 +61,15 @@ async def report(client, channel, message):
             await client.send_message(message.author, help_message)
             return True
 
-        #construct and send embed
+        #generate username and store the reverse mapping locally
         name = get_uname(message.author.id)
+        global report_authors
+        report_authors[name.lower()] = message.author.id
+
+        #construct and send embed
         colour = get_ucolour(message.author.id)
         embed = Embed(description=message.content, colour=colour, timestamp=message.timestamp)
-        embed.set_author(name=get_uname(message.author.id))
+        embed.set_author(name=name)
 
         attached_image = False
         for a in message.attachments:
