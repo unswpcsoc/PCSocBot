@@ -14,7 +14,7 @@ class Emoji(Command):
     async def eval(self):
         emoji_list = self.server.emojis
         if not emoji_list:
-            return "Emoji list is empty :("
+            raise CommandFailure("Emoji list is empty!")
         return str(random.choice(emoji_list))
 
 
@@ -30,7 +30,7 @@ class Count(Emoji):
             raise CommandFailure('Emoji list is empty!')
 
         # print list of emojis
-        out = '**Emoji use count:**\n'
+        out = bold("Emoji use count:") + '\n'
         for e, c in emoji_dict.items():
             tmp = e + ": " + str(c)
             if len(out+tmp) > CHAR_LIMIT:
