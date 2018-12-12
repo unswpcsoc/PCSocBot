@@ -1,3 +1,4 @@
+from configstartup import config
 from commands.base import *
 from commands.help import *
 from commands.pingpong import *
