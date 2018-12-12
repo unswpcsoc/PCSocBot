@@ -8,7 +8,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from discord import Game, Embed, Colour
-import asyncio, datetime, isodate, youtube_dl, os, random, configparser
+import asyncio, datetime, isodate, youtube_dl, os, random
+from configstartup import config
 
 # Source: https://github.com/youtube/api-samples/blob/master/python/search.py
 # Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
@@ -17,8 +18,6 @@ import asyncio, datetime, isodate, youtube_dl, os, random, configparser
 # Please ensure that you have enabled the YouTube Data API for your project.
 
 # Make sure you set your environment variable
-config = configparser.ConfigParser()
-config.read('config/config.ini')
 DEVELOPER_KEY = config['KEYS'].get('YouTube')
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
