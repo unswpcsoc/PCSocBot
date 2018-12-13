@@ -1,3 +1,4 @@
+import asyncio
 from collections import defaultdict
 import datetime
 import json
@@ -63,6 +64,7 @@ class Remove(Birthday):
         return "Your birthday has been removed."
 
 
+
 def get_birthdays(bday_file):
     """
     Gets JSON object of all birthdays
@@ -99,3 +101,22 @@ def find_user(birthdays, user):
             return date
 
     return None
+
+
+async def update_birthday():
+    """
+    Update birthdays at the beginning of the day (00:00).
+    """
+    prev = datetime.datetime.today()
+    while True:
+        await asyncio.sleep(5)
+        new = datetime.datetime.today()
+        if new.day != prev.day:
+            # It's a new day - remove all previous roles, add new roles
+            all_birthdays = get_birthdays(BIRTHDAY_FILE)
+            dm_yesterday = prev.strftime("%d/%m")
+            dm_today = new.strftime("%d/%m")
+            for old_birthday in all_birthdays[dm_yesterday]:
+                # get member, remove role, etc
+
+        prev = new
