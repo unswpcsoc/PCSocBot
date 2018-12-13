@@ -1,27 +1,17 @@
 #!/usr/bin/python3
 
-<<<<<<< HEAD
 import asyncio
-=======
-#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-#from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
-from commands.twitch import twitch, TWITCH_CHANNEL
-
->>>>>>> upstream/master
 import json
 import os
 import sys
 
 import discord
 
+from configstartup import config
 import commands
-<<<<<<< HEAD
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
-=======
-from configstartup import config
->>>>>>> upstream/master
 
 client = discord.Client()
 high_noon_channel = None
