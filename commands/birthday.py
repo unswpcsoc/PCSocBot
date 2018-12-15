@@ -92,7 +92,6 @@ def find_user(birthdays, user):
     Returns the day_month string if their birthday has been stored.
     Returns None if they haven't inputted their birthday.
     """
-    # use for ... checking if they've already added and for removing
     for date, users in birthdays.items():
         if user in users:
             return date
