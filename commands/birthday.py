@@ -2,13 +2,16 @@ import asyncio
 from collections import defaultdict
 import datetime
 import json
-import re
+
+from discord.utils import find
 
 from commands.base import Command
 from helpers import CommandFailure
 
+
 BIRTHDAY_FILE = "files/birthdays.json"
-BIRTHDAY_ROLE_NAME = "Birthday!"
+BDAY_ROLE_NAME = "Birthday!"
+
 
 class Birthday(Command):
     desc = "This command can be used to add or remove your birthday. When it is " \
@@ -61,7 +64,6 @@ class Remove(Birthday):
         return "Your birthday has been removed."
 
 
-
 def get_birthdays(bday_file):
     """
     Gets JSON object of all birthdays
@@ -111,21 +113,21 @@ async def update_birthday(client):
             # It's a new day - remove all previous roles, add new roles
             all_birthdays = get_birthdays(BIRTHDAY_FILE)
             dm_today = new.strftime("%d/%m")
-            
+
             # Get all members
             server = list(client.servers)[0]
             members = server.members
-            birthday_role = next(x for x in server.roles if x.name == BIRTHDAY_ROLE_NAME)
+            bday_role = find(lambda r: r.name == BDAY_ROLE_NAME, server.roles)
 
             # Remove everyone with the Birthday role from yesterday
             for member in members:
-                if any(birthday_role == role for role in member.roles):
-                    await client.remove_roles(member, birthday_role)
+                if any(bday_role == role for role in member.roles):
+                    await client.remove_roles(member, bday_role)
 
             # Happy Birthday!
             for birthday_member in all_birthdays[dm_today]:
                 member = server.get_member(birthday_member)
                 if member is not None:
-                    await client.add_roles(member, birthday_role)
+                    await client.add_roles(member, bday_role)
 
         prev = new
