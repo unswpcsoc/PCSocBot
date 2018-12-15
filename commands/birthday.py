@@ -8,7 +8,7 @@ from commands.base import Command
 from helpers import CommandFailure
 
 BIRTHDAY_FILE = "files/birthdays.json"
-
+BIRTHDAY_ROLE_NAME = "Birthday!"
 
 class Birthday(Command):
     desc = "This command can be used to add or remove your birthday. When it is " \
@@ -38,9 +38,6 @@ class Add(Birthday):
 
         with open(BIRTHDAY_FILE, "w") as birthdays:
             json.dump(all_birthdays, birthdays)
-
-        # TODO: Check if that date is today and if so, get the role?
-        # Could be spammy
 
         return "Your birthday has been added!"
 
@@ -103,7 +100,7 @@ def find_user(birthdays, user):
     return None
 
 
-async def update_birthday():
+async def update_birthday(client):
     """
     Update birthdays at the beginning of the day (00:00).
     """
@@ -114,9 +111,22 @@ async def update_birthday():
         if new.day != prev.day:
             # It's a new day - remove all previous roles, add new roles
             all_birthdays = get_birthdays(BIRTHDAY_FILE)
-            dm_yesterday = prev.strftime("%d/%m")
             dm_today = new.strftime("%d/%m")
-            for old_birthday in all_birthdays[dm_yesterday]:
-                # get member, remove role, etc
+            
+            # Get all members
+            server = list(client.servers)[0]
+            members = server.members
+            birthday_role = next(x for x in server.roles if x.name == BIRTHDAY_ROLE_NAME)
+
+            # Remove everyone with the Birthday role from yesterday
+            for member in members:
+                if any(birthday_role == role for role in member.roles):
+                    await client.remove_roles(member, birthday_role)
+
+            # Happy Birthday!
+            for birthday_member in all_birthdays[dm_today]:
+                member = server.get_member(birthday_member)
+                if member is not None:
+                    await client.add_roles(member, birthday_role)
 
         prev = new

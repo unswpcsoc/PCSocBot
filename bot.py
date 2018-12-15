@@ -46,7 +46,8 @@ async def on_ready():
     await client.change_presence(game=discord.Game(name=presence))
 
     # Birthday checking!
-    asyncio.ensure_future(update_birthday())
+    #print(client.servers[0])
+    asyncio.ensure_future(update_birthday(client))
 
     for channel in client.get_all_channels():
 
