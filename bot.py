@@ -1,16 +1,16 @@
 #!/usr/bin/env/python3
 
+import commands
+#from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
+#from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
+from commands.twitch import twitch, TWITCH_CHANNEL
+from configstartup import config
+
 import asyncio
+import json
 import os
 import sys
-
 import discord
-
-import commands
-# from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-# TODO Fix leaderboard
-# from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
-from commands.twitch import twitch, TWITCH_CHANNEL
 
 client = discord.Client()
 high_noon_channel = None
@@ -45,11 +45,10 @@ async def on_ready():
     for channel in client.get_all_channels():
 
         # if channel.name == HIGH_NOON_CHANNEL:
-        # await high_noon(client, channel)
+            # await high_noon(client, channel)
 
-        # TODO Fix leaderboard
         # if channel.name == LEADERBOARD_CHANNEL:
-        # asyncio.ensure_future(leaderboard(client, channel))
+            #asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.name == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
@@ -62,13 +61,15 @@ async def on_message(message):
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
-                output = await cls(client, message).init(*args)
-                if isinstance(output, discord.Embed):
-                    await client.send_message(message.channel, embed=output)
-                elif output is not None:
-                    await client.send_message(message.channel, output)
+                command = cls.base_command
+                if config['COMMANDS'].getboolean(command.name):
+                    # Command is enabled
+                    output = await cls(client, message).init(*args)
+                    if isinstance(output, discord.Embed):
+                        await client.send_message(message.channel, embed=output)
+                    elif output is not None:
+                        await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
         await client.send_message(message.channel, err)
 
-
-client.run(os.environ['TOKEN'])
+client.run(config['KEYS'].get('DiscordToken'))
