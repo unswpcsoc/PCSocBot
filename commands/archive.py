@@ -10,7 +10,6 @@ HISTORY_LIMIT = 500
 SCROLL_UTF = "\U0001F4DC"
 HOTLINK_PREFIX = "https://discordapp.com/channels/"
 ARCHIVE_CHANNEL = "463602892717162497"
-AVATAR_FORMAT = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=128"
 IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
 class Archive(Command):
@@ -107,7 +106,7 @@ class Entry():
                      colour=self.author.colour,
                      timestamp=self.timestamp)
         embed.set_author(name=nick(self.author),
-                         icon_url=AVATAR_FORMAT.format(self.author))
+                         icon_url=self.author.avatar_url)
         embed.set_footer(text=title)
         attached_image = False
         for a in self.attachments:
