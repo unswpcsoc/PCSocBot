@@ -42,7 +42,7 @@ class Add(Birthday):
         with open(BIRTHDAY_FILE, "w") as birthdays:
             json.dump(all_birthdays, birthdays)
 
-        return "Your birthday has been added!"
+        return f"{dt_birthday:%-d} {dt_birthday:%B} has been added as your birthday!"
 
 
 class Remove(Birthday):
