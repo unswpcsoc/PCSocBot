@@ -107,7 +107,7 @@ async def update_birthday(client):
     """
     prev = datetime.datetime.today()
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(360)
         new = datetime.datetime.today()
         if new.day != prev.day:
             # It's a new day - remove all previous roles, add new roles
