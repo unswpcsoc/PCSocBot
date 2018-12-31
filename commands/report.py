@@ -103,7 +103,7 @@ class Unblock(Report):
             CommandFailure("Blocked list does not exist!")
 
         if userid not in blocked:
-            raise CommandFailure(nickname + "is not blocked!")
+            raise CommandFailure(userid + "is not blocked!")
         
         blocked.pop(userid)
 
