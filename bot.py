@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/env/bin/python3
 
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
@@ -17,7 +17,7 @@ from configstartup import config
 client = discord.Client()
 high_noon_channel = None
 
-DEFAULT_PRESENCE = "!helpme"
+DEFAULT_PRESENCE = "!helpmdfkdjfks"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
 The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
 
