@@ -2,15 +2,18 @@ from commands.base import Command
 from helpers import *
 from discord import Embed
 from utils.username_generator import *
+from datetime import datetime, timedelta
+import dateutil.parser
+import json
 import requests
 
 REPORT_CHANNEL = 'report'
+BLOCK_FILE = "files/report_blocked.json"
 IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
-non_member = "You are not a member of the PCSoc Discord 🙁"
 help_message = 'Any private message sent to the bot will be forwarded anonymously to a mod only text channel on the UNSW PCSoc Discord Server'
 success_message = "Thank you for your message, it has been forwarded anonymously to the PCSoc Moderation Team 🙂"
-report_message = '❗ @ everyone new mod report ❗'
+report_message = '❕ @ everyone new mod report ❕'
 
 report_authors = dict()
 
@@ -39,7 +42,7 @@ class Reply(Report):
                 channel = member
                 break
         if channel is None:
-            CommandFailure("Member is no longer in the server!")
+            raise CommandFailure("Member is no longer in the server!")
 
         reply_message = "A mod has replied: " + message
 
@@ -48,13 +51,94 @@ class Reply(Report):
         return "Report reply sent!"
 
 
+class Block(Report):
+    desc = "Blocks a specified user from using the report feature."
+    roles_required = ["mod"]
+    async def eval(self, nickname, days=7):
+        if not nickname.isalpha():
+            raise CommandFailure("Nickname is invalid!")
+
+        report_author = report_authors.get(nickname.lower())
+        if report_author is None:
+            raise CommandFailure("Nickname does not exist!")
+
+        # Open the JSON file or create a new dict to load
+        try:
+            with open(BLOCK_FILE, 'r') as old:
+                blocked = json.load(old)
+        except FileNotFoundError:
+            blocked = {}
+
+        unban_time = datetime.now() + timedelta(days)
+        blocked[report_author] = unban_time.isoformat()
+
+        channel = None
+        for member in self.server.members:
+            if report_author == member.id:
+                channel = member
+                break
+        if channel is None:
+            raise CommandFailure("Member is no longer in the server!")
+
+        with open(BLOCK_FILE, 'w') as new:
+            json.dump(blocked, new)
+
+        reply_message = "Due to misuse, you have been blocked from using the PCSoc anonymous Mod report feature until " + unban_time.strftime("%c")
+
+        await self.client.send_message(channel, reply_message)
+
+        return nickname + " has been blocked from making mod reports!"
+
+
+class Unblock(Report):
+    desc = "Manually removes a specified user from the block list by User ID."
+    roles_required = ["mod"]
+    async def eval(self, userid):
+
+        # Open the JSON file or create a new dict to load
+        try:
+            with open(BLOCK_FILE, 'r') as old:
+                blocked = json.load(old)
+        except FileNotFoundError:
+            CommandFailure("Blocked list does not exist!")
+
+        if userid not in blocked:
+            raise CommandFailure(nickname + "is not blocked!")
+        
+        blocked.pop(userid)
+
+        with open(BLOCK_FILE, 'w') as new:
+            json.dump(blocked, new)
+
+        return "User with ID " + userid + " has been removed from the blocked users list!"
+
+
 async def report(client, channel, message):
+
     # checks if the message is a PM and not from a bot account
     if message.server is None and not message.author.bot:
+
+        # Open the JSON file
+        try:
+            with open(BLOCK_FILE, 'r') as old:
+                blocked = json.load(old)
+        except FileNotFoundError:
+            blocked = {}
+
         # checks if user is in server
         if message.author not in channel.server.members:
-            await client.send_message(message.author, non_member)
             return True
+
+        # checks if user is blocked
+        if message.author.id in blocked:
+            #unbans the user if 7 days has elapsed
+            unban_time = dateutil.parser.parse(blocked[message.author.id])
+            if  unban_time < datetime.now():
+                blocked.pop(message.author.id)
+                with open(BLOCK_FILE, 'w') as new:
+                    json.dump(blocked, new)
+            else:
+                return True
 
         #returns help message if requested
         if message.content.startswith('!help'):
