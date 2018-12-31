@@ -12,7 +12,7 @@ from utils.embed_table import EmbedTable
 from discord import Embed
 from configstartup import config
 
-TWITCH_CHANNEL = 'yule-log'
+TWITCH_CHANNEL = 'stream'
 TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
 
