@@ -3,6 +3,7 @@
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
+from commands.birthday import update_birthday
 
 import json
 import os
@@ -20,7 +21,6 @@ high_noon_channel = None
 DEFAULT_PRESENCE = "!helpme"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
 The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
-
 
 @client.event
 async def on_ready():
@@ -44,6 +44,10 @@ async def on_ready():
     print('------')
 
     await client.change_presence(game=discord.Game(name=presence))
+
+    # Birthday checking!
+    asyncio.ensure_future(update_birthday(client))
+
     for channel in client.get_all_channels():
 
         # if channel.name == HIGH_NOON_CHANNEL:
