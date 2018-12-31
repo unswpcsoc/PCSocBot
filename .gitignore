@@ -109,3 +109,6 @@ venv.bak/
 # vim swap files
 *.*~
 *.*.*~
+
+# Configuration files
+config/config.ini

@@ -1,17 +1,21 @@
 #!/usr/bin/python3
 
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
-from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
+#from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
 from commands.report import report, REPORT_CHANNEL
 from commands.emoji import emojistats
+from commands.birthday import update_birthday
 
-import json, os, sys
+import json
+import os
+import sys
 
 import discord
 import asyncio
 
 import commands
+from configstartup import config
 
 client = discord.Client()
 high_noon_channel = None
@@ -36,7 +40,7 @@ async def on_ready():
         discord.opus.load_opus()
 
     if discord.opus.is_loaded():
-        print("Opus Loaded") 
+        print("Opus Loaded")
     else:
         print("Opus not Loaded!")
 
@@ -45,13 +49,17 @@ async def on_ready():
     global report_channel
 
     await client.change_presence(game=discord.Game(name=presence))
+
+    # Birthday checking!
+    asyncio.ensure_future(update_birthday(client))
+
     for channel in client.get_all_channels():
 
-        #if channel.name == HIGH_NOON_CHANNEL:
-            #await high_noon(client, channel)
+        # if channel.name == HIGH_NOON_CHANNEL:
+            # await high_noon(client, channel)
 
         # if channel.name == LEADERBOARD_CHANNEL:
-        #     asyncio.ensure_future(leaderboard(client, channel))
+            #asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.name == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
@@ -66,17 +74,20 @@ async def on_message(message):
             return
 
         await emojistats(message)
-            
-        if message.content.startswith(commands.PREFIX):
+
+        if message.content.startswith(commands.PREFIX) and message.author != client.user:
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
-                output = await cls(client, message).init(*args)
-                if isinstance(output, discord.Embed):
-                    await client.send_message(message.channel, embed=output)
-                elif output is not None:
-                    await client.send_message(message.channel, output)
+                command = cls.base_command
+                if config['COMMANDS'].getboolean(command.name):
+                    # Command is enabled
+                    output = await cls(client, message).init(*args)
+                    if isinstance(output, discord.Embed):
+                        await client.send_message(message.channel, embed=output)
+                    elif output is not None:
+                        await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
         await client.send_message(message.channel, err)
 
-client.run(os.environ['TOKEN'])
+client.run(config['KEYS'].get('DiscordToken'))
