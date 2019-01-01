@@ -35,7 +35,7 @@ class Add(Auto):
     def eval(self, index=-1):
         list_url = State.instance.getSong(index)['webpage_url']
         # Expensive call, use mp
-        mp_call(auto_info, list_url, self.message.author, True)
+        mp_call(auto_info, list_url, self.message.author)
 
 class Reset(Auto):
     desc = "Resets the http session for autoplay i.e. cleans what Youtube has \
@@ -266,7 +266,7 @@ async def music(voice, client, channel):
             # MUSIC
             # Poll multiprocessing queue
             song = State.instance.qGet()
-            if song: 
+            if song is not None: 
                 out = State.instance.addSong(song)
                 await State.instance.message(client, out)
                 State.instance.freeLock()
