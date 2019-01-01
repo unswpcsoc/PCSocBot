@@ -13,7 +13,7 @@ IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
 help_message = 'Any private message sent to the bot will be forwarded anonymously to a mod only text channel on the UNSW PCSoc Discord Server'
 success_message = "Thank you for your message, it has been forwarded anonymously to the PCSoc Moderation Team 🙂"
-report_message = '❕ @ everyone new mod report ❕'
+report_message = '❕ @everyone new mod report ❕'
 
 report_authors = dict()
 
@@ -83,7 +83,7 @@ class Block(Report):
         with open(BLOCK_FILE, 'w') as new:
             json.dump(blocked, new)
 
-        reply_message = "Due to misuse, you have been blocked from using the PCSoc anonymous Mod report feature until " + unban_time.strftime("%c")
+        reply_message = "Due to misuse, you have been blocked from using the PCSoc anonymous Mod report feature until " + unban_time.strftime("%b %d %X")
 
         await self.client.send_message(channel, reply_message)
 
@@ -103,7 +103,7 @@ class Unblock(Report):
             CommandFailure("Blocked list does not exist!")
 
         if userid not in blocked:
-            raise CommandFailure(userid + "is not blocked!")
+            raise CommandFailure(userid + " is not blocked!")
         
         blocked.pop(userid)
 
