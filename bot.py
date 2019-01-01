@@ -3,6 +3,8 @@
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
+from commands.report import report, REPORT_CHANNEL
+from commands.emoji import emojistats
 from commands.birthday import update_birthday
 
 import json
@@ -17,6 +19,7 @@ from configstartup import config
 
 client = discord.Client()
 high_noon_channel = None
+report_channel = None
 
 DEFAULT_PRESENCE = "!helpme"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
@@ -43,6 +46,8 @@ async def on_ready():
 
     print('------')
 
+    global report_channel
+
     await client.change_presence(game=discord.Game(name=presence))
 
     # Birthday checking!
@@ -59,10 +64,17 @@ async def on_ready():
         if channel.name == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
 
+        if channel.name == REPORT_CHANNEL:
+            report_channel = channel
 
 @client.event
 async def on_message(message):
     try:
+        if report_channel and await report(client, report_channel, message):
+            return
+
+        await emojistats(message)
+
         if message.content.startswith(commands.PREFIX) and message.author != client.user:
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:

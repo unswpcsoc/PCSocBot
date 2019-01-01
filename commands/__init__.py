@@ -15,6 +15,7 @@ from commands.poll import *
 from commands.twitch import *
 from commands.mod import *
 from commands.quote import *
+from commands.emoji import *
 from commands.piglatin import *
 from commands.wish import *
 from commands.roles import *
