@@ -44,6 +44,7 @@ class Command(metaclass=Tree):
         self.message = message
         self.user = message.author.id
         self.name = message.author.name
+        self.server = message.server
         self.members = message.server.members
 
     async def init(self, *args):
