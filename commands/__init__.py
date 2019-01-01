@@ -1,3 +1,4 @@
+from configstartup import config
 from commands.base import *
 from commands.help import *
 from commands.pingpong import *
@@ -16,3 +17,5 @@ from commands.mod import *
 from commands.quote import *
 from commands.auto import *
 from commands.piglatin import *
+from commands.wish import *
+from commands.roles import *
