@@ -11,7 +11,6 @@ from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 
-VOLUME = float(30)
 player = None
 
 class Tree(type):
@@ -45,6 +44,7 @@ class Command(metaclass=Tree):
         self.message = message
         self.user = message.author.id
         self.name = message.author.name
+        self.server = message.server
         self.members = message.server.members
 
     async def init(self, *args):
@@ -76,6 +76,21 @@ class Command(metaclass=Tree):
         prefix[0] = PREFIX + prefix[0]
         return ' '.join(bold(code(item)) for item in prefix) + ' ' + \
                ' '.join(underline(code(cls.pprint.get(item, item))) for item in func_args)
+
+    @classproperty
+    def base_command(self):
+        # Gets the base command of a command
+        # For example, Duration is a subclass of the parent Poll command
+        base = self
+        parents = base.mro()
+        for parent in parents:
+            if parent == Command:
+                # Found this class itself - return previous parent
+                break
+            base = parent
+        
+        return base
+
 
     @classproperty
     def help(cls):
@@ -112,16 +127,22 @@ class Command(metaclass=Tree):
                                      " or ".join([chan(x.id) for x in cr]))
 
 
-    async def play_mp3(self, file):
+    async def play_mp3(self, file, volume, quiet=False):
         global player
 
         channel = self.message.author.voice.voice_channel
 
         if not channel:
-            raise CommandFailure("You need to join a voice channel to use this command")
+            if not quiet:
+                raise CommandFailure("You need to join a voice channel to use this command")
+            else:
+                return
 
         if player:
-            raise CommandFailure("Already playing something!")
+            if not quiet:
+                raise CommandFailure("Already playing something!")
+            else:
+                return
 
         # Check if bot is connected already in the server
         vclients = list(self.client.voice_clients)
@@ -135,7 +156,7 @@ class Command(metaclass=Tree):
             voice = await self.client.join_voice_channel(channel)
 
         player = voice.create_ffmpeg_player('files/' + file)
-        player.volume = VOLUME/100
+        player.volume = volume/100
         player.start()
 
         duration = MP3('files/' + file).info.length

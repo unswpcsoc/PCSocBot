@@ -1,3 +1,4 @@
+from commands.base import Command
 import urllib.request
 import json
 import asyncio
@@ -8,6 +9,7 @@ MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/'
 SPOOF_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
     (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
 DATA_FILE = 'files/leaderboard.json'
+MUTE_FILE = 'files/muted.json'
 MILESTONES = [10, 25, 50]
 SLEEP_INTERVAL = 60
 
@@ -36,27 +38,38 @@ async def leaderboard(client, channel):
 
         # Compare with existing data
         alerts = []
+        muted_people = []
+        try:
+            with open(MUTE_FILE, 'r') as f:
+                muted_people = json.load(f)
+        except FileNotFoundError:
+            pass
+
         try:
             with open(DATA_FILE, 'r') as previous:
                 previous_positions = json.load(previous)
                 diff_positions = dict()
                 for user, value in new_positions.items():
                     rank = value + 1
+                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
+                            prev_ping = bold((await client.get_user_info(prev)).display_name) if prev in muted_people else at(prev)
                             if rank == 1:
                                 alerts.append("{} has just taken the #1 spot from {}.".format(
-                                    at(user), at(prev)))
+                                    user_ping, prev_ping))
                             elif rank in MILESTONES:
                                 alerts.append("{} has just entered the top {}, kicking out {}.".format(
-                                    at(user), rank, at(prev)))
+                                    user_ping, rank, prev_ping))
                             else:
-                                # TODO implement random messages
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
-                                    at(user), at(prev), rank))
+                                    user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts.append("{} has just entered the top 100.".format(at(user)))
+                        alerts.append("{} has just entered the top 100.".format(user_ping))
+
+                    alerts.append("`!shutup` to stop :ping:")
+
         except FileNotFoundError:
             pass
 
@@ -79,3 +92,21 @@ def invert(array):
     for index, value in enumerate(array):
         dictionary[value] = index
     return dictionary
+
+class Shutup(Command):
+    desc = "Toggles leaderboard notifications."
+    def eval(self):
+        muted_people = []
+        try:
+            with open(MUTE_FILE, 'r') as f:
+                muted_people = json.load(f)
+        except FileNotFoundError:
+            print(MUTE_FILE + ' not found, creating...')
+        if self.user in muted_people:
+            muted_people.remove(self.user)
+        else:
+            muted_people.append(self.user)
+        with open(MUTE_FILE, 'w') as f:
+            json.dump(muted_people, f)
+        return "We'll %s you about your leaderboard movements." % \
+            ("no longer ping" if self.user in muted_people else "resume pinging you")
