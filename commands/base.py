@@ -155,7 +155,10 @@ class Command(metaclass=Tree):
             # Not connected, join a vc
             voice = await self.client.join_voice_channel(channel)
 
-        player = voice.create_ffmpeg_player('files/' + file)
+        # Get voice event loop
+        #loop = voice.loop
+        player = voice.create_ffmpeg_player('files/' + file)#, after=lambda: \
+                #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
         player.volume = volume/100
         player.start()
 
