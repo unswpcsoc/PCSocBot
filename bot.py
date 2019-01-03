@@ -1,4 +1,4 @@
-#!/usr/bin/env/python3
+#!/usr/bin/env python3
 
 import commands
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
