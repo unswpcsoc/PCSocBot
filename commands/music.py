@@ -1,19 +1,13 @@
+from commands.base import Command
+from commands.state import *
+from helpers import *
+
+from base 
 import asyncio
 
 from discord import Game, Embed, Colour
 import asyncio, datetime, isodate, youtube_dl, os, random
 from configstartup import config
-
-# Source: https://github.com/youtube/api-samples/blob/master/python/search.py
-# Set DEVELOPER_KEY to the API key value from the APIs & auth > Registered apps
-# tab of
-#   https://cloud.google.com/console
-# Please ensure that you have enabled the YouTube Data API for your project.
-
-# Make sure you set your environment variable
-DEVELOPER_KEY = config['KEYS'].get('YouTube')
-YOUTUBE_API_SERVICE_NAME = 'youtube'
-YOUTUBE_API_VERSION = 'v3'
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="

@@ -1,8 +1,11 @@
 # State class and helpers for music.py
+from configstartup import config
 from commands.playing import CURRENT_PRESENCE
 from helpers import *
+
 import os, isodate, queue, random
 import multiprocessing as mp
+
 from discord import Game, Colour
 from requests import get, Session
 from requests.exceptions import RequestException
@@ -14,7 +17,7 @@ from bs4 import BeautifulSoup
 # Please ensure that you have enabled the YouTube Data API for your project.
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-DEVELOPER_KEY = os.environ['YT_API']
+DEVELOPER_KEY = config['KEYS'].get('YouTube')
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
@@ -367,7 +370,11 @@ def auto_info(url, author): # Expensive
     except BadHTMLError as e:
         raise CommandFailure(e.message)
     a = html.find('a', class_=SUGG_CLASS)
-    info = video_info(YT_PREFIX + a['href'], author)
+    if a is not None:
+        info = video_info(YT_PREFIX + a['href'], author)
+    else:
+        # Could not get suggestion, try again
+        State.instance.freeLock()
     State.instance.qPut(info)
 
 def check_bot_join(client, message):
