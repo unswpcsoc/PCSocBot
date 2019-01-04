@@ -2,7 +2,6 @@ from commands.base import Command
 from commands.state import *
 from helpers import *
 
-from base 
 import asyncio
 
 from discord import Game, Embed, Colour
