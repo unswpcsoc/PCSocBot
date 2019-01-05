@@ -352,6 +352,7 @@ class State:
 def mp_call(func, *args):
     # A non-blocking process is spawned 
     # Not able to pass up return values, use mp.Queue()
+    print("Spawning new process for " + str(func))
     p = mp.Process(target=func, args=args)
     p.start()
 

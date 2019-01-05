@@ -304,10 +304,9 @@ async def music(voice, client, channel):
                 out = State.instance.addSong(song)
                 await State.instance.message(client, out)
                 State.instance.freeLock()
-            # Need to softlock auto-adding from handlePop
-            if State.instance.isLocked(): 
                 was_playing = False
-                continue
+            # Need to softlock auto-adding from handlePop
+            if State.instance.isLocked(): continue
             # Handle player done
             if State.instance.isDone():
                 if State.instance.isListEmpty() and not State.instance.isAuto():
