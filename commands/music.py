@@ -10,7 +10,7 @@ from configstartup import config
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
-SLEEP_INTERVAL = 1
+SLEEP_INTERVAL = 5
 WRONG_PLIST = "https://www.youtube.com/watch?list="
 VID_PREFIX = "https://www.youtube.com/watch?v="
 YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
