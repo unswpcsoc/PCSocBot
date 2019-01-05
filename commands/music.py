@@ -15,9 +15,11 @@ WRONG_PLIST = "https://www.youtube.com/watch?list="
 VID_PREFIX = "https://www.youtube.com/watch?v="
 YDL_SITES = "https://rg3.github.io/youtube-dl/supportedsites.html"
 
+
 class M(Command):
     desc = "Music"
     channels_required = []
+
 
 class Auto(M):
     desc = "Toggles autoplay."
@@ -29,6 +31,7 @@ class Auto(M):
         out += bold(State.instance.toggleAuto())
         await State.instance.message(self.client, out)
 
+
 class Add(Auto):
     desc = "Adds the autoplay suggestion for a playlist index. Defaults \
             to the last item."
@@ -38,6 +41,7 @@ class Add(Auto):
         # Expensive call, use mp
         mp_call(auto_info, list_url, self.message.author)
 
+
 class Reset(Auto):
     desc = "Resets the http session for autoplay i.e. cleans what Youtube has \
             seen from autosuggestion requests"
@@ -45,6 +49,7 @@ class Reset(Auto):
     async def eval(self):
         out = State.instance.resetSession()
         await State.instance.message(self.client, out)
+
 
 class List(M):
     desc = "Lists the playlist."
@@ -72,10 +77,18 @@ class List(M):
 
         await State.instance.embed(self.client, embed)
 
+
 class Ls(M):
     desc = "See " + bold(code("!m") + " " + code("list")) + "."
 
     async def eval(self): return await List.eval(self)
+
+
+class Np(M):
+    desc = "See " + bold(code("!m") + " " + code("list")) + "."
+
+    async def eval(self): return await List.eval(self)
+
 
 class ListLimit(M):
     desc = "Sets playlist fetch limit. Mods only."
@@ -86,6 +99,7 @@ class ListLimit(M):
         except ValueError: raise CommandFailure("Please enter a valid integer")
         return State.instance.setLimit(limit)
 
+
 class Pause(M):
     desc = "Pauses music."
 
@@ -93,6 +107,13 @@ class Pause(M):
         out = State.instance.pause()
         await State.instance.updatePresence(self.client)
         return out
+
+
+class Add(M)
+    desc = "See " + bold(code("!m") + " " + code("play")) + "."
+
+    async def eval(self, *args): return await Play.eval(self, args)
+
 
 class Play(M):
     desc = "Plays music. Binds commands to the channel invoked. Accepts YouTube"
@@ -164,12 +185,14 @@ class Play(M):
             await music(State.instance.getVoice(), self.client,
                         self.message.channel)
 
+
 class Remove(M):
     desc = "Removes a song from the playlist. Defaults to the current song."
 
     def eval(self, index=0):
         check_bot_join(self.client, self.message)
         return State.instance.remove(index)
+
 
 class Repeat(M):
     desc = "Toggle repeat for the current song or the whole playlist. "
@@ -181,6 +204,7 @@ class Repeat(M):
         await State.instance.updatePresence(self.client)
         return bold("Repeat mode set to: %s" % out)
 
+
 class Resume(M):
     desc = "Resumes music."
 
@@ -189,15 +213,18 @@ class Resume(M):
         await State.instance.updatePresence(self.client)
         return out
 
+
 class Rm(M):
     desc = "See " + bold(code("!m") + " " + code("remove")) + "."
 
     def eval(self, pos=0): return Remove.eval(self, pos)
 
+
 class Rp(M):
     desc = "See " + bold(code("!m") + " " + code("repeat")) + "."
 
     def eval(self, mode): return Repeat.eval(self.mode, mode)
+
 
 class Shuffle(M):
     desc = "Shuffles the playlist in place."
@@ -206,10 +233,12 @@ class Shuffle(M):
         check_bot_join(self.client, self.message)
         return State.instance.shuffle()
 
+
 class Sh(M):
     desc = "See " + bold(code("!m") + " " + code("shuffle")) + "."
 
     def eval(self): return Shuffle.eval(self)
+
 
 class Skip(M):
     desc = "Skips the current song."
@@ -224,6 +253,7 @@ class Skip(M):
               (State.instance.playerDuration(), State.instance.playerTitle())
         return out
 
+
 class Stop(M):
     desc = "Stops playing but persists in voice. Also turns auto off."
 
@@ -235,6 +265,7 @@ class Stop(M):
         out = bold("Stopped Playing")
         await State.instance.message(self.client, out)
 
+
 class Volume(M):
     desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
@@ -242,11 +273,13 @@ class Volume(M):
     def eval(self, level):
         return State.instance.volume(level)
 
+
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
     roles_required = [ "mod", "exec" ]
 
     def eval(self, level): return Volume.eval(self, level)
+
 
 async def music(voice, client, channel):
     try:
