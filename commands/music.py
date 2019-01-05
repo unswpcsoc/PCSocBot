@@ -109,7 +109,7 @@ class Pause(M):
         return out
 
 
-class Add(M)
+class Add(M):
     desc = "See " + bold(code("!m") + " " + code("play")) + "."
 
     async def eval(self, *args): return await Play.eval(self, args)
