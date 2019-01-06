@@ -373,10 +373,10 @@ def auto_info(url, author): # Expensive
     a = html.find('a', class_=SUGG_CLASS)
     if a is not None:
         info = video_info(YT_PREFIX + a['href'], author)
+        State.instance.qPut(info)
     else:
         # Could not get suggestion, try again
         State.instance.freeLock()
-    State.instance.qPut(info)
 
 def check_bot_join(client, message):
     voices = [ x.server for x in list(client.voice_clients) ]
