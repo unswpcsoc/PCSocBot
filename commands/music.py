@@ -33,8 +33,8 @@ class Auto(M):
 
 
 class Add(Auto):
-    desc = "Adds the autoplay suggestion for a playlist index. Defaults \
-            to the last item."
+    desc = "Adds the autoplay suggestion for a playlist index. Defaults"+\
+           " to the last item."
 
     def eval(self, index=-1):
         list_url = State.instance.getSong(index)['webpage_url']
@@ -43,8 +43,8 @@ class Add(Auto):
 
 
 class Reset(Auto):
-    desc = "Resets the http session for autoplay i.e. cleans what Youtube has \
-            seen from autosuggestion requests"
+    desc = "Reset the http session for autoplay i.e. cleans what Youtube has"+\
+           " seen from autosuggestion requests"
 
     async def eval(self):
         out = State.instance.resetSession()
