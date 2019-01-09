@@ -2,11 +2,11 @@ from commands.base import Command
 from helpers import *
 
 
-# class Weeb(Command):
-#     desc = "Gives/removes the Weeb role."
-
-#     async def eval(self):
-#         return await assign_role(self.client, self.message, "Weeb")
+class Weeb(Command):
+    desc = "Gives/removes the Weeb role."
+    
+    async def eval(self):
+        return await assign_role(self.client, self.message, "Weeb")
 
 
 class Wiki(Command):
@@ -21,6 +21,13 @@ class Meta(Command):
 
     async def eval(self):
         return await assign_role(self.client, self.message, "Meta")
+
+
+class Bookworm(Command):
+    desc = "Gives/removes the Bookworm role."
+    
+    async def eval(self):
+        return await assign_role(self.client, self.message, "Bookworm")
 
 
 async def assign_role(client, message, role_name):

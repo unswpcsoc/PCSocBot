@@ -19,7 +19,7 @@ dependencies = {'YouTube': ['M'],
 
 if not config.read('config/config.ini'):
     raise ConfigFileNotFound(
-        "Can't find config file! Did you rename default.ini to config.ini?")
+        "Can't find config file! Did you create a file config.ini with similar structure to default.ini?")
 
 if not config['KEYS'].get('DiscordToken'):
     raise MissingToken(

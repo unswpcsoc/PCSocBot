@@ -13,7 +13,7 @@ from commands.base import Command
 from helpers import *
 from utils.embed_table import EmbedTable
 
-TWITCH_CHANNEL = 'yule-log'
+TWITCH_CHANNEL = 'stream'
 TWITCH_FILE = "files/twitch.json"
 TWITCH_COLOR = int('6441a4', 16)
 
