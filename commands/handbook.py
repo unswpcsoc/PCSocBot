@@ -5,6 +5,8 @@ from helpers import CommandFailure
 import bs4, re, requests
 
 def subject_details(code):
+    code = code.upper()
+
     page = requests.get('https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code)
 
     if page.status_code != 200:
@@ -57,7 +59,7 @@ class Handbook(Command):
             raise CommandFailure('Incorrectly formatted course code: ' + arg)
 
         course = subject_details(arg)
-        if course is not None:
+        if course is None:
             return 'Course ' + arg + ' could not be found'
 
         ret = Embed(title=course['title'], description=course['description'], url=course['link'], color=self.EMBED_COLOR)
