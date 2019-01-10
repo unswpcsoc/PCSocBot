@@ -4,6 +4,7 @@ from helpers import CommandFailure
 
 import bs4, re, requests
 
+
 def subject_details(code):
     code = code.upper()
 
@@ -49,6 +50,7 @@ def subject_details(code):
         'conditions' : course_conditions,
         'link' : 'https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code
     }
+
 
 class Handbook(Command):
     desc = "This command scrapes entries in the UNSW handbook"
