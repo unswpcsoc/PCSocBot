@@ -112,7 +112,7 @@ class Command(metaclass=Tree):
             lines = [cls.tag_markup , cls.desc]
             out = ['\n'.join(lines)]
         h = '\n\nType ' + bold(code('[<command/subcommand>]')) + 'for more info on a command'
-        if len(out[-1] + h) > 2000:
+        if len(out[-1] + h) > CHAR_LIM:
             out.append(h)
         else:
             out[-1] += h
@@ -135,7 +135,7 @@ class Command(metaclass=Tree):
     def check_channels(self):
         cr = self.channels_required
         if cr is not None and len(cr) > 0:
-            if self.message.channel not in cr and None not in cr:
+            if self.message.channel not in cr:
                 raise CommandFailure("You need to use this command in %s" % \
                                      " or ".join([chan(x.id) for x in cr]))
 
