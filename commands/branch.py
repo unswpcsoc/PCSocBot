@@ -1,13 +1,13 @@
 from commands.base import Command
 from helpers import code
 
-import subprocess
-
-GIT_BRANCH = r"git branch | grep \* | sed -rn 's/\*[ ]*(.*)/\1/p'"
+import re, subprocess
 
 
 class Branch(Command):
     desc = 'Returns what feature branch PCSocBot is currently running on.'
 
     def eval(self):
-        return "Running on " + code(subprocess.getoutput(GIT_BRANCH))
+        output = subprocess.getoutput("git branch")
+        branch = re.search('\n\* (.*?)\n', output).group(1)
+        return "Running on " + code(branch)
