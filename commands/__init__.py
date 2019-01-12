@@ -21,3 +21,4 @@ from commands.emoji import *
 from commands.piglatin import *
 from commands.wish import *
 from commands.roles import *
+from commands.handbook import *
