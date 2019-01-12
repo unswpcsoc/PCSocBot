@@ -84,7 +84,7 @@ async def on_message(message):
                     if isinstance(output, discord.Embed):
                         await client.send_message(message.channel, embed=output)
                     elif output is not None:
-                        if type(output) == list:
+                        if isinstance(output, list):
                             for msg in output:
                                 await client.send_message(message.channel, msg)
                         else:
