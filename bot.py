@@ -84,8 +84,13 @@ async def on_message(message):
                     if isinstance(output, discord.Embed):
                         await client.send_message(message.channel, embed=output)
                     elif output is not None:
-                        await client.send_message(message.channel, output)
+                        if isinstance(output, list):
+                            for msg in output:
+                                await client.send_message(message.channel, msg)
+                        else:
+                            await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
+        print(e)
         await client.send_message(message.channel, err)
 
 client.run(config['KEYS'].get('DiscordToken'))
