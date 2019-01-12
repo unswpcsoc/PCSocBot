@@ -1,6 +1,6 @@
 from commands.base import Command
 from discord import Embed
-from helpers import CommandFailure
+from helpers import CommandFailure, is_good_response
 
 import bs4, re, requests
 
@@ -10,10 +10,10 @@ def subject_details(code):
 
     page = requests.get('https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code)
 
-    if page.status_code != 200:
+    if is_good_response(page):
         page = requests.get('https://www.handbook.unsw.edu.au/postgraduate/courses/2019/' + code)
 
-        if page.status_code != 200:
+        if is_good_response(page):
             return None
 
     soup = bs4.BeautifulSoup(page.text, features='lxml')
@@ -55,10 +55,10 @@ def subject_details(code):
 class Handbook(Command):
     desc = "This command scrapes entries in the UNSW handbook"
 
-    def eval(self, arg):
+    def eval(self, course_code):
 
-        if not re.search(r'^[a-zA-Z]{4}[0-9]{4}$', arg):
-            raise CommandFailure('Incorrectly formatted course code: ' + arg)
+        if not re.search(r'^[a-zA-Z]{4}[0-9]{4}$', course_code):
+            raise CommandFailure('Incorrectly formatted course code: ' + course_code)
 
         course = subject_details(arg)
         if course is None:
