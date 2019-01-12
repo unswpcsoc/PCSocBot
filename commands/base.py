@@ -134,8 +134,7 @@ class Command(metaclass=Tree):
 
     def check_channels(self):
         cr = self.channels_required
-        if cr is not None and len(cr) > 0:
-            if self.message.channel not in cr:
+        if cr is not None and len(cr) > 0 and self.message.channel not in cr:
                 raise CommandFailure("You need to use this command in %s" % \
                                      " or ".join([chan(x.id) for x in cr]))
 
