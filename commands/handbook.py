@@ -10,10 +10,10 @@ def subject_details(code):
 
     page = requests.get('https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code)
 
-    if is_good_response(page):
+    if not is_good_response(page):
         page = requests.get('https://www.handbook.unsw.edu.au/postgraduate/courses/2019/' + code)
 
-        if is_good_response(page):
+        if not is_good_response(page):
             return None
 
     soup = bs4.BeautifulSoup(page.text, features='lxml')
@@ -23,11 +23,12 @@ def subject_details(code):
 
     course_conditions_tag = soup.find('div', id='readMoreSubjectConditions')
 
-    course_conditions = 'None'
-
+    course_conditions = ''
     if course_conditions_tag is not None:
         for s in course_conditions_tag.contents[1].contents[1].strings:
             course_conditions += s
+    else:
+        course_conditions = 'None'
 
     course_conditions = course_conditions.strip()
 
@@ -60,9 +61,9 @@ class Handbook(Command):
         if not re.search(r'^[a-zA-Z]{4}[0-9]{4}$', course_code):
             raise CommandFailure('Incorrectly formatted course code: ' + course_code)
 
-        course = subject_details(arg)
+        course = subject_details(course_code)
         if course is None:
-            return 'Course ' + arg + ' could not be found'
+            return 'Course ' + course_code + ' could not be found'
 
         ret = Embed(title=course['title'], description=course['description'], url=course['link'], color=self.EMBED_COLOR)
         ret.add_field(name='Offering Terms', value=course['offerings'])
