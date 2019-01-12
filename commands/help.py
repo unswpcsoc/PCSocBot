@@ -3,8 +3,7 @@ from helpers import *
 
 
 class Helpme(Command):
-    desc = 'This help text.'
-    pprint = dict(args='[<command/subcommand>]')
+    desc = 'This help text'
 
     @staticmethod
     def find_command(args):
@@ -24,8 +23,7 @@ class Helpme(Command):
         if fn_args:
             return " ".join(args) + " is not a command.\n" + Command.help
         else:
-            return cls.help + f'\n\nType {Helpme.tag_markup} for more info on a command'
-
+            return cls.help
 
 class H(Command):
     desc = f'See {bold(code("!helpme"))}.'

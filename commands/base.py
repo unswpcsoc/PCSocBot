@@ -10,6 +10,7 @@ from pony.orm import db_session
 from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
+CHAR_LIM = 2000
 
 player = None
 
@@ -33,7 +34,7 @@ class Command(metaclass=Tree):
     desc = 'The Computer Enthusiasts Society Discord Bot '
     desc += 'built with discord.py by Matthew Stark,\n'
     desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
-    pprint = {}
+    pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
     @classproperty
@@ -98,17 +99,28 @@ class Command(metaclass=Tree):
 
     @classproperty
     def help(cls):
+        out = []
         if cls.subcommands:
-            lines = [cls.desc, '', bold(
-                'Commands' if cls.__base__ == object else 'Subcommands')]
+            cmd = bold('Commands' if cls.__base__ == object else 'Subcommands')
+            lines = [cls.desc, '', cmd]
             if cls.__base__ != object:
                 lines = [cls.tag_markup] + lines
             for command in cls.subcommands.values():
                 lines.append(command.tag_markup)
                 lines.append(command.desc)
+                if len('\n'.join(lines)) > CHAR_LIM:
+                    out.append('\n'.join(lines[:-2]))
+                    lines = [cmd + ' continued...'] + lines[-2:]
+            out.append('\n'.join(lines))
         else:
-            lines = [cls.tag_markup, cls.desc]
-        return '\n'.join(lines)
+            lines = [cls.tag_markup , cls.desc]
+            out = ['\n'.join(lines)]
+        h = '\n\nType ' + bold(code('[<command/subcommand>]')) + 'for more info on a command'
+        if len(out[-1] + h) > CHAR_LIM:
+            out.append(h)
+        else:
+            out[-1] += h
+        return out
 
     def from_id(self, id):
         return discord.utils.get(self.members, id=str(id))
@@ -126,9 +138,8 @@ class Command(metaclass=Tree):
 
     def check_channels(self):
         cr = self.channels_required
-        if cr and len(cr) > 0:
-            if self.message.channel not in cr and None not in cr:
-                raise CommandFailure("You need to use this command in %s" %
+        if cr is not None and len(cr) > 0 and self.message.channel not in cr:
+                raise CommandFailure("You need to use this command in %s" % \
                                      " or ".join([chan(x.id) for x in cr]))
 
     async def play_mp3(self, file, volume, quiet=False):
