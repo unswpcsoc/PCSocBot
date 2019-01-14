@@ -7,12 +7,15 @@ import bs4, re, requests
 
 def subject_details(code):
     code = code.upper()
-    page = requests.get('https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code)
+    url = 'https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code
+    page = requests.get(url)
 
     if not is_good_response(page):
-        page = requests.get('https://www.handbook.unsw.edu.au/postgraduate/courses/2019/' + code)
+        url = 'https://www.handbook.unsw.edu.au/postgraduate/courses/2019/' + code
+        page = requests.get(url)
 
         if not is_good_response(page):
+            url = ''
             return None
 
     soup = bs4.BeautifulSoup(page.text, features='lxml')
@@ -41,7 +44,7 @@ def subject_details(code):
         'description' : course_desc,
         'offerings' : course_offerings,
         'conditions' : course_conditions,
-        'link' : 'https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code
+        'link' : url
     }
 
 
