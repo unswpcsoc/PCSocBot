@@ -15,7 +15,6 @@ def subject_details(code):
         page = requests.get(url)
 
         if not is_good_response(page):
-            url = ''
             return None
 
     soup = bs4.BeautifulSoup(page.text, features='lxml')
