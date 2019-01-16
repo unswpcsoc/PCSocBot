@@ -10,6 +10,7 @@ from mutagen.mp3 import MP3
 from helpers import *
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
+CHAR_LIM = 2000
 
 player = None
 
@@ -32,7 +33,7 @@ class Command(metaclass=Tree):
     desc = 'The Computer Enthusiasts Society Discord Bot '
     desc += 'built with discord.py by Matthew Stark,\n'
     desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
-    pprint = {}
+    pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
     @classproperty
@@ -94,16 +95,28 @@ class Command(metaclass=Tree):
 
     @classproperty
     def help(cls):
+        out = []
         if cls.subcommands:
-            lines = [cls.desc, '', bold('Commands' if cls.__base__ == object else 'Subcommands')]
+            cmd = bold('Commands' if cls.__base__ == object else 'Subcommands')
+            lines = [cls.desc, '', cmd]
             if cls.__base__ != object:
                 lines = [cls.tag_markup] + lines
             for command in cls.subcommands.values():
                 lines.append(command.tag_markup)
                 lines.append(command.desc)
+                if len('\n'.join(lines)) > CHAR_LIM:
+                    out.append('\n'.join(lines[:-2]))
+                    lines = [cmd + ' continued...'] + lines[-2:]
+            out.append('\n'.join(lines))
         else:
             lines = [cls.tag_markup , cls.desc]
-        return '\n'.join(lines)
+            out = ['\n'.join(lines)]
+        h = '\n\nType ' + bold(code('[<command/subcommand>]')) + 'for more info on a command'
+        if len(out[-1] + h) > CHAR_LIM:
+            out.append(h)
+        else:
+            out[-1] += h
+        return out
 
     def from_id(self, id):
         return discord.utils.get(self.members, id=str(id))
@@ -121,8 +134,7 @@ class Command(metaclass=Tree):
 
     def check_channels(self):
         cr = self.channels_required
-        if cr and len(cr) > 0:
-            if self.message.channel not in cr and None not in cr:
+        if cr is not None and len(cr) > 0 and self.message.channel not in cr:
                 raise CommandFailure("You need to use this command in %s" % \
                                      " or ".join([chan(x.id) for x in cr]))
 
@@ -155,7 +167,10 @@ class Command(metaclass=Tree):
             # Not connected, join a vc
             voice = await self.client.join_voice_channel(channel)
 
-        player = voice.create_ffmpeg_player('files/' + file)
+        # Get voice event loop
+        #loop = voice.loop
+        player = voice.create_ffmpeg_player('files/' + file)#, after=lambda: \
+                #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
         player.volume = volume/100
         player.start()
 

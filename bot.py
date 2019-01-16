@@ -1,21 +1,19 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
+import commands
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
+from configstartup import config
 from commands.report import report, REPORT_CHANNEL
 from commands.emoji import emojistats
 from commands.birthday import update_birthday
 
+import asyncio
 import json
 import os
 import sys
-
 import discord
-import asyncio
-
-import commands
-from configstartup import config
 
 client = discord.Client()
 high_noon_channel = None
@@ -86,8 +84,13 @@ async def on_message(message):
                     if isinstance(output, discord.Embed):
                         await client.send_message(message.channel, embed=output)
                     elif output is not None:
-                        await client.send_message(message.channel, output)
+                        if isinstance(output, list):
+                            for msg in output:
+                                await client.send_message(message.channel, msg)
+                        else:
+                            await client.send_message(message.channel, output)
     except discord.errors.HTTPException as e:
+        print(e)
         await client.send_message(message.channel, err)
 
 client.run(config['KEYS'].get('DiscordToken'))
