@@ -13,14 +13,22 @@ FLAGS_FILE = "files/flags.json"
 AVATAR_FORMAT = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=128"
 TRANSLATE_COLOR = int('4885ed', 16)
 
+TRANSLATE_CHANNEL = "testchannel"
+translate_channels = ['weeb-cave-2']
+
 class Translate(Command):
     desc = """Translates a marked message to another language (removes all emojis).
     React with a flag and type `!translate` to translate the message to the corresponding language.
     Optional `index` argument defines offset of message to translate in list of marked messages."""
 
     async def eval(self, index=0):
-        if int(index) < 0:
-            raise CommandFailure('Invalid index!')
+        try:
+            index = int(index)
+        except ValueError:
+            raise CommandFailure('Index is not a number!')
+
+        if index < 0:
+            raise CommandFailure('Index must not be negative!')
 
         archive = await create_list(self.client.logs_from(self.message.channel,
                                                             limit=HISTORY_LIMIT))
@@ -28,19 +36,19 @@ class Translate(Command):
         if not archive:
             raise CommandFailure('No tagged messages in the last %s found!' % HISTORY_LIMIT)
 
-        if int(index) >= len(archive):
-            raise CommandFailure('Invalid index!')
+        if index >= len(archive):
+            raise CommandFailure('Index exceeds length of archive list!')
 
-        lang_list = archive[int(index)]
+        lang_list = archive[index]
+        translator = googletrans.Translator()
         for entry in lang_list:
             #translate contents
-            translator = googletrans.Translator()
             text = removeEmojis(entry.content)
             entry.content = translator.translate(text, dest=entry.language).text
 
             channel = self.message.channel
             header = ''
-            if type(entry.flag) is str:
+            if isinstance(entry.flag, str):
                 footer = "Translation to %s requested by %s" % (entry.flag, self.name)
             else:
                 footer = "Translation requested by %s" % self.name
@@ -48,7 +56,8 @@ class Translate(Command):
 
 
 class Add(Translate):
-    desc = "Adds mapping between an emoji and a Google API language code. Mods only."
+    desc = """Adds mapping between an emoji and a Google API language code. Mods only.
+    List of language codes here: <https://ctrlq.org/code/19899-google-translate-languages>"""
     roles_required = ['mod', 'exec']
 
     def eval(self, emoji, langcode):
@@ -62,6 +71,9 @@ class Add(Translate):
                 flags = json.load(old)
         except FileNotFoundError:
             flags = {}
+
+        if emoji in flags:
+            raise CommandFailure("mapping for %s already exists, please remove it first" % emoji)
 
         flags[emoji] = langcode
 
@@ -93,7 +105,7 @@ class Remove(Translate):
         return "Mapping of %s to %s removed!" % (emoji, code(langcode))
 
 class List(Translate):
-    desc = "Lists all a emoji->langcode mappings. Mods only."
+    desc = "Lists all a emoji -> langcode mappings. Mods only."
     roles_required = ['mod', 'exec']
 
     def eval(self):
@@ -104,13 +116,13 @@ class List(Translate):
         except FileNotFoundError:
             raise CommandFailure("Emoji list is empty!")
 
-        return EmbedTable(fields=['Emoji->Code'], 
-                         table=[(emoji+'->'+code,) for emoji, code in flags.items()], 
+        return EmbedTable(fields=['Emoji -> Code'], 
+                         table=[(emoji+' -> '+code,) for emoji, code in flags.items()], 
                          colour=TRANSLATE_COLOR)
 
 
 class Entry():
-    def __init__(self, message, language, flag):
+    def __init__(self, message, language=None, flag=None):
         self.author = message.author
         self.content = message.clean_content
         self.timestamp = message.timestamp
@@ -167,3 +179,24 @@ def removeEmojis(text):
                             "]+", flags=re.UNICODE)
 
     return emoji_pattern.sub(r'', text)
+
+
+async def translate(client, channel, message):
+    if message.channel.name in translate_channels and not message.author.bot:
+        translator = googletrans.Translator()
+        body = removeEmojis(message.clean_content)
+
+        lang = translator.detect(body).lang
+        if  lang == 'ko':
+            dest = 'en'
+        elif lang == 'en':
+            dest = 'ko'
+        else:
+            return False
+
+        entry = Entry(message)
+        entry.content = translator.translate(body, dest).text
+
+        header = ''
+        footer = "Auto translated from #%s" % message.channel.name
+        await client.send_message(channel, header, embed=entry.as_embed(footer))

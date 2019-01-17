@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import commands
+from configstartup import config
 #from commands.highnoon import high_noon, HIGH_NOON_CHANNEL
 #from commands.leaderboard import leaderboard, LEADERBOARD_CHANNEL
 from commands.twitch import twitch, TWITCH_CHANNEL
-from configstartup import config
 from commands.report import report, REPORT_CHANNEL
+from commands.translate import translate, TRANSLATE_CHANNEL
 from commands.emoji import emojistats
 from commands.birthday import update_birthday
 
@@ -18,6 +19,7 @@ import discord
 client = discord.Client()
 high_noon_channel = None
 report_channel = None
+translate_channel = None
 
 DEFAULT_PRESENCE = "!helpme"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
@@ -45,6 +47,7 @@ async def on_ready():
     print('------')
 
     global report_channel
+    global translate_channel
 
     await client.change_presence(game=discord.Game(name=presence))
 
@@ -65,6 +68,9 @@ async def on_ready():
         if channel.name == REPORT_CHANNEL:
             report_channel = channel
 
+        if channel.name == TRANSLATE_CHANNEL:
+            translate_channel = channel
+
 @client.event
 async def on_message(message):
     try:
@@ -72,6 +78,9 @@ async def on_message(message):
             return
 
         await emojistats(message)
+
+        if translate_channel and await translate(client, translate_channel, message):
+            return
 
         if message.content.startswith(commands.PREFIX) and message.author != client.user:
             args = '\\n '.join(message.content[1:].splitlines()).split()
