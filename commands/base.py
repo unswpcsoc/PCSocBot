@@ -93,9 +93,8 @@ class Command(metaclass=Tree):
                 # Found this class itself - return previous parent
                 break
             base = parent
-        
-        return base
 
+        return base
 
     @classproperty
     def help(cls):
@@ -113,9 +112,10 @@ class Command(metaclass=Tree):
                     lines = [cmd + ' continued...'] + lines[-2:]
             out.append('\n'.join(lines))
         else:
-            lines = [cls.tag_markup , cls.desc]
+            lines = [cls.tag_markup, cls.desc]
             out = ['\n'.join(lines)]
-        h = '\n\nType ' + bold(code('[<command/subcommand>]')) + 'for more info on a command'
+        h = '\n\nType ' + \
+            bold(code('[<command/subcommand>]')) + 'for more info on a command'
         if len(out[-1] + h) > CHAR_LIM:
             out.append(h)
         else:
@@ -139,8 +139,8 @@ class Command(metaclass=Tree):
     def check_channels(self):
         cr = self.channels_required
         if cr is not None and len(cr) > 0 and self.message.channel not in cr:
-                raise CommandFailure("You need to use this command in %s" % \
-                                     " or ".join([chan(x.id) for x in cr]))
+            raise CommandFailure("You need to use this command in %s" %
+                                 " or ".join([chan(x.id) for x in cr]))
 
     async def play_mp3(self, file, volume, quiet=False):
         global player
@@ -173,8 +173,9 @@ class Command(metaclass=Tree):
 
         # Get voice event loop
         #loop = voice.loop
-        player = voice.create_ffmpeg_player('files/' + file)#, after=lambda: \
-                #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
+        player = voice.create_ffmpeg_player(
+            'files/' + file)  # , after=lambda: \
+        #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
         player.volume = volume/100
         player.start()
 
