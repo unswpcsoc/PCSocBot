@@ -15,7 +15,6 @@ isodate==0.6.0
 lxml==4.3.0
 multidict==4.5.1
 mutagen==1.41.1
-pkg-resources==0.0.0
 pony==0.7.6
 pyasn1==0.4.4
 pyasn1-modules==0.2.2
