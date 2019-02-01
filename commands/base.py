@@ -30,9 +30,8 @@ class Command(metaclass=Tree):
     roles_required = None
     channels_required = None
     db_required = False
-    desc = 'The Computer Enthusiasts Society Discord Bot '
-    desc += 'built with discord.py by Matthew Stark,\n'
-    desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
+    desc = 'The UNSW Computer Enthusiasts Society Discord Bot\n'
+    desc += noembed('https://github.com/unswpcsoc/PCSocBot') + '\n'
     pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
@@ -103,7 +102,7 @@ class Command(metaclass=Tree):
                 lines = [cls.tag_markup] + lines
             for command in cls.subcommands.values():
                 lines.append(command.tag_markup)
-                lines.append(command.desc)
+                lines.append(spoiler(command.desc))
                 if len('\n'.join(lines)) > CHAR_LIM:
                     out.append('\n'.join(lines[:-2]))
                     lines = [cmd + ' continued...'] + lines[-2:]
