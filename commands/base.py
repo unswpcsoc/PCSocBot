@@ -102,7 +102,7 @@ class Command(metaclass=Tree):
                 lines = [cls.tag_markup] + lines
             for command in cls.subcommands.values():
                 lines.append(command.tag_markup)
-                lines.append(spoiler(command.desc))
+                lines.append(command.desc)
                 if len('\n'.join(lines)) > CHAR_LIM:
                     out.append('\n'.join(lines[:-2]))
                     lines = [cmd + ' continued...'] + lines[-2:]
