@@ -31,7 +31,7 @@ class Command(metaclass=Tree):
     channels_required = None
     db_required = False
     desc = 'The UNSW Computer Enthusiasts Society Discord Bot\n'
-    desc += noembed('https://github.com/unswpcsoc/PCSocBot') + '\n'
+    desc += noembed('https://github.com/unswpcsoc/PCSocBot')
     pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
