@@ -271,8 +271,8 @@ class Volume(M):
     desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, level):
-        return State.instance.volume(level)
+    def eval(self, *level):
+        return State.instance.volume(*level)
 
 
 class V(M):

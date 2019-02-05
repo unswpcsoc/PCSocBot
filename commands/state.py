@@ -278,12 +278,14 @@ class State:
             except AttributeError: 
                 pass
 
-        def volume(self, lvl):
+        def volume(self, *lvl):
             if not self.hasPlayer():
                 raise CommandFailure("Nothing playing!")
 
-            if lvl is None:
+            if len(lvl) == 0:
                 return self.__volume
+
+            lvl = " ".join(lvl)
 
             try:
                 lvl = float(lvl)
