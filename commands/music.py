@@ -124,7 +124,7 @@ class Play(M):
     async def eval(self, *args):
         if len(args) == 0:
             raise CommandFailure("Invalid usage of command. Usage:\n" + \
-                                self.tag_markup)
+                                    self.tag_markup)
 
         args = " ".join(args)
 
