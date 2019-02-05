@@ -21,9 +21,13 @@ class Helpme(Command):
     def eval(self, *args):
         cls, fn_args = Helpme.find_command(args)
         if fn_args:
-            return " ".join(args) + " is not a command.\n" + Command.help
+            out = []
+            if len(args) > 0:
+                out.append(" ".join(args) + " is not a command.")
+            out.extend(Command.help)
         else:
-            return cls.help
+            out = cls.help
+        return out 
 
 class H(Command):
     desc = "See " + bold(code("!helpme")) + "."

@@ -30,9 +30,8 @@ class Command(metaclass=Tree):
     roles_required = None
     channels_required = None
     db_required = False
-    desc = 'The Computer Enthusiasts Society Discord Bot '
-    desc += 'built with discord.py by Matthew Stark,\n'
-    desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
+    desc = 'The UNSW Computer Enthusiasts Society Discord Bot\n'
+    desc += noembed('https://github.com/unswpcsoc/PCSocBot')
     pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
