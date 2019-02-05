@@ -328,10 +328,11 @@ class State:
             song = self.getNext()
             if song == None: return None
             url = song['webpage_url']
-            opts = { 'format' : 'bestaudio[ext=m4a]' }
+            opts = {'format': 'bestaudio[ext=m4a]'}
             # https://github.com/Rapptz/discord.py/issues/315
             # Make sure you have ffmpeg-3 or above
-            beforeArgs = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+            beforeArgs = "-reconnect 1 -reconnect_streamed 1 \
+                    -reconnect_delay_max 5"
             self.__player = await self.__voice.create_ytdl_player(
                                                     url, 
                                                     ytdl_options=opts, 

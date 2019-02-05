@@ -27,7 +27,7 @@ class Helpme(Command):
             out.extend(Command.help)
         else:
             out = cls.help
-        return out 
+        return out
 
 class H(Command):
     desc = "See " + bold(code("!helpme")) + "."
