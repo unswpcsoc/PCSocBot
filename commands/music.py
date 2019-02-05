@@ -122,6 +122,10 @@ class Play(M):
     desc += "Accepted site links: " + noembed(YDL_SITES)
 
     async def eval(self, *args):
+        if len(args) == 0:
+            raise CommandFailure("Invalid usage of command. Usage:\n" + \
+                    self.tag_markup)
+
         args = " ".join(args)
 
         voice, out = await State.instance.joinVoice(self.client, self.message)
