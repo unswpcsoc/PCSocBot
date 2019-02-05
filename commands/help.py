@@ -10,7 +10,10 @@ class Helpme(Command):
         cls = Command
         first_arg = 0
         for arg in args:
-            if arg in cls.subcommands:
+            if arg in cls.aliases:
+                cls = cls.aliases[arg]
+                first_arg += 1
+            elif arg in cls.subcommands:
                 cls = cls.subcommands[arg]
                 first_arg += 1
             else:

@@ -19,17 +19,22 @@ class Tree(type):
         assert len(bases) < 2  # no multiple inheritance for commands
         if bases:
             bases[0].subcommands[cls.name] = cls
+            for alias_name in cls.alias_names:
+                bases[0].aliases[alias_name] = cls
         super().__init__(name, bases, clsdict)
 
         cls.subcommands = OrderedDict()
+        cls.aliases = OrderedDict()
         if cls.db_required:
             cls.eval = db_session(cls.eval)
+
 
 
 class Command(metaclass=Tree):
     roles_required = None
     channels_required = None
     db_required = False
+    alias_names = []
     desc = 'The Computer Enthusiasts Society Discord Bot '
     desc += 'built with discord.py by Matthew Stark,\n'
     desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'

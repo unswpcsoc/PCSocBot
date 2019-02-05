@@ -2,49 +2,68 @@ from commands.base import Command
 from helpers import *
 
 
-class Weeb(Command):
+class Roles(Command):
+    role_name = ""
+    desc = "Gives/removes a role."
+    mesg = ""
+    removable = True
+
+    async def eval(self):
+        if not self.role_name:
+            return self.help
+            
+        role = self.find_role(self.message.server.roles, self.role_name)
+        if role is None:
+            raise CommandFailure("%s role does not exist!" % self.role_name)
+
+        if role in self.message.author.roles:
+            if not removable:
+                raise CommandFailure("Role cannot be removed!")
+
+            await self.client.remove_roles(self.message.author, role)
+            return self.message.author.mention + " is no longer a " + self.role_name
+
+        await self.client.add_roles(self.message.author, role)
+        if self.mesg:
+            await self.client.send_message(self.message.author, mesg)
+        return self.message.author.mention + " is now a " + self.role_name
+
+
+    def find_role(self, roles, role_name):
+        for role in roles:
+            if role_name == role.name:
+                return role
+        return None
+
+
+class Accept(Roles):
+    role_name = "Literate"
+    desc = "Gives the Literate role. Cannot be removed."
+    mesg = ""
+    removable = False
+    alias_names = ['literate']
+
+
+class Weeb(Roles):
+    role_name = "Weeb"
     desc = "Gives/removes the Weeb role."
-    
-    async def eval(self):
-        return await assign_role(self.client, self.message, "Weeb")
+    mesg = ""
+    alias_names = ['vincent']
 
 
-class Wiki(Command):
+class Wiki(Roles):
+    role_name = "Wiki Gremlin"
     desc = "Gives/removes the Wiki Gremlin role."
-    
-    async def eval(self):
-        return await assign_role(self.client, self.message, "Wiki Gremlin")
+    mesg = ""
 
 
-class Meta(Command):
+class Meta(Roles):
+    role_name = "Meta"
     desc = "Gives/removes the Meta role."
-    
-    async def eval(self):
-        return await assign_role(self.client, self.message, "Meta")
+    mesg = ""
 
 
-class Bookworm(Command):
+class Bookworm(Roles):
+    role_name = "Bookworm"
     desc = "Gives/removes the Bookworm role."
-    
-    async def eval(self):
-        return await assign_role(self.client, self.message, "Bookworm")
-
-
-async def assign_role(client, message, role_name):
-    role = find_role(message.server.roles, role_name)
-    if role is None:
-        raise CommandFailure("%s role does not exist!" % role_name)
-
-    if role in message.author.roles:
-        await client.remove_roles(message.author, role)
-        return message.author.mention + " is no longer a " + role_name
-
-    await client.add_roles(message.author, role)
-    return message.author.mention + " is now a " + role_name
-
-                
-def find_role(roles, role_name):
-    for role in roles:
-        if role_name == role.name:
-            return role
-    return None
+    mesg = ""
