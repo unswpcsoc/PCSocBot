@@ -282,6 +282,9 @@ class State:
             if not self.hasPlayer():
                 raise CommandFailure("Nothing playing!")
 
+            if lvl is None:
+                return self.__volume
+
             try:
                 lvl = float(lvl)
                 if 0 <= lvl <= 100:
