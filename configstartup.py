@@ -37,7 +37,7 @@ def disable_commands():
         if not config['KEYS'].get(key):
             blocked.extend(val)
 
-    # Disable commands specified in the conig
+    # Disable commands specified in the config
     blocked_commands = config['BLOCKED'].get('blockedCommands')
     if blocked_commands:
         blocked.extend(blocked_commands.split(','))
