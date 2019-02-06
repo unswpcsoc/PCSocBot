@@ -279,7 +279,7 @@ class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, level): return Volume.eval(self, level)
+    def eval(self, *level): return Volume.eval(self, *level)
 
 
 async def music(voice, client, channel):
