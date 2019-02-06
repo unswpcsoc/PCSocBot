@@ -83,7 +83,7 @@ class Command(metaclass=Tree):
         out = []
         if cls.disabled:
             # Don't give any help message for a disabled command
-            return 
+            return
         if cls.subcommands:
             cmd = bold('Commands' if cls.__base__ == object else 'Subcommands')
             lines = [cls.desc, '', cmd]
