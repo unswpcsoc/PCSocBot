@@ -112,7 +112,7 @@ class Pause(M):
 class Add(M):
     desc = "See " + bold(code("!m") + " " + code("play")) + "."
 
-    async def eval(self, *args): return await Play.eval(self, args)
+    async def eval(self, *args): return await Play.eval(self, *args)
 
 
 class Play(M):
@@ -122,6 +122,10 @@ class Play(M):
     desc += "Accepted site links: " + noembed(YDL_SITES)
 
     async def eval(self, *args):
+        if len(args) == 0:
+            raise CommandFailure("Invalid usage of command. Usage:\n" + \
+                                 self.tag_markup)
+
         args = " ".join(args)
 
         voice, out = await State.instance.joinVoice(self.client, self.message)
@@ -156,17 +160,14 @@ class Play(M):
 
             else:
                 try: # Not a youtube link, use youtube_dl
-                    ydl_opts = {'geo_bypass_country': GEO_REGION}
-                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    with youtube_dl.YoutubeDL() as ydl:
                         info = ydl.extract_info(url, download=False)
-
                     song = {}
                     song['webpage_url'] = info['webpage_url']
                     song['duration'] = info['duration']
                     song['title'] = info['title']
                     song['thumb'] = info['thumbnail']
                     song['author'] = self.message.author
-
                     out = State.instance.addSong(song)
                     await State.instance.message(self.client, out)
                 except:
@@ -270,15 +271,15 @@ class Volume(M):
     desc = "Volume adjustment. Mods only."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, level):
-        return State.instance.volume(level)
+    def eval(self, *level):
+        return State.instance.volume(*level)
 
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
     roles_required = [ "mod", "exec" ]
 
-    def eval(self, level): return Volume.eval(self, level)
+    def eval(self, *level): return Volume.eval(self, *level)
 
 
 async def music(voice, client, channel):
@@ -306,6 +307,7 @@ async def music(voice, client, channel):
                 State.instance.freeLock()
                 was_playing = False
             # Need to softlock auto-adding from handlePop
+            # DO NOT MESS WITH THE LOCK OR IT WILL MESS WITH YOU
             if State.instance.isLocked(): continue
             # Handle player done
             if State.instance.isDone():

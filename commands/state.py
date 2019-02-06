@@ -47,7 +47,7 @@ class State:
         __repeat = "none"
         __session = None
         __voice = None
-        __volume = float(15)
+        __volume = float(7)
         running = False
 
         def __init__(self):
@@ -278,9 +278,14 @@ class State:
             except AttributeError: 
                 pass
 
-        def volume(self, lvl):
+        def volume(self, *lvl):
             if not self.hasPlayer():
                 raise CommandFailure("Nothing playing!")
+
+            if len(lvl) == 0:
+                return self.__volume
+
+            lvl = " ".join(lvl)
 
             try:
                 lvl = float(lvl)
@@ -327,9 +332,17 @@ class State:
         async def playNext(self):
             song = self.getNext()
             if song == None: return None
-
             url = song['webpage_url']
-            self.__player = await self.__voice.create_ytdl_player(url)
+            opts = {'format': 'bestaudio[ext=m4a]'}
+            # https://github.com/Rapptz/discord.py/issues/315
+            # Make sure you have ffmpeg-3 or above
+            beforeArgs = "-reconnect 1 -reconnect_streamed 1 \
+                    -reconnect_delay_max 5"
+            self.__player = await self.__voice.create_ytdl_player(
+                                                    url, 
+                                                    ytdl_options=opts, 
+                                                    before_options=beforeArgs
+                                                )
             self.__player.start()
             self.__player.volume = self.__volume/100
 
