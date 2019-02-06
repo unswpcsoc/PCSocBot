@@ -34,10 +34,8 @@ class Command(metaclass=Tree):
     roles_required = None
     channels_required = None
     db_required = False
-    alias_names = []
-    desc = 'The Computer Enthusiasts Society Discord Bot '
-    desc += 'built with discord.py by Matthew Stark,\n'
-    desc += 'extended by Vincent Chen, Harrison Scott, and David Sison.'
+    desc = 'The UNSW Computer Enthusiasts Society Discord Bot\n'
+    desc += noembed('https://github.com/unswpcsoc/PCSocBot')
     pprint = dict()
     EMBED_COLOR = int('f0cf20', 16)
 
@@ -116,7 +114,8 @@ class Command(metaclass=Tree):
         else:
             lines = [cls.tag_markup , cls.desc]
             out = ['\n'.join(lines)]
-        h = '\n\nType ' + bold(code('[<command/subcommand>]')) + 'for more info on a command'
+        h = '\n\nType ' + bold(code('!h(elpme) [<command/subcommand>]')) + \
+            'for more info on a command'
         if len(out[-1] + h) > CHAR_LIM:
             out.append(h)
         else:
