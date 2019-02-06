@@ -1,7 +1,6 @@
-from configstartup import config
+from commands.help import *
 from commands.birthday import *
 from commands.base import *
-from commands.help import *
 from commands.pingpong import *
 from commands.tags import *
 from commands.sounds import *
@@ -23,3 +22,7 @@ from commands.wish import *
 from commands.roles import *
 from commands.branch import *
 from commands.handbook import *
+
+# Disable commands based on config
+from configstartup import disable_commands
+disable_commands()

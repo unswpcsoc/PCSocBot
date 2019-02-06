@@ -77,9 +77,7 @@ async def on_message(message):
             args = '\\n '.join(message.content[1:].splitlines()).split()
             if args:
                 cls, args = commands.Helpme.find_command(args)
-                command = cls.base_command
-                blocked = config['BLOCKED'].get('blockedCommands').split(',')
-                if command.name not in blocked:
+                if not cls.disabled:
                     # Command is enabled
                     output = await cls(client, message).init(*args)
                     if isinstance(output, discord.Embed):

@@ -7,16 +7,20 @@ class Helpme(Command):
 
     @staticmethod
     def find_command(args):
+        # This function is too powerful to be a staticmethod in this class
+        # It needs to be separate from commands so that config can run it safely
         cls = Command
         first_arg = 0
-        for arg in args:
-            if arg in cls.subcommands:
-                cls = cls.subcommands[arg]
-                first_arg += 1
-            else:
-                break
-        args = args[first_arg:]
-        return cls, args
+        
+        while first_arg < len(args) and args[first_arg] in cls.subcommands:
+            # Traverse user input until we find the exact command to use.
+            # Navigate the command hierarchy to find the final subcommand
+            # eg: !tags platforms == Command --> tags --> platforms
+            cls = cls.subcommands[args[first_arg]]
+            first_arg += 1
+
+        # Return the (sub)Command and all its arguments
+        return cls, args[first_arg:]
 
     def eval(self, *args):
         cls, fn_args = Helpme.find_command(args)
