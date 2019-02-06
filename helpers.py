@@ -22,6 +22,9 @@ def underline(s):
 def code(s):
     return surround(s, '`')
 
+def spoiler(s):
+    return surround(s, '||')
+
 def codeblock(s):
     return '```\n' + s + '\n```'
 
