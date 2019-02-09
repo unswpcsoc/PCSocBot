@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 SUGG_CLASS = " content-link spf-link yt-uix-sessionlink spf-link "
 YT_PREFIX = 'https://www.youtube.com'
 
+
 class Autosuggest(Command):
     desc = "Takes a youtube link and returns the autosuggested links."
 
@@ -31,7 +32,8 @@ class Autosuggest(Command):
                     raise CommandFailure("Bad Response from %s" % url)
 
         except RequestException as e:
-            raise CommandFailure("Error during requests to %s : %s" % (url, str(e)))
+            raise CommandFailure(
+                "Error during requests to %s : %s" % (url, str(e)))
 
         # (try) Make soup
         try:
@@ -41,21 +43,21 @@ class Autosuggest(Command):
 
         # Find autosuggest results
         #results = []
-        #for a in html.find_all('a', class_=SUGG_CLASS, limit=count):
+        # for a in html.find_all('a', class_=SUGG_CLASS, limit=count):
         #entry = {'url':YT_PREFIX + a['href'], 'title':a['title']}
-        #results.append(entry)
-        
+        # results.append(entry)
+
         # Return the results
         #out = bold("Autosuggested results:\n")
-        #for result in results:
+        # for result in results:
             #old = out
             #out += result['title'] + "\nLink: " + noembed(result['url']) + "\n"
-            ## Check for 2000 char limit
-            #if len(out) >= 2000:
-                #self.send_message(self.message.channel, old)
-                #out = result['title'] + "\nLink: " + noembed(result['url']) + "\n"
+            # Check for 2000 char limit
+            # if len(out) >= 2000:
+            #self.send_message(self.message.channel, old)
+            #out = result['title'] + "\nLink: " + noembed(result['url']) + "\n"
 
         result = html.find('a', class_=SUGG_CLASS)
         out = "First Result:\n" + result['title'] + "\nLink: " + \
-                noembed(YT_PREFIX + result['href']) + "\n"
+            noembed(YT_PREFIX + result['href']) + "\n"
         return out

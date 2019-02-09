@@ -1,8 +1,9 @@
 from pony.orm import Database, sql_debug
 
 from helpers import CommandFailure
+from configstartup import config
 
-DB_FILE = 'db.sqlite3'
+DB_FILE = config['FILES'].get('DB')
 
 db = Database()
 db.bind('sqlite', DB_FILE, create_db=True)

@@ -3,15 +3,17 @@ import urllib.request
 import json
 import asyncio
 from helpers import *
+from configstartup import config
 
-LEADERBOARD_CHANNEL = 'commands'
+LEADERBOARD_CHANNEL = config['CHANNELS'].get('Leaderboard')
 MEE6_URL = 'https://mee6.xyz/api/plugins/levels/leaderboard/'
 SPOOF_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
     (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
-DATA_FILE = 'files/leaderboard.json'
-MUTE_FILE = 'files/muted.json'
+DATA_FILE = config['FILES'].get('LeaderboardData')
+MUTE_FILE = config['FILES'].get('LeaderboardMute')
 MILESTONES = [10, 25, 50]
 SLEEP_INTERVAL = 60
+
 
 async def leaderboard(client, channel):
     req = urllib.request.Request(
@@ -51,7 +53,7 @@ async def leaderboard(client, channel):
                 diff_positions = dict()
                 for user, value in new_positions.items():
                     rank = value + 1
-                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user) 
+                    user_ping = bold((await client.get_user_info(user)).display_name) if user in muted_people else at(user)
                     try:
                         if user not in previous_positions or previous_positions[user] > value:
                             prev = new_list[rank]
@@ -66,7 +68,9 @@ async def leaderboard(client, channel):
                                 alerts.append("{} has overtaken {} and is now rank #{}.".format(
                                     user_ping, prev_ping, rank))
                     except IndexError:
-                        alerts.append("{} has just entered the top 100.".format(user_ping))
+                        alerts.append(
+                            "{} has just entered the top 100.".format(
+                                user_ping))
 
                     alerts.append("`!shutup` to stop :ping:")
 
@@ -93,8 +97,10 @@ def invert(array):
         dictionary[value] = index
     return dictionary
 
+
 class Shutup(Command):
     desc = "Toggles leaderboard notifications."
+
     def eval(self):
         muted_people = []
         try:
