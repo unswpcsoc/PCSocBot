@@ -110,9 +110,11 @@ venv.bak/
 *.*~
 *.*.*~
 
-
 # pycharm
 .idea/
 
 # Configuration files
 config/config.ini
+
+# Mac OS X dependency files
+.DS_Store

@@ -6,7 +6,6 @@ import asyncio
 
 from discord import Game, Embed, Colour
 import asyncio, datetime, isodate, youtube_dl, os, random
-from configstartup import config
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
