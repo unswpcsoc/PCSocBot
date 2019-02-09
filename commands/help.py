@@ -22,6 +22,9 @@ class Helpme(Command):
 
     def eval(self, *args):
         cls, fn_args = Helpme.find_command(args)
+        if cls.disabled:
+            return ["This command is currently disabled. "
+                    "For more information, contact a moderator."]
         if fn_args:
             out = []
             if len(args) > 0:

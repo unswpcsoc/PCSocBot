@@ -5,7 +5,12 @@ from helpers import *
 import asyncio
 
 from discord import Game, Embed, Colour
-import asyncio, datetime, isodate, youtube_dl, os, random
+import asyncio
+import datetime
+import isodate
+import youtube_dl
+import os
+import random
 
 DC_TIMEOUT = 300
 PLIST_PREFIX = "https://www.youtube.com/playlist?list="
@@ -32,7 +37,7 @@ class Auto(M):
 
 
 class Add(Auto):
-    desc = "Adds the autoplay suggestion for a playlist index. Defaults"+\
+    desc = "Adds the autoplay suggestion for a playlist index. Defaults" +\
            " to the last item."
 
     def eval(self, index=-1):
@@ -42,7 +47,7 @@ class Add(Auto):
 
 
 class Reset(Auto):
-    desc = "Reset the http session for autoplay i.e. cleans what Youtube has"+\
+    desc = "Reset the http session for autoplay i.e. cleans what Youtube has" +\
            " seen from autosuggestion requests"
 
     async def eval(self):
@@ -63,15 +68,15 @@ class List(M):
         embed.set_author(name=status)
         embed.set_footer(text=footer)
         embed.set_thumbnail(url=State.instance.getSong()['thumb'])
-                        
+
         i = 0
         for song in State.instance.getPlaylist()[1:]:
             i += 1
             title = "%d. [%s] %s" % \
-            (i, duration(song['duration']), song['title'])
-            embed.add_field(name=title, 
-                            value="[Added by: %s](%s)" \
-                            % (nick(song['author']), song['webpage_url']), 
+                (i, duration(song['duration']), song['title'])
+            embed.add_field(name=title,
+                            value="[Added by: %s](%s)"
+                            % (nick(song['author']), song['webpage_url']),
                             inline=False)
 
         await State.instance.embed(self.client, embed)
@@ -91,11 +96,13 @@ class Np(M):
 
 class ListLimit(M):
     desc = "Sets playlist fetch limit. Mods only."
-    roles_required = [ "mod", "exec"]
+    roles_required = ["mod", "exec"]
 
     def eval(self, limit):
-        try: limit = int(limit)
-        except ValueError: raise CommandFailure("Please enter a valid integer")
+        try:
+            limit = int(limit)
+        except ValueError:
+            raise CommandFailure("Please enter a valid integer")
         return State.instance.setLimit(limit)
 
 
@@ -122,13 +129,14 @@ class Play(M):
 
     async def eval(self, *args):
         if len(args) == 0:
-            raise CommandFailure("Invalid usage of command. Usage:\n" + \
+            raise CommandFailure("Invalid usage of command. Usage:\n" +
                                  self.tag_markup)
 
         args = " ".join(args)
 
-        voice, out = await State.instance.joinVoice(self.client, self.message)
-        if out: await State.instance.message(self.client, out)
+        _, out = await State.instance.joinVoice(self.client, self.message)
+        if out:
+            await State.instance.message(self.client, out)
         M.channels_required.append(State.instance.getChannel())
 
         if args.startswith("http"):
@@ -158,7 +166,7 @@ class Play(M):
                 await State.instance.message(self.client, out)
 
             else:
-                try: # Not a youtube link, use youtube_dl
+                try:  # Not a youtube link, use youtube_dl
                     with youtube_dl.YoutubeDL() as ydl:
                         info = ydl.extract_info(url, download=False)
                     song = {}
@@ -174,7 +182,7 @@ class Play(M):
                     out = "Unsupported URL, see %s" % noembed(YDL_SITES)
                     raise CommandFailure(out)
 
-        else: # Not a URL, search YouTube
+        else:  # Not a URL, search YouTube
             song = youtube_search(args, self.message.author)
             out = State.instance.addSong(song)
             await State.instance.message(self.client, out)
@@ -250,7 +258,7 @@ class Skip(M):
 
         State.instance.stop()
         out = bold("Skipped:") + " [%s] %s" % \
-              (State.instance.playerDuration(), State.instance.playerTitle())
+            (State.instance.playerDuration(), State.instance.playerTitle())
         return out
 
 
@@ -268,7 +276,7 @@ class Stop(M):
 
 class Volume(M):
     desc = "Volume adjustment. Mods only."
-    roles_required = [ "mod", "exec" ]
+    roles_required = ["mod", "exec"]
 
     def eval(self, *level):
         return State.instance.volume(*level)
@@ -276,7 +284,7 @@ class Volume(M):
 
 class V(M):
     desc = "See " + bold(code("!m") + " " + code("volume")) + "."
-    roles_required = [ "mod", "exec" ]
+    roles_required = ["mod", "exec"]
 
     def eval(self, *level): return Volume.eval(self, *level)
 
@@ -300,38 +308,42 @@ async def music(voice, client, channel):
             # MUSIC
             # Poll multiprocessing queue
             song = State.instance.qGet()
-            if song is not None: 
+            if song is not None:
                 out = State.instance.addSong(song)
                 await State.instance.message(client, out)
                 State.instance.freeLock()
                 was_playing = False
             # Need to softlock auto-adding from handlePop
             # DO NOT MESS WITH THE LOCK OR IT WILL MESS WITH YOU
-            if State.instance.isLocked(): continue
+            if State.instance.isLocked():
+                continue
             # Handle player done
             if State.instance.isDone():
                 if State.instance.isListEmpty() and not State.instance.isAuto():
                     was_playing = False
                     continue
                 if not State.instance.isListEmpty():
-                    if was_playing: 
+                    if was_playing:
                         out = State.instance.handlePop(client)
-                        if State.instance.isLocked(): continue
-                        if out: await State.instance.message(client, out)
+                        if State.instance.isLocked():
+                            continue
+                        if out:
+                            await State.instance.message(client, out)
                     was_playing = True
                     out = await State.instance.playNext()
-                    if out == None: continue
+                    if out == None:
+                        continue
                     await State.instance.message(client, out)
                     await State.instance.updatePresence(client)
             # CISUM
             # AUDIENCE
             # Handle no audience
-            if len(voice.channel.voice_members) <= 1:   
-                if dc_ticker >= DC_TIMEOUT: 
+            if len(voice.channel.voice_members) <= 1:
+                if dc_ticker >= DC_TIMEOUT:
                     out = "Timeout of [%s] reached," % duration(DC_TIMEOUT)
                     out += " Disconnecting from %s," % code(voice.channel.name)
                     out += " Unbinding from %s" % \
-                            chan(State.instance.getChannel().id)
+                        chan(State.instance.getChannel().id)
                     await State.instance.message(client, out)
                     break
                 # Start counting

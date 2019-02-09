@@ -8,11 +8,13 @@ from pony.orm import db_session
 from mutagen.mp3 import MP3
 
 from helpers import *
+from configstartup import config
 
 PREFIX = '~' if os.environ.get('DEBUG') else '!'
 CHAR_LIM = 2000
 
 player = None
+
 
 class Tree(type):
     def __init__(cls, name, bases, clsdict):
@@ -71,12 +73,15 @@ class Command(metaclass=Tree):
 
     @classproperty
     def tag_markup(cls):
-        func_args = inspect.getargspec(cls.eval).args[1:] + [inspect.getargspec(cls.eval).varargs]
-        if func_args[-1] is None: func_args.pop()
+        func_args = inspect.getargspec(
+            cls.eval).args[1:] + [inspect.getargspec(cls.eval).varargs]
+        if func_args[-1] is None:
+            func_args.pop()
         prefix = cls.tag_prefix_list
         prefix[0] = PREFIX + prefix[0]
         return ' '.join(bold(code(item)) for item in prefix) + ' ' + \
-               ' '.join(underline(code(cls.pprint.get(item, item))) for item in func_args)
+               ' '.join(underline(code(cls.pprint.get(item, item)))
+                        for item in func_args)
 
     @classproperty
     def help(cls):
@@ -100,7 +105,7 @@ class Command(metaclass=Tree):
                     lines = [cmd + ' continued...'] + lines[-2:]
             out.append('\n'.join(lines))
         else:
-            lines = [cls.tag_markup , cls.desc]
+            lines = [cls.tag_markup, cls.desc]
             out = ['\n'.join(lines)]
         h = '\n\nType ' + bold(code('!h(elpme) [<command/subcommand>]')) + \
             'for more info on a command'
@@ -119,17 +124,16 @@ class Command(metaclass=Tree):
     def check_permissions(self):
         if self.roles_required:
             for role in self.message.author.roles:
-                if role.name.lower() in self.roles_required:
+                if role.id in [config['ROLES'].get(r.lower()) for r in self.roles_required]:
                     return
-            raise CommandFailure("You need to be a %s to use that command" % \
+            raise CommandFailure("You need to be a %s to use that command" %
                                  " or ".join(self.roles_required))
 
     def check_channels(self):
         cr = self.channels_required
         if cr is not None and len(cr) > 0 and self.message.channel not in cr:
-                raise CommandFailure("You need to use this command in %s" % \
-                                     " or ".join([chan(x.id) for x in cr]))
-
+            raise CommandFailure("You need to use this command in %s" %
+                                 " or ".join([chan(x.id) for x in cr]))
 
     async def play_mp3(self, file, volume, quiet=False):
         global player
@@ -138,7 +142,8 @@ class Command(metaclass=Tree):
 
         if not channel:
             if not quiet:
-                raise CommandFailure("You need to join a voice channel to use this command")
+                raise CommandFailure(
+                    "You need to join a voice channel to use this command")
             else:
                 return
 
@@ -150,7 +155,7 @@ class Command(metaclass=Tree):
 
         # Check if bot is connected already in the server
         vclients = list(self.client.voice_clients)
-        voices = [ x.server for x in vclients ]
+        voices = [x.server for x in vclients]
         try:
             # Get the voice channel
             v_index = voices.index(self.message.server)
@@ -161,8 +166,9 @@ class Command(metaclass=Tree):
 
         # Get voice event loop
         #loop = voice.loop
-        player = voice.create_ffmpeg_player('files/' + file)#, after=lambda: \
-                #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
+        player = voice.create_ffmpeg_player(
+            'files/' + file)  # , after=lambda: \
+        #asyncio.run_coroutine_threadsafe(voice_client.disconnect(), loop)
         player.volume = volume/100
         player.start()
 

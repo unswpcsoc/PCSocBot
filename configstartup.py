@@ -1,5 +1,3 @@
-from commands.base import Command
-from commands.help import Helpme
 import commands
 import configparser
 
@@ -28,11 +26,11 @@ if not config['KEYS'].get('DiscordToken'):
 
 def disable(command):
     # Disable the command
-    command_cls, _ = Helpme.find_command(command.split())
-    if command_cls == Command:
+    command_cls, _ = commands.help.Helpme.find_command(command.split())
+    if command_cls == commands.base.Command:
         # There's a command in the config file that isn't a command
         raise InvalidCommand(
-            f"Error: {comm} is not a command, thus it can't be disabled")
+            f"Error: {command} is not a command, thus it can't be disabled")
     command_cls.disabled = True
 
 
