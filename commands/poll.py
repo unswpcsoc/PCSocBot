@@ -47,14 +47,15 @@ class Poll(Command):
             # Construct embed
             # Pad final time by time it takes to react
             # which is, at worst, one second per react
+            author = self.message.author
             embed = Embed(title="Poll:",
-                          colour=self.message.author.colour,
+                          colour=author.colour,
                           timestamp=self.message.timestamp +
                           datetime.timedelta(seconds=DURATION+len(entries)))
 
             # Add author
-            embed.set_author(name=nick(self.message.author),
-                             icon_url=AVATAR_FORMAT.format(self.message.author))
+            embed.set_author(name=nick(author),
+                             icon_url=AVATAR_FORMAT.format(author))
 
             # Add entries
             i = 0
@@ -100,12 +101,12 @@ class Poll(Command):
             votes.sort(key=lambda x: (-x[0], -len(entries[x[1]])))
 
             # Reconstruct embed
-            embed = Embed(colour=self.message.author.colour,
+            embed = Embed(colour=author.colour,
                           title="Results:",
                           timestamp=self.message.timestamp)
 
-            embed.set_author(name=nick(self.message.author),
-                             icon_url=AVATAR_FORMAT.format(self.message.author))
+            embed.set_author(name=nick(author),
+                             icon_url=AVATAR_FORMAT.format(author))
 
             # Construct results
             for vote in votes:
@@ -121,7 +122,8 @@ class Poll(Command):
 
 class Duration(Poll):
     roles_required = ["mod", "exec"]
-    desc = "Changes the duration (min) of the poll before votes are counted. Mods only."
+    desc = "Changes the duration (min) of the poll before votes are" +\
+           " counted. Mods only."
 
     def eval(self, duration):
         global DURATION

@@ -47,8 +47,8 @@ class Add(Auto):
 
 
 class Reset(Auto):
-    desc = "Reset the http session for autoplay i.e. cleans what Youtube has" +\
-           " seen from autosuggestion requests"
+    desc = "Reset the http session for autoplay i.e. cleans what Youtube" +\
+           " has seen from autosuggestion requests"
 
     async def eval(self):
         out = State.instance.resetSession()

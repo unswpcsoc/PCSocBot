@@ -42,8 +42,8 @@ class List(Archive):
     desc = "Lists recent messages available for archiving. Mods only."
 
     async def eval(self):
-        archive = await create_archive(self.client.logs_from(self.message.channel,
-                                                             limit=HISTORY_LIMIT))
+        archive = await create_archive(self.client.logs_from(
+            self.message.channel, limit=HISTORY_LIMIT))
         out = [entry.as_text() for entry in archive]
         if out:
             return SCROLL_UTF + "Last %d Archiveable Messages:\n" % len(out) + "\n".join(out)

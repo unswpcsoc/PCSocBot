@@ -57,7 +57,8 @@ class List(Tags):
 
         return EmbedTable(fields=['User', 'Tag'],
                           table=tab,
-                          title="Showing tags for " + platform.title(), colour=self.EMBED_COLOR)
+                          title="Showing tags for " + platform.title(),
+                          colour=self.EMBED_COLOR)
 
 
 class View(Tags):

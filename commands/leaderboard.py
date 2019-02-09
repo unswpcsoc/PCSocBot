@@ -69,7 +69,8 @@ async def leaderboard(client, channel):
                                     user_ping, prev_ping, rank))
                     except IndexError:
                         alerts.append(
-                            "{} has just entered the top 100.".format(user_ping))
+                            "{} has just entered the top 100.".format(
+                                user_ping))
 
                     alerts.append("`!shutup` to stop :ping:")
 
