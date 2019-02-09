@@ -1,14 +1,16 @@
 from commands.base import Command
 from helpers import *
+from configstartup import config
 
 import random
 import json
 import re
 
 IDENTIFIER = "{}"
-FORMAT_FILE = "files/formats.json"
-PEOPLE_LIMIT = 100 # to minimise API spam
+FORMAT_FILE = config['FILES'].get('SomeoneFormats')
+PEOPLE_LIMIT = 100  # to minimise API spam
 CHAR_LIMIT = 2000
+
 
 class Someone(Command):
     desc = "This command is used to roll for a random member of the server"
@@ -69,6 +71,7 @@ class Someone(Command):
         # Craft output string according to format
         return "\n".join(out.format(*roll_list).split("\\n"))
 
+
 class Add(Someone):
     desc = """Adds a format template. Mods only. 
     `format_string`: String containing `people` number of {}, 
@@ -106,6 +109,7 @@ class Add(Someone):
 
         return "Your format %s for %s people has been added!" % (code(format_string), bold(str(people)))
 
+
 class Remove(Someone):
     desc = """Removes a format template. 
     Passing a number removes all formats for those people. Mods only."""
@@ -141,10 +145,9 @@ class Remove(Someone):
             else:
                 # Remove format string if in the dict
                 formats[str(people)].remove(format_string)
-                out =  "The format " + code(format_string)
+                out = "The format " + code(format_string)
                 out += " for " + bold(str(people))
                 out += " people was removed!"
-
 
         except (FileNotFoundError, KeyError, ValueError):
             return "Format %s not found!" % code(format_string)
@@ -154,6 +157,7 @@ class Remove(Someone):
             json.dump(formats, new)
 
         return out
+
 
 class List(Someone):
     desc = "Lists the formats for the given number of `people`."
@@ -176,18 +180,19 @@ class List(Someone):
                 # List all the entries for people
                 if not formats[people]:
                     raise NoFormatsError
-                out = "Formats for " + bold(people) + " `people`:\n" 
+                out = "Formats for " + bold(people) + " `people`:\n"
 
                 #out += "\n".join(formats[people])
                 for entry in formats[people]:
                     tmp = entry + "\n"
                     if len(out+tmp) > CHAR_LIMIT:
-                        # out exceeds character limit, 
+                        # out exceeds character limit,
                         # send message and truncate out
-                        await self.client.send_message(self.message.channel, 
-                                                      out)
+                        await self.client.send_message(self.message.channel,
+                                                       out)
                         out = tmp
-                    else: out += tmp
+                    else:
+                        out += tmp
 
             else:
                 # List all entries
@@ -197,27 +202,29 @@ class List(Someone):
                 # Sort by numeric value of keys
                 for k, v in sorted(formats.items(), key=lambda x: int(x[0])):
                     if v:
-                        empty = False 
-                        tmp = "Formats for " + bold(k) + " `people`:\n" 
+                        empty = False
+                        tmp = "Formats for " + bold(k) + " `people`:\n"
 
                         if len(out+tmp) > CHAR_LIMIT:
-                            # out exceeds character limit, 
+                            # out exceeds character limit,
                             # send message and truncate out
-                            await self.client.send_message(self.message.channel, 
-                                                        out)
+                            await self.client.send_message(self.message.channel,
+                                                           out)
                             out = tmp
-                        else: out += tmp
+                        else:
+                            out += tmp
 
                         #tmp += "\n".join(v) + "\n"
                         for entry in v:
                             tmp = entry + "\n"
                             if len(out+tmp) > CHAR_LIMIT:
-                                # out exceeds character limit, 
+                                # out exceeds character limit,
                                 # send message and truncate out
-                                await self.client.send_message(self.message.channel, 
-                                                            out)
+                                await self.client.send_message(self.message.channel,
+                                                               out)
                                 out = tmp
-                            else: out += tmp
+                            else:
+                                out += tmp
 
                 if empty:
                     raise NoFormatsError
@@ -227,13 +234,17 @@ class List(Someone):
 
         return out
 
+
 class Ls(Someone):
     desc = "See " + bold(code("!someone") + " " + code("list")) + "."
+
     async def eval(self, people=None):
         return await List.eval(self, people)
 
+
 class NoFormatsError(Exception):
     pass
+
 
 def count_placeholders(format_string):
     return format_string.count(IDENTIFIER) or 1 + \

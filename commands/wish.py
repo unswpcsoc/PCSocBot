@@ -1,10 +1,12 @@
 from commands.base import Command
 from helpers import *
+from configstartup import config
 
 import random
 import json
 
-WISH_FILE = "files/wish.json"
+WISH_FILE = config['FILES'].get('Wish')
+
 
 class Wish(Command):
     desc = "Wish upon a star!"

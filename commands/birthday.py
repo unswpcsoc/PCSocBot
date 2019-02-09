@@ -7,10 +7,11 @@ from discord.utils import find
 
 from commands.base import Command
 from helpers import CommandFailure
+from configstartup import config
 
 
-BIRTHDAY_FILE = "files/birthdays.json"
-BDAY_ROLE_NAME = "Birthday!"
+BIRTHDAY_FILE = config['FILES'].get('Birthday')
+BDAY_ROLE = config['ROLES'].get('Birthday')
 
 
 class Birthday(Command):
@@ -117,17 +118,16 @@ async def update_birthday(client):
             # Get all members
             server = list(client.servers)[0]
             members = server.members
-            bday_role = find(lambda r: r.name == BDAY_ROLE_NAME, server.roles)
 
             # Remove everyone with the Birthday role from yesterday
             for member in members:
-                if any(bday_role == role for role in member.roles):
-                    await client.remove_roles(member, bday_role)
+                if any(BDAY_ROLE == role for role in member.roles):
+                    await client.remove_roles(member, BDAY_ROLE)
 
             # Happy Birthday!
             for birthday_member in all_birthdays[dm_today]:
                 member = server.get_member(birthday_member)
                 if member is not None:
-                    await client.add_roles(member, bday_role)
+                    await client.add_roles(member, BDAY_ROLE)
 
         prev = new

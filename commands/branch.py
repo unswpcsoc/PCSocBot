@@ -1,7 +1,8 @@
 from commands.base import Command
 from helpers import code
 
-import re, subprocess
+import re
+import subprocess
 
 BRANCH = code(subprocess.getoutput(r'git rev-parse --abbrev-ref HEAD'))
 

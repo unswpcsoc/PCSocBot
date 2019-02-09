@@ -4,9 +4,12 @@ from discord import Embed
 from discord import Color
 import json
 import random
+from configstartup import config
 
-EMOJI_FILE = "files/emojistats.json"
+
+EMOJI_FILE = config['FILES'].get('Emoji')
 CHAR_LIMIT = 2000
+
 
 class Emoji(Command):
     desc = "Prints a random custom emoji from the server"
@@ -38,12 +41,12 @@ class Count(Emoji):
                 out = tmp
             else:
                 out += tmp
-    
+
         return out
 
 
 async def emojistats(message):
-    #doesn't count if the message author is a bot
+    # doesn't count if the message author is a bot
     if message.author.bot:
         return
 
@@ -60,4 +63,3 @@ async def emojistats(message):
 
     with open(EMOJI_FILE, 'w') as new:
         json.dump(emoji_dict, new)
-        

@@ -1,5 +1,6 @@
 from commands.base import Command
 
+
 class PigLatin(Command):
     desc = "This command is used to translate a given sentence into Pig Latin."
 

@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import json
 import requests
+from configstartup import config
 
-REPORT_CHANNEL = 'report'
-BLOCK_FILE = "files/report_blocked.json"
+REPORT_CHANNEL = config['CHANNELS'].get('Report')
+BLOCK_FILE = config['FILES'].get('ReportBlock')
 IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 
 help_message = 'Any private message sent to the bot will be forwarded anonymously to a mod only text channel on the UNSW PCSoc Discord Server'
@@ -17,6 +18,7 @@ report_message = '❕ @everyone new mod report ❕'
 
 report_authors = dict()
 
+
 class Report(Command):
     desc = "Anonymous mod reporting for the PCSoc Discord Server. PM the bot to make a report."
 
@@ -24,10 +26,11 @@ class Report(Command):
 class Reply(Report):
     desc = "Replies to a mod report."
     roles_required = ["mod"]
+
     async def eval(self, nickname, *message):
         if not nickname.isalpha():
             raise CommandFailure("Nickname is invalid!")
-        
+
         report_author = report_authors.get(nickname.lower())
         if report_author is None:
             raise CommandFailure("Nickname does not exist!")
@@ -54,6 +57,7 @@ class Reply(Report):
 class Block(Report):
     desc = "Blocks a specified user from using the report feature."
     roles_required = ["mod"]
+
     async def eval(self, nickname, days=7):
         if not nickname.isalpha():
             raise CommandFailure("Nickname is invalid!")
@@ -83,7 +87,8 @@ class Block(Report):
         with open(BLOCK_FILE, 'w') as new:
             json.dump(blocked, new)
 
-        reply_message = "Due to misuse, you have been blocked from using the PCSoc anonymous Mod report feature until " + unban_time.strftime("%b %d %X")
+        reply_message = "Due to misuse, you have been blocked from using the PCSoc anonymous Mod report feature until " + \
+            unban_time.strftime("%b %d %X")
 
         await self.client.send_message(channel, reply_message)
 
@@ -104,7 +109,7 @@ class Unblock(Report):
 
         if userid not in blocked:
             raise CommandFailure(userid + " is not blocked!")
-        
+
         blocked.pop(userid)
 
         with open(BLOCK_FILE, 'w') as new:
@@ -131,28 +136,29 @@ async def report(client, channel, message):
 
         # checks if user is blocked
         if message.author.id in blocked:
-            #unbans the user if 7 days has elapsed
+            # unbans the user if 7 days has elapsed
             unban_time = dateutil.parser.parse(blocked[message.author.id])
-            if  unban_time < datetime.now():
+            if unban_time < datetime.now():
                 blocked.pop(message.author.id)
                 with open(BLOCK_FILE, 'w') as new:
                     json.dump(blocked, new)
             else:
                 return True
 
-        #returns help message if requested
+        # returns help message if requested
         if message.content.startswith('!help'):
             await client.send_message(message.author, help_message)
             return True
 
-        #generate username and store the reverse mapping locally
+        # generate username and store the reverse mapping locally
         name = get_uname(message.author.id)
         global report_authors
         report_authors[name.lower()] = message.author.id
 
-        #construct and send embed
+        # construct and send embed
         colour = get_ucolour(message.author.id)
-        embed = Embed(description=message.content, colour=colour, timestamp=message.timestamp)
+        embed = Embed(description=message.content,
+                      colour=colour, timestamp=message.timestamp)
         embed.set_author(name=name)
 
         attached_image = False
@@ -161,7 +167,8 @@ async def report(client, channel, message):
                 embed.set_image(url=a["url"])
                 attached_image = True
             else:
-                embed.add_field(name="Attachment", value=a["url"], inline=False)
+                embed.add_field(name="Attachment",
+                                value=a["url"], inline=False)
         if not attached_image:
             if is_image(message.content):
                 embed.set_image(url=message.content)

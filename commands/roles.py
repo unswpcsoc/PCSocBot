@@ -1,5 +1,7 @@
 from commands.base import Command
 from helpers import *
+from discord.utils import get
+from configstartup import config
 
 
 class Roles(Command):
@@ -48,7 +50,6 @@ class Weeb(Roles):
     role_name = "Weeb"
     desc = "Gives/removes the Weeb role."
     mesg = ""
-    alias_names = ['vincent']
 
 
 class Wiki(Roles):
