@@ -10,11 +10,16 @@ class Helpme(Command):
         cls = Command
         first_arg = 0
 
-        while first_arg < len(args) and args[first_arg] in cls.subcommands:
+        while first_arg < len(args):
             # Traverse user input until we find the exact command to use.
             # Navigate the command hierarchy to find the final subcommand
             # eg: !tags platforms == Command --> tags --> platforms
-            cls = cls.subcommands[args[first_arg]]
+            if args[first_arg] in cls.aliases:
+                cls = cls.aliases[args[first_arg]]
+            elif args[first_arg] in cls.subcommands:
+                cls = cls.subcommands[args[first_arg]]
+            else:
+                break
             first_arg += 1
 
         # Return the (sub)Command and all its arguments

@@ -37,6 +37,7 @@ class Command(metaclass=Tree):
     channels_required = None
     db_required = False
     disabled = False
+    alias_names = []
     desc = 'The UNSW Computer Enthusiasts Society Discord Bot\n'
     desc += noembed('https://github.com/unswpcsoc/PCSocBot')
     pprint = dict()
@@ -73,7 +74,11 @@ class Command(metaclass=Tree):
     def tag_prefix_list(cls):
         if cls.__base__ == object:
             return []
-        return cls.__base__.tag_prefix_list + [cls.name]
+        if cls.alias_names:
+            prefix = '(' + cls.name + '|' + '|'.join(cls.alias_names) + ')'
+        else:
+            prefix = cls.name
+        return cls.__base__.tag_prefix_list + [prefix]
 
     @classproperty
     def tag_markup(cls):
