@@ -125,9 +125,9 @@ class Command(metaclass=Tree):
         if self.roles_required:
             role_ids = [config['ROLES'].get(r.lower())
                         for r in self.roles_required]
-            for role in self.message.author.roles:
-                if role.id in role_ids:
-                    return
+            if any(role.id in role_ids for role in self.message.author.roles):
+                # User has permissions
+                return
             raise CommandFailure("You need to be a %s to use that command" %
                                  " or ".join(self.roles_required))
 
