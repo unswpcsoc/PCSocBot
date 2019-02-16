@@ -59,10 +59,10 @@ async def on_ready():
         # if channel.name == LEADERBOARD_CHANNEL:
             #asyncio.ensure_future(leaderboard(client, channel))
 
-        if channel.name == TWITCH_CHANNEL:
+        if channel.id == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
 
-        if channel.name == REPORT_CHANNEL:
+        if channel.id == REPORT_CHANNEL:
             report_channel = channel
 
 @client.event

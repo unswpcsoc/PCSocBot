@@ -11,7 +11,7 @@ from configstartup import config
 
 
 BIRTHDAY_FILE = config['FILES'].get('Birthday')
-BDAY_ROLE = config['ROLES'].get('Birthday')
+BDAY_ROLE_ID = config['ROLES'].get('Birthday')
 
 
 class Birthday(Command):
@@ -118,16 +118,17 @@ async def update_birthday(client):
             # Get all members
             server = list(client.servers)[0]
             members = server.members
+            bday_role = find(lambda r: r.id == BDAY_ROLE_ID, server.roles)
 
             # Remove everyone with the Birthday role from yesterday
             for member in members:
-                if any(BDAY_ROLE == role for role in member.roles):
-                    await client.remove_roles(member, BDAY_ROLE)
+                if any(BDAY_ROLE_ID == role.id for role in member.roles):
+                    await client.remove_roles(member, bday_role)
 
             # Happy Birthday!
             for birthday_member in all_birthdays[dm_today]:
                 member = server.get_member(birthday_member)
                 if member is not None:
-                    await client.add_roles(member, BDAY_ROLE)
+                    await client.add_roles(member, bday_role)
 
         prev = new
