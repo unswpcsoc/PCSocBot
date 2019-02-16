@@ -128,7 +128,6 @@ class Command(metaclass=Tree):
             if any(role.id in role_ids for role in self.message.author.roles):
                 # User has permissions
                 return
-                
             raise CommandFailure("You need to be a %s to use that command" %
                                  " or ".join(self.roles_required))
 
