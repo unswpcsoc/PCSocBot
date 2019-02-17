@@ -66,8 +66,8 @@ class Remove(Birthday):
 
 
 class ModAdd(Birthday):
-    desc = "Manually grant the Birthday! role to a given user and store their birthday. " \
-        "Mod only."
+    desc = "Manually grant the Birthday! role to a given user and store " \
+        "their birthday. Mod only."
     roles_required = ['mod', 'exec']
 
     async def eval(self, user):
@@ -80,8 +80,9 @@ class ModAdd(Birthday):
         curr_date = find_user(all_birthdays, member.id)
         dm_today = datetime.datetime.today().strftime("%d/%m")
         if curr_date is not None and curr_date != dm_today:
-            raise CommandFailure(f"{bold(user)} already has a birthday set for "
-                                 f"a different date - they don't need the date today")
+            raise CommandFailure(
+                f"{bold(user)} already has a birthday set for "
+                f"a different date - they don't need the date today")
 
         if curr_date is None:
             # User doesn't have any birthday set
@@ -97,7 +98,7 @@ class ModAdd(Birthday):
 
 
 class ModPurge(Birthday):
-    desc = "Remove the Birthday! role from all users in case of bot failure."
+    desc = "Remove the Birthday! role from all users. Mod only."
     roles_required = ['mod', 'exec']
 
     async def eval(self):
