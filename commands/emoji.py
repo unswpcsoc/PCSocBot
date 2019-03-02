@@ -35,7 +35,7 @@ class Count(Emoji):
         # print sorted list of emojis
         out = bold("Emoji use count:") + '\n'
         for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[0]):
-            tmp = f"{e:<20} = {c:>5}\n"
+            tmp = f"{str(e):<20} = {str(c):>5}\n"
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
                 out = tmp
