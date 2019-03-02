@@ -32,9 +32,9 @@ class Count(Emoji):
         except FileNotFoundError:
             raise CommandFailure('Emoji list is empty!')
 
-        # print list of emojis
+        # print sorted list of emojis
         out = bold("Emoji use count:") + '\n'
-        for e, c in emoji_dict.items():
+        for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[0]):
             tmp = e + ": " + str(c)
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
