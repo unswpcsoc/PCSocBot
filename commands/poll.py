@@ -86,16 +86,17 @@ class Poll(Command):
             # Convert in-place to index from regional_a
             # unicode char -> hex rep -> int rep -> index from regional_a
             votes = []
-            for x in new.reactions:
+            for reaction in new.reactions:
                 try:
-                    votes.append((x.count-1,
-                                  int(x.emoji.encode('utf8').hex(),
+                    # Vote tuple = (votes, letter pos relative to A)
+                    votes.append((reaction.count-1,
+                                  int(reaction.emoji.encode('utf8').hex(),
                                       base=16) - REG_A_INT))
                 except AttributeError:
                     continue
 
-            # Get only the reactions within A-T
-            votes = [x for x in votes if 0 <= x[1] < 20]
+            # Get only the reactions within A-T and within the range of entries
+            votes = [x for x in votes if 0 <= x[1] < 20 and x[1] < len(entries)]
 
             # Sort by highest vote, then length of original entry
             votes.sort(key=lambda x: (-x[0], -len(entries[x[1]])))
