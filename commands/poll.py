@@ -96,7 +96,8 @@ class Poll(Command):
                     continue
 
             # Get only the reactions within A-T and within the range of entries
-            votes = [x for x in votes if 0 <= x[1] < 20 and x[1] < len(entries)]
+            votes = [x for x in votes if 0 <= x[1] < 20 
+                    and x[1] < len(entries)]
 
             # Sort by highest vote, then length of original entry
             votes.sort(key=lambda x: (-x[0], -len(entries[x[1]])))
