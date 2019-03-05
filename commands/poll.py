@@ -11,7 +11,7 @@ REG_A_INT = int(REG_A_HEX, base=16)
 
 ENTRY_SEPARATOR = ";;"
 AVATAR_FORMAT = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=128"
-DURATION = 60
+DURATION = 120
 
 
 class Poll(Command):
@@ -97,7 +97,7 @@ class Poll(Command):
 
             # Get only the reactions within A-T and within the range of entries
             votes = [x for x in votes if 0 <= x[1] < 20 
-                    and x[1] < len(entries)]
+                        and x[1] < len(entries)]
 
             # Sort by highest vote, then length of original entry
             votes.sort(key=lambda x: (-x[0], -len(entries[x[1]])))
