@@ -35,13 +35,20 @@ def subject_details(code):
         course_conditions = 'None'
 
     course_desc = ''
-    course_desc_cont = soup.find(
-        'div', id='readMoreIntro').contents[1].contents
-    if len(course_desc_cont) > 1 and course_desc_cont[1].name == 'p':
-        for s in course_desc_cont[1].strings:
-            course_desc += s
-    else:
-        course_desc = course_desc_cont[1].contents[0].string
+    # course_desc_cont = soup.find(
+    #     'div', id='readMoreIntro').contents[1].contents
+    # print(course_desc_cont)
+    # if len(course_desc_cont) > 1 and course_desc_cont[1].name == 'p':
+    #     for s in course_desc_cont[1].strings:
+    #         course_desc += s
+    # else:
+    #     print(course_desc_cont[1])
+    #     course_desc = course_desc_cont[1].contents[0].string
+
+    # Get first div
+    course_desc_cont = soup.find('div', id='readMoreIntro').find('div')
+    if course_desc_cont is not None:
+        course_desc = course_desc_cont.text
     course_desc = course_desc.strip()
     return {
         'title': course_title,
