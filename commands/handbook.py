@@ -46,7 +46,7 @@ def subject_details(code):
     #     course_desc = course_desc_cont[1].contents[0].string
 
     # Get first div
-    course_desc_cont = soup.find('div', id='readMoreIntro').find('div')
+    course_desc_cont = soup.select('#readMoreIntro').find('div')
     if course_desc_cont is not None:
         course_desc = course_desc_cont.text
     course_desc = course_desc.strip()
