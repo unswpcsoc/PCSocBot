@@ -23,7 +23,7 @@ class Emoji(Command):
 
 class Count(Emoji):
     desc = "Lists custom emojis and their use count.\n" + \
-            "Use"  + code("alpha") + " or " + code("count")
+            "Use" + code("alpha") + " or " + code("count")
 
     async def eval(self, sort="count"):
         # Parse argument
@@ -31,7 +31,7 @@ class Count(Emoji):
         if sort == "alpha":
             sort_i = 0
         elif sort != "count":
-            raise CommandFailure("Please use " + code("alpha") + " or " \
+            raise CommandFailure("Please use " + code("alpha") + " or "
                                  + code("count"))
 
         # Open the JSON file or create a new dict to load
