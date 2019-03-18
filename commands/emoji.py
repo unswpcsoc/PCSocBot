@@ -41,15 +41,23 @@ class Count(Emoji):
         except FileNotFoundError:
             raise CommandFailure('Emoji list is empty!')
 
+        # Construct embed
+        author = self.message.author
+        embed = Embed(
+                        title="Emoji Use Count:",
+                        colour=author.colour,
+                        timestamp=self.message.timestamp
+                     )
+
+
         # print sorted list of emojis based on argument
-        out = bold("Emoji use count:") + '\n'
+        out = []
         for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[sort_i]):
-            tmp = f"{str(e):<20} = {str(c):>5}\n"
-            if len(out+tmp) > CHAR_LIMIT:
-                await self.client.send_message(self.message.channel, out)
-                out = tmp
-            else:
-                out += tmp
+            out.append(f"{e} = {c}")
+
+        length = len(out)
+        embed.add_field(name="1", value="\n".join(out[:length]), inline=True)
+        embed.add_field(name="2", value="\n".join(out[length:]), inline=True)
 
         return out
 
