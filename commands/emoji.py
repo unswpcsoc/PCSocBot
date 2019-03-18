@@ -49,7 +49,6 @@ class Count(Emoji):
                         timestamp=self.message.timestamp
                      )
 
-
         # print sorted list of emojis based on argument
         out = []
         for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[sort_i]):
@@ -59,7 +58,7 @@ class Count(Emoji):
         embed.add_field(name="1", value="\n".join(out[:length]), inline=True)
         embed.add_field(name="2", value="\n".join(out[length:]), inline=True)
 
-        return out
+        return embed
 
 
 async def emojistats(message):
