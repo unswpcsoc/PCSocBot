@@ -22,9 +22,17 @@ class Emoji(Command):
 
 
 class Count(Emoji):
-    desc = "Lists custom emojis and their use count"
+    desc = "Lists custom emojis and their use count.\n" + \
+            "Use"  + code("alpha") + " or " + code("count"))
 
-    async def eval(self):
+    async def eval(self, sort="alpha"):
+        # Parse argument
+        sort_index = 0
+        if sort == "count":
+            sort_index = 1
+        elif sort != "alpha":
+            raise CommandFailure("Please use " + code("alpha") + " or " + code("count"))
+
         # Open the JSON file or create a new dict to load
         try:
             with open(EMOJI_FILE, 'r') as old:
@@ -32,9 +40,9 @@ class Count(Emoji):
         except FileNotFoundError:
             raise CommandFailure('Emoji list is empty!')
 
-        # print sorted list of emojis
+        # print sorted list of emojis based on argument
         out = bold("Emoji use count:") + '\n'
-        for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[0]):
+        for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[sort_index]):
             tmp = f"{str(e):<20} = {str(c):>5}\n"
             if len(out+tmp) > CHAR_LIMIT:
                 await self.client.send_message(self.message.channel, out)
