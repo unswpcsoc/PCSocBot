@@ -9,6 +9,8 @@ from configstartup import config
 
 EMOJI_FILE = config['FILES'].get('Emoji')
 CHAR_LIMIT = 2000
+FIELD_LIMIT = 1024
+EMOJI_LIMIT = 50 / 2
 
 
 class Emoji(Command):
@@ -51,12 +53,22 @@ class Count(Emoji):
 
         # print sorted list of emojis based on argument
         out = []
+        buf = ""
+        count = 0
         for e, c in sorted(emoji_dict.items(), key=lambda elm: elm[sort_i]):
-            out.append(f"{e} = {c}")
+            add = f"{e} = {c}\n"
+            if len(buf + add) > FIELD_LIMIT or count + 1 > EMOJI_LIMIT:
+                out.append(buf)
+                buf = ""
+                count = 0
+            buf += add
+            count += 1
+        out.append(buf)
 
-        length = len(out)
-        embed.add_field(name="1", value="\n".join(out[:length]), inline=True)
-        embed.add_field(name="2", value="\n".join(out[length:]), inline=True)
+        i = 0
+        for field in out:
+            embed.add_field(name=str(i), value=field, inline=True)
+            i += 1
 
         return embed
 
