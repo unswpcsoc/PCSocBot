@@ -15,6 +15,10 @@ class Scream(Command):
         if randrange(0, 100) == 1:
             return 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
 
+        # rare chance of AAAAAaaa, thanks tiff
+        if randrange(0, 100) == 1:
+            return 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
+
         # regular homerow mashing
         # tends to use home row + b and n
         screams = list("asdfghjklbn")
