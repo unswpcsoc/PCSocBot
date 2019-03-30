@@ -11,13 +11,15 @@ class Scream(Command):
         if randrange(0, 100) == 1:
             return 'H' * randrange(0, 5) + 'h' * randrange(1, 10)
 
-        # rare chance of waaaAAAA, thanks tiff
-        if randrange(0, 100) == 1:
+        # thanks tiff for these
+        elif randrange(0, 100) == 2:
             return 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
 
-        # rare chance of AAAAAaaa, thanks tiff
-        if randrange(0, 100) == 1:
+        elif randrange(0, 100) == 3:
             return 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
+
+        elif randrange(0, 100) == 4:
+            return 'E' * randrange(5, 15)
 
         # regular homerow mashing
         # tends to use home row + b and n
