@@ -22,6 +22,7 @@ from commands.wish import *
 from commands.roles import *
 from commands.branch import *
 from commands.handbook import *
+from commands.scream import *
 
 # Disable commands based on config
 from configstartup import disable_commands
