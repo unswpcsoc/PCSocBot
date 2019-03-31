@@ -2,23 +2,25 @@ from commands.base import Command
 
 from random import choice, randrange
 
+ODDS = 50
 
 class Scream(Command):
     desc = "fnshkdhnjksdg"
 
     def eval(self):
         # rare change of HHHhhhhh
-        if randrange(0, 100) == 1:
+        roll = randrange(0, ODDS)
+        if roll== 1:
             return 'H' * randrange(0, 5) + 'h' * randrange(1, 10)
 
         # thanks tiff for these
-        elif randrange(0, 100) == 2:
+        elif roll == 2:
             return 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
 
-        elif randrange(0, 100) == 3:
+        elif roll == 3:
             return 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
 
-        elif randrange(0, 100) == 4:
+        elif roll == 4:
             return 'E' * randrange(5, 15)
 
         # regular homerow mashing
