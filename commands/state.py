@@ -322,6 +322,13 @@ class State:
         async def embed(self, client, emb):
             await client.send_message(self.__channel, embed=emb)
 
+        async def leave(self, client):
+            await self.__voice.disconnect()
+            await self.clean(client)
+            self.running = False
+            self.cleanSession()
+            return "Left voice channel, unbinding from channel"
+
         async def message(self, client, msg):
             await client.send_message(self.__channel, msg)
 
