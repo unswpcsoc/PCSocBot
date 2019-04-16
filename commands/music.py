@@ -59,7 +59,7 @@ class Leave(M):
 
     async def eval(self):
         M.channels_required.clear()
-        out = State.instance.leave(self.client)
+        await out = State.instance.leave(self.client)
         await State.instance.message(self.client, out)
         return
 
