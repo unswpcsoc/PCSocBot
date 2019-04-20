@@ -51,4 +51,4 @@ class Scream(Command):
 
 
 def trail_caps(char):
-    return out = char * randrange(1, 10) + char.upper * randrange(5)
+    return char * randrange(1, 10) + char.upper * randrange(5)
