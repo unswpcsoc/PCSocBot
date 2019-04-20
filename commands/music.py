@@ -54,6 +54,7 @@ class Reset(Auto):
         out = State.instance.resetSession()
         await State.instance.message(self.client, out)
 
+
 class Leave(M):
     desc = "Leaves the voice channel and unbinds from channel"
 

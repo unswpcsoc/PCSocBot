@@ -2,26 +2,30 @@ from commands.base import Command
 
 from random import choice, randrange
 
-ODDS = 50
 
 class Scream(Command):
     desc = "fnshkdhnjksdg"
 
     def eval(self):
+        # roll the 50-sided dice
+        roll = randrange(0, 50)
+        out = ""
+
         # rare change of HHHhhhhh
-        roll = randrange(0, ODDS)
-        if roll== 1:
-            return 'H' * randrange(0, 5) + 'h' * randrange(1, 10)
+        if roll == 1:
+            out = 'H' * randrange(0, 5) + 'h' * randrange(1, 10)
 
         # thanks tiff for these
         elif roll == 2:
-            return 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
+            out = 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
 
         elif roll == 3:
-            return 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
+            out = 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
 
         elif roll == 4:
-            return 'E' * randrange(5, 15)
+            out = 'E' * randrange(5, 15)
+
+        return out
 
         # regular homerow mashing
         # tends to use home row + b and n
@@ -41,7 +45,7 @@ class Scream(Command):
             c = choice(screams)
             # make sure we don't repeat a char unless it's a h
             if c != 'h' and c != 'H':
-                while c == out[-1]: 
+                while c == out[-1]:
                     c = choice(screams)
             out += c
 
