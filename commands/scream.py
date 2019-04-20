@@ -8,20 +8,18 @@ class Scream(Command):
 
     def eval(self):
         # roll the 50-sided dice
-        roll = randrange(0, 50)
+        roll = randrange(50)
         out = ""
 
-        # rare change of HHHhhhhh
         if roll == 1:
+            # rare change of HHHhhhhh
             out = trail_caps('a')[::-1]
-
         # thanks tiff for these
-        # waaaaAAAAAAAAA
         elif roll == 2:
+            # waaaaAAAAAAAAA
             out = 'w' + trail_caps('a')
-
-        # AAAAAAAAAAaaaaa
         elif roll == 3:
+            # AAAAAAAAAAaaaaa
             out = trail_caps('a')[::-1]
 
         # eeeeeeeeEEEEEEE
@@ -36,7 +34,7 @@ class Scream(Command):
         screams = "asdfghjklbn"
         starts = "fjk"
 
-        if randrange(0, 2) == 1:
+        if randrange(2) == 1:
             screams = screams.upper()
             starts = starts.upper()
 
@@ -53,4 +51,4 @@ class Scream(Command):
 
 
 def trail_caps(char):
-    return out = char * randrange(1, 10) + char.upper * randrange(0, 5)
+    return out = char * randrange(1, 10) + char.upper * randrange(5)
