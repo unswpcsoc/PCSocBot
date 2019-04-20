@@ -6,7 +6,7 @@ import bs4
 import re
 import requests
 
-HANDBOOK_URL = 'https://www.handbook.unsw.edu.au/{grad}/courses/2019/{code}'
+HANDBOOK_URL = 'https://www.handbook.unsw.edu.au/{}/courses/2019/{}'
 
 
 def subject_details(code):
