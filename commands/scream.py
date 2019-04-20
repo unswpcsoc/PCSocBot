@@ -13,34 +13,34 @@ class Scream(Command):
 
         # rare change of HHHhhhhh
         if roll == 1:
-            out = 'H' * randrange(0, 5) + 'h' * randrange(1, 10)
+            out = trail_caps('a')[::-1]
 
         # thanks tiff for these
+        # waaaaAAAAAAAAA
         elif roll == 2:
-            out = 'w' + 'a' * randrange(0, 5) + 'A' * randrange(1, 10)
+            out = 'w' + trail_caps('a')
 
+        # AAAAAAAAAAaaaaa
         elif roll == 3:
-            out = 'A' * randrange(1, 10) + 'a' * randrange(0, 5)
+            out = trail_caps('a')[::-1]
 
+        # eeeeeeeeEEEEEEE
         elif roll == 4:
-            out = 'E' * randrange(5, 15)
+            out = trail_caps('e')
 
         return out
 
         # regular homerow mashing
         # tends to use home row + b and n
-        screams = list("asdfghjklbn")
         # screaming likely begins at the index/middle finger except for d
-        starts = list("fjk")
+        screams = "asdfghjklbn"
+        starts = "fjk"
 
         if randrange(0, 2) == 1:
-            screams = list(map(str.upper, screams))
-            starts = list(map(str.upper, starts))
-        else:
-            screams = list(map(str.lower, screams))
-            starts = list(map(str.lower, starts))
-        out = choice(starts)
+            screams = screams.upper()
+            starts = starts.upper()
 
+        out = choice(starts)
         for _ in range(randrange(5, 15)):
             c = choice(screams)
             # make sure we don't repeat a char unless it's a h
@@ -50,3 +50,7 @@ class Scream(Command):
             out += c
 
         return out
+
+
+def trail_caps(char):
+    return out = char * randrange(1, 10) + char.upper * randrange(0, 5)
