@@ -17,25 +17,46 @@ var (
 	prefix = "!"
 )
 
-// Router Routes a command string to a handler
+// leaf A leaf of the command router tree
+type leaf struct {
+	command *com.Command
+	leaves  map[string]*leaf
+}
+
+// Router Routes a command string to a command
 type Router struct {
-	routes map[string]com.Command
+	routes *leaf
 }
 
 // AddCommand Adds command-string mapping
-func (r *Router) AddCommand(command Command, name ...string) {
+func (r *Router) AddCommand(command com.Command, argv []string) {
 	// TODO: Tree
 	// AddCommand(PingTagPeople, ask)
 	// AddCommand(PingTagPeople, tags, ping)
 }
 
 // Route Routes to handler from string
-func (r *Router) Route(cmd string) (handlers.Handler, bool) {
-	// TODO: Tree
-	if routes == nil {
-		return nil, false
+func (r *Router) Route(argv []string) com.Command {
+	if r.routes == nil {
+		return nil
 	}
-	return routes, true
+	if len(argv) == 0 {
+		return nil
+	}
+	return doRoute(r.routes, argv[1:])
+}
+
+func doRoute(leaf *leaf, argv []string) com.Command {
+	if leaf == nil {
+		return nil
+	}
+	val, found := leaf.leaves[argv[0]]
+	if found {
+		if len(argv) == 0 {
+			return val.command
+		}
+		return doRoute(val, argv[1:])
+	}
 }
 
 // init for discordgo things
@@ -82,7 +103,7 @@ func main() {
 
 		command, found := router.Route(message)
 		if !found {
-			s.ChannelMessageSend(m.ChannelID"Error: Unknown command")
+			s.ChannelMessageSend(m.ChannelID, "Error: Unknown command")
 		}
 
 		// Call handler
