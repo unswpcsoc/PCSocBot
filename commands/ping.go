@@ -28,6 +28,6 @@ func (p *Ping) Channels() []string {
 	return nil
 }
 
-func (p *Ping) MsgHandle() (Send, error) {
-	return nil, nil
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (Send, error) {
+	return NewSimpleSend(msg.ChannelID, "Pong!"), nil
 }
