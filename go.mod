@@ -1,4 +1,4 @@
-module github.com/unswpcsoc/pcsocbot
+module github.com/unswpcsoc/PCSocBot
 
 go 1.12
 
