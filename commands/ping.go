@@ -1,12 +1,16 @@
 package commands
 
+import (
+	"github.com/bwmarrin/discordgo"
+)
+
 type Ping struct {
 	names []string
 	desc  string
 }
 
 func NewPing() *Ping {
-	return *Ping{
+	return &Ping{
 		names: []string{"ping", "ping pong"},
 		desc:  "Ping!",
 	}
@@ -28,6 +32,6 @@ func (p *Ping) Channels() []string {
 	return nil
 }
 
-func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (Send, error) {
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	return NewSimpleSend(msg.ChannelID, "Pong!"), nil
 }
