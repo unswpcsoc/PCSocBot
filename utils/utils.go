@@ -4,18 +4,22 @@ import (
 	"reflect"
 )
 
+// Italics Encloses string in italics tags
 func Italics(s string) string {
 	return "*" + s + "*"
 }
 
+// Bold Encloses string in bold tags
 func Bold(s string) string {
 	return "**" + s + "**"
 }
 
+// Under Encloses string in underline tags
 func Under(s string) string {
 	return "__" + s + "__"
 }
 
+// Spoil Encloses string in spoiler tags
 func Spoil(s string) string {
 	return "||" + s + "||"
 }
