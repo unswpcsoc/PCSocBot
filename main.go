@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	com "github.com/unswpcsoc/pcsocbot/commands"
+	com "github.com/unswpcsoc/PCSocBot/commands"
 )
 
 var (
