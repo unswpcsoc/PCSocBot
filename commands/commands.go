@@ -6,6 +6,11 @@ import (
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
+const (
+	MESSAGE_LIMIT = 2000
+	SEND_LIMIT    = 10
+)
+
 // Command The command
 type Command interface {
 	Names() []string
@@ -13,7 +18,7 @@ type Command interface {
 	Roles() []string
 	Channels() []string
 
-	MsgHandle(*discordgo.Session, *discordgo.MessageCreate) (Send, error)
+	MsgHandle(*discordgo.Session, *discordgo.Message) (*CommandSend, error)
 }
 
 // Send Stores the stuff we need to send
@@ -25,19 +30,19 @@ type CommandSend struct {
 // NewSend Returns a send struct.
 func NewSend(cid string) *CommandSend {
 	return &CommandSend{
-		make([]*discordgo.MessageSend),
+		make([]*discordgo.MessageSend, SEND_LIMIT),
 		cid,
 	}
 }
 
 // NewSimpleSend Returns a send struct with the message content filled in.
 func NewSimpleSend(cid string, msg string) *CommandSend {
-	send := discordgo.MessageSend{
+	send := &discordgo.MessageSend{
 		Content: msg,
-		nil,
-		nil,
-		nil,
-		nil,
+		Embed:   nil,
+		Tts:     false,
+		Files:   nil,
+		File:    nil,
 	}
 	return &CommandSend{
 		data:      []*discordgo.MessageSend{send},
@@ -47,38 +52,40 @@ func NewSimpleSend(cid string, msg string) *CommandSend {
 
 // AddSimpleMessage Adds another simple message to be sent.
 func (c *CommandSend) AddSimpleMessage(msg string) {
-	send := discordgo.MessageSend{
+	send := &discordgo.MessageSend{
 		Content: msg,
-		nil,
-		nil,
-		nil,
-		nil,
+		Embed:   nil,
+		Tts:     false,
+		Files:   nil,
+		File:    nil,
 	}
-	append(c.data, send)
+	c.data = append(c.data, send)
 }
 
 // AddEmbedMessage Adds an embed message to be sent.
 func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
-	send := discordgo.MessageSend{
-		nil,
-		emb,
-		nil,
-		nil,
-		nil,
+	send := &discordgo.MessageSend{
+		Content: "",
+		Embed:   emb,
+		Tts:     false,
+		Files:   nil,
+		File:    nil,
 	}
-	append(c.data, send)
+	c.data = append(c.data, send)
 }
 
 // AddMessageSend Adds a pure message embed to be sent.
-func (c *CommandSend) AddMessageSend(msd *discordgo.MessageSend) {
-	append(c.data, send)
+func (c *CommandSend) AddMessageSend(send *discordgo.MessageSend) {
+	c.data = append(c.data, send)
 }
 
 // Send Sends the messages a command returns while also checking message length
 func (c *CommandSend) Send(s *discordgo.Session) {
 	// Get the stuff out of BeegYoshi and send it into the server
-	// TODO: Check message length
 	for _, data := range c.data {
+		if utils.Strlen(data) > MESSAGE_LIMIT {
+			continue
+		}
 		s.ChannelMessageSendComplex(c.channelid, data)
 	}
 }
