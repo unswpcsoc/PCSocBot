@@ -18,19 +18,21 @@ const (
 )
 
 var (
+	_testing = false
+
 	echo   bool
 	dg     *discordgo.Session
 	router Router
 	prefix = "!"
 )
 
-// leaf A leaf of the command router tree
+// leaf is a leaf of the command router tree.
 type leaf struct {
 	command com.Command
 	leaves  map[string]*leaf
 }
 
-// NewLeaf Returns a leaf with the command
+// NewLeaf returns a leaf with the command.
 func NewLeaf(cm com.Command) *leaf {
 	return &leaf{
 		command: cm,
@@ -38,94 +40,96 @@ func NewLeaf(cm com.Command) *leaf {
 	}
 }
 
-// Router Routes a command string to a command
+// Router routes a command string to a command.
 type Router struct {
 	routes *leaf
 }
 
-// AddCommand Adds command-string mapping
-func (r *Router) AddCommand(cm com.Command, cmdstr []string) {
+// NewRouter returns a new Router structure.
+func NewRouter() Router {
+	return Router{NewLeaf(nil)}
+}
+
+// AddCommand adds command-string mapping
+func (r *Router) AddCommand(cm com.Command, names []string) {
 	// AddCommand(PingTagPeople, {"ask"})
 	// AddCommand(PingTagPeople, {"tags", "ping"})
-	if cm == nil || len(cmdstr) == 0 || r.routes == nil {
+	if cm == nil || len(names) == 0 || r.routes == nil {
 		return
 	}
 
-	// Search all known leaves
-	curr := r.routes
-	for {
-		var found bool
-		curr, found = curr.leaves[cmdstr[0]]
-		if !found {
-			break
-		}
-		cmdstr = cmdstr[1:]
-	}
+	for _, str := range names {
+		argv := strings.Split(str, " ")
 
-	// Add new leaves for remaining args
-	for len(cmdstr) > 0 {
-		curr.leaves[cmdstr[0]] = NewLeaf(nil)
-		curr = curr.leaves[cmdstr[0]]
-		cmdstr = cmdstr[1:]
+		// Search all known leaves
+		curr := r.routes
+		for {
+			next, found := curr.leaves[argv[0]]
+			if !found {
+				break
+			}
+			curr = next
+			argv = argv[1:]
+		}
+
+		// Add new leaves for remaining args
+		for len(argv) > 0 {
+			curr.leaves[argv[0]] = NewLeaf(nil)
+			curr = curr.leaves[argv[0]]
+			argv = argv[1:]
+		}
+
+		// Assign command to the final leaf
+		curr.command = cm
 	}
-	// Assign command to the final leaf
-	curr.command = cm
 }
 
-/*
- * Route Routes to handler from string.
- * Returns the command and an empty slice if found.
- * Returns nil and the slice of matched words to use in command assistance.
- */
-func (r *Router) Route(argv []string) (com.Command, bool) {
+// Route routes to handler from string.
+// Returns the command and the number of matched args.
+// e.g.
+//	   // r has a route through "example"->"command"->"string"
+//     com, ind := r.Route([]string{"example", "command", "string", "with", "args"})
+//
+//	   // com will contain the command at "string" leaf
+//	   // ind will be 3
+func (r *Router) Route(argv []string) (com.Command, int) {
 	if r.routes == nil || len(argv) == 0 {
-		return nil, false
+		return nil, 0
 	}
+
+	// iterate through routes
+	i := 0
 	curr := r.routes
-	for len(argv) > 0 {
-		var found bool
-		curr, found = curr.leaves[argv[0]]
-		if !found {
+	var prev *leaf = nil
+	var ok bool
+	for i = 0; i < len(argv); i++ {
+		curr, ok = curr.leaves[argv[i]]
+		if !ok {
 			break
 		}
-		argv = argv[1:]
+		prev = curr
 	}
 
-	// TODO: FIX THIS SHIT
-	return curr.command, true
-	/*
-		cm, _ := doRoute(r.routes, argv[1:])
-		if cm == nil {
-			return nil, false
-		}
-	*/
+	return prev.command, i
 }
 
-/*
-// doRoute Recursive helper for Route
-func doRoute(lf *leaf, argv []string) (*com.Command, []string) {
-	if lf == nil {
-		return nil, nil
-	}
-	val, found := lf.leaves[argv[0]]
-	if found {
-		ret, args := doRoute(val, argv[1:])
-		if ret == nil {
-			// Next node is end, use current lf and argv
-			return lf.command, argv[1:]
-		} else {
-			// Next node isn't end, pass up
-			return ret, args
-		}
-	} else {
-		// End search, pass up argv
-		return nil, argv
-	}
-}
-*/
-
-// init for discordgo things
+// flag parsing
 func init() {
+	if _testing {
+		return
+	}
+
+	flag.BoolVar(&echo, "echo", false, "Set this flag to enable echo mode")
+	flag.Parse()
+}
+
+// discordgo things
+func init() {
+	log.Println("testing is:", _testing)
+	if _testing {
+		return
+	}
+
 	token, exists := os.LookupEnv("TOKEN")
 	if !exists {
 		log.Fatalln("Missing Discord API Key: Set env var $TOKEN")
@@ -143,18 +147,16 @@ func init() {
 	}
 }
 
-// command initialisation
+// command registration
 func init() {
-	ping := com.NewPing()
-	for _, names := range ping.Names() {
-		router.AddCommand(ping, strings.Split(names, " "))
+	if _testing {
+		return
 	}
-}
 
-// flag parsing
-func init() {
-	flag.BoolVar(&echo, "echo", false, "Set this flag to enable echo mode")
-	flag.Parse()
+	router = NewRouter()
+
+	ping := com.NewPing()
+	router.AddCommand(ping, ping.Names())
 }
 
 func main() {
@@ -199,8 +201,9 @@ func main() {
 
 			s.ChannelTyping(m.ChannelID)
 
-			command, found := router.Route(strings.Split(message, " "))
-			if !found {
+			command, ind := router.Route(strings.Split(message, " "))
+			if ind == 0 {
+				// TODO: print help message
 				s.ChannelMessageSend(m.ChannelID, "Error: Unknown command")
 			}
 
