@@ -188,27 +188,30 @@ func main() {
 			got, _ = fmt.Scanln(&outstr)
 		}
 	} else {
+		// Handle MessageCreate events
 		dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if m.Author.ID == s.State.User.ID {
 				return
 			}
 
 			message := strings.TrimSpace(m.Content)
-
 			if !strings.HasPrefix(message, prefix) {
 				return
 			}
 
+			// Send typing packet
 			s.ChannelTyping(m.ChannelID)
 
-			command, ind := router.Route(strings.Split(message, " "))
+			// Route message
+			argv := strings.Split(message, " ")
+			command, ind := router.Route(argv)
 			if ind == 0 {
 				// TODO: print help message
 				s.ChannelMessageSend(m.ChannelID, "Error: Unknown command")
 			}
 
-			// Call handler
-			send, err := command.MsgHandle(s, m.Message)
+			// Call handler with arguments
+			send, err := command.MsgHandle(s, m.Message, argv[ind:])
 			if err != nil {
 				log.Println(err)
 				s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
