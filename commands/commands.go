@@ -18,7 +18,7 @@ type Command interface {
 	Roles() []string
 	Channels() []string
 
-	MsgHandle(*discordgo.Session, *discordgo.Message) (*CommandSend, error)
+	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error)
 }
 
 // Send Stores the stuff we need to send

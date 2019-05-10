@@ -18,11 +18,6 @@ var _ = (func() interface{} {
 
 // Preamble
 
-func TestMain(m *testing.M) {
-	// run tests
-	os.Exit(m.Run())
-}
-
 type Example struct {
 	names []string
 	desc  string
@@ -51,11 +46,16 @@ func (e *Example) Channels() []string {
 	return nil
 }
 
-func (e *Example) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*com.CommandSend, error) {
+func (e *Example) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*com.CommandSend, error) {
 	return com.NewSimpleSend(msg.ChannelID, "Pong!"), nil
 }
 
 // Tests
+
+func TestMain(m *testing.M) {
+	// run tests
+	os.Exit(m.Run())
+}
 
 func TestAddCommand(t *testing.T) {
 	// init router
@@ -109,7 +109,7 @@ func TestRoute(t *testing.T) {
 		t.Errorf("%s: route did not find anything\n", t.Name())
 	}
 	if got != exp {
-		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+		t.Errorf("%s: got command %v, expected %v\n", t.Name(), got, exp)
 	}
 
 	// add lengthy route manually
@@ -120,12 +120,15 @@ func TestRoute(t *testing.T) {
 	router.routes.leaves["an"].leaves["extended"].leaves["command"].leaves["string"] = exp2
 
 	// assert lengthy routing works
-	got, ind = router.Route([]string{"an", "extended", "command", "string"})
+	got, ind = router.Route([]string{"an", "extended", "command", "string", "with", "some", "args"})
 	if ind == 0 {
 		t.Errorf("%s: route did not find anything\n", t.Name())
 	}
 	if got != exp {
-		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+		t.Errorf("%s: got command %v, expected %v\n", t.Name(), got, exp)
+	}
+	if ind != 4 {
+		t.Errorf("%s: got index %v, expected %v\n", t.Name(), ind, 4)
 	}
 
 	// test unregistered commands
