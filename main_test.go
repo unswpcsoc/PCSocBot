@@ -127,4 +127,44 @@ func TestRoute(t *testing.T) {
 	if got != exp {
 		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
 	}
+
+	// test unregistered commands
+	got, ind = router.Route([]string{"help"})
+	expind := 0
+	if ind != 0 {
+		t.Errorf("%s: index %v, expected %v\n", t.Name(), ind, expind)
+	}
+
+	if got != nil {
+		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, nil)
+	}
+}
+
+func TestAddRoute(t *testing.T) {
+	// init router
+	router := NewRouter()
+
+	// create command
+	exp := NewExample()
+
+	// add simple route
+	router.AddCommand(exp, exp.Names())
+
+	// assert simple routing works
+	got, ind := router.Route([]string{"example"})
+	if ind == 0 {
+		t.Errorf("%s: route did not find anything\n", t.Name())
+	}
+	if got != exp {
+		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+	}
+
+	// assert lengthy routing works
+	got, ind = router.Route([]string{"an", "extended", "command", "string"})
+	if ind == 0 {
+		t.Errorf("%s: route did not find anything\n", t.Name())
+	}
+	if got != exp {
+		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+	}
 }
