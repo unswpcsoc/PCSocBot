@@ -42,7 +42,7 @@ func (e *Example) Roles() []string {
 	return nil
 }
 
-func (e *Example) Channels() []string {
+func (e *Example) Chans() []string {
 	return nil
 }
 
@@ -65,7 +65,7 @@ func TestAddCommand(t *testing.T) {
 	exp := NewExample()
 
 	// add to router
-	router.AddCommand(exp, exp.Names())
+	router.AddCommand(exp)
 
 	// assert single route made
 	r1 := "example"
@@ -151,7 +151,7 @@ func TestAddRoute(t *testing.T) {
 	exp := NewExample()
 
 	// add simple route
-	router.AddCommand(exp, exp.Names())
+	router.AddCommand(exp)
 
 	// assert simple routing works
 	got, ind := router.Route([]string{"example"})
