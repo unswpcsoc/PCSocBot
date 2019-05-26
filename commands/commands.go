@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/unswpcsoc/PCSocBot/utils"
@@ -11,12 +13,12 @@ const (
 	SEND_LIMIT    = 10
 )
 
-// Command The command
+// Command The command interface that all commands implement
 type Command interface {
 	Names() []string
 	Desc() string
 	Roles() []string
-	Channels() []string
+	Chans() []string
 
 	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error)
 }
@@ -74,18 +76,19 @@ func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
 	c.data = append(c.data, send)
 }
 
-// AddMessageSend Adds a pure message embed to be sent.
+// AddMessageSend Adds a discordgo MessageSend
 func (c *CommandSend) AddMessageSend(send *discordgo.MessageSend) {
 	c.data = append(c.data, send)
 }
 
 // Send Sends the messages a command returns while also checking message length
-func (c *CommandSend) Send(s *discordgo.Session) {
+func (c *CommandSend) Send(s *discordgo.Session) error {
 	// Get the stuff out of BeegYoshi and send it into the server
 	for _, data := range c.data {
 		if utils.Strlen(data) > MESSAGE_LIMIT {
-			continue
+			return fmt.Errorf("Send: following message exceeds limit\n%#v", data)
 		}
 		s.ChannelMessageSendComplex(c.channelid, data)
 	}
+	return nil
 }
