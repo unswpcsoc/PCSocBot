@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	com "github.com/unswpcsoc/PCSocBot/commands"
+	comm "github.com/unswpcsoc/PCSocBot/commands"
 )
 
 const (
@@ -28,19 +28,19 @@ var (
 	router Router
 	prefix = "!"
 
-	errs = log.New(os.Stderr)
+	errs = log.New(os.Stderr, "Error: ", log.Ltime)
 )
 
 // Leaf is a leaf of the command router tree.
 type Leaf struct {
-	command com.Command
+	command comm.Command
 	leaves  map[string]*Leaf
 }
 
 // NewLeaf returns a Leaf with the command.
-func NewLeaf(cm com.Command) *leaf {
+func NewLeaf(com comm.Command) *Leaf {
 	return &Leaf{
-		command: cm,
+		command: com,
 		leaves:  make(map[string]*Leaf),
 	}
 }
@@ -56,19 +56,12 @@ func NewRouter() Router {
 }
 
 // AddCommand adds command-string mapping
-// e.g.
-//     // c is of type Command
-//     AddCommand(c, []string{"ask"})
-//     AddCommand(c, []string{"tags", "ping"})
-//
-// Will register the commeand c to the command strings "ask" and "tags ping".
-// Calling Route with these command strings will return the command mapped to it.
-func (r *Router) AddCommand(cm com.Command, names []string) {
-	if cm == nil || len(names) == 0 || r.routes == nil {
+func (r *Router) AddCommand(com comm.Command) {
+	if com == nil || len(com.Names()) == 0 || r.routes == nil {
 		return
 	}
 
-	for _, str := range names {
+	for _, str := range com.Names() {
 		argv := strings.Split(str, " ")
 
 		// Search all known leaves
@@ -76,10 +69,15 @@ func (r *Router) AddCommand(cm com.Command, names []string) {
 		for {
 			next, found := curr.leaves[argv[0]]
 			if !found {
+				// New branching
 				break
 			}
 			curr = next
 			argv = argv[1:]
+			if len(argv) == 0 {
+				// All argv match
+				break
+			}
 		}
 
 		// Add new leaves for remaining args
@@ -90,7 +88,7 @@ func (r *Router) AddCommand(cm com.Command, names []string) {
 		}
 
 		// Assign command to the final leaf
-		curr.command = cm
+		curr.command = com
 	}
 }
 
@@ -102,7 +100,7 @@ func (r *Router) AddCommand(cm com.Command, names []string) {
 //
 // `com` will contain the command at "string" leaf
 // `ind` will be 3
-func (r *Router) Route(argv []string) (com.Command, int) {
+func (r *Router) Route(argv []string) (comm.Command, int) {
 	if r.routes == nil || len(argv) == 0 {
 		return nil, 0
 	}
@@ -152,12 +150,12 @@ func init() {
 	var err error
 	dg, err = discordgo.New("Bot " + key)
 	if err != nil {
-		errs.Fatalln("Error:", err)
+		errs.Fatalln(err)
 	}
 
 	err = dg.Open()
 	if err != nil {
-		errs.Fatalln("Error: ", err)
+		errs.Fatalln(err)
 	}
 }
 
@@ -168,9 +166,8 @@ func init() {
 	}
 
 	router = NewRouter()
-
-	ping := com.NewPing()
-	router.AddCommand(ping, ping.Names())
+	router.AddCommand(comm.NewPing())
+	router.AddCommand(comm.NewEcho())
 }
 
 func main() {
@@ -179,6 +176,12 @@ func main() {
 	if echo {
 		// echo mode
 		dg.UpdateListeningStatus("stdin")
+		dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+			if m.Author.ID == s.State.User.ID {
+				return
+			}
+			log.Printf("%s: %s\n", m.Author.Username, m.Content)
+		})
 
 		fmt.Print("Enter a channel ID: ")
 		var outch string
@@ -219,44 +222,41 @@ func main() {
 
 		return
 	}
-	dg.UpdateListeningStatus("you")
 
+	dg.UpdateListeningStatus("you")
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if m.Author.ID == s.State.User.ID {
 			return
 		}
-
-		message := strings.TrimSpace(m.Content)
-		if !strings.HasPrefix(message, prefix) || len(message) == 1 {
+		trm := strings.TrimSpace(m.Content)
+		if !strings.HasPrefix(trm, prefix) || len(trm) == 1 {
 			return
 		}
-
 		s.ChannelTyping(m.ChannelID)
 
-		cmdstr := message[1:]
-		command, _ := router.Route(strings.Split(cmdstr, " "))
+		argv := strings.Split(trm[1:], " ")
+		com, ind := router.Route(argv)
 		if verbose {
-			log.Println("Routed string", cmdstr, "to command", command)
+			log.Println("Routed string", trm, "to command", com)
 		}
-		if command == nil {
+		if com == nil {
 			// TODO help message routing
 			s.ChannelMessageSend(m.ChannelID, "Error: Unknown command")
 			return
 		}
-
-		// Call handler
-		send, err := command.MsgHandle(s, m.Message)
+		snd, err := com.MsgHandle(s, m.Message, argv[ind:])
 		if verbose {
-			log.Println("Handled message", m.Message, "\nHandler returned", send)
+			log.Println("Handled message", m.Message, "\nMsgHandle returned", snd)
 		}
 		if err != nil {
 			errs.Println(err)
 			s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
 			return
 		}
-
-		// SEND IT
-		send.Send(s)
+		err = snd.Send(s)
+		if err != nil {
+			errs.Println(err)
+		}
 	})
 
 	// Don't close the connection, wait for a kill signal
