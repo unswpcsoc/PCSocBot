@@ -55,8 +55,8 @@ func NewRouter() Router {
 	return Router{NewLeaf(nil)}
 }
 
-// AddCommand adds command-string mapping
-func (r *Router) AddCommand(com comm.Command) {
+// Addcommand adds command-string mapping
+func (r *Router) Addcommand(com comm.Command) {
 	if com == nil || len(com.Names()) == 0 || r.routes == nil {
 		return
 	}
@@ -166,8 +166,8 @@ func init() {
 	}
 
 	router = NewRouter()
-	router.AddCommand(comm.NewPing())
-	router.AddCommand(comm.NewEcho())
+	router.Addcommand(comm.NewPing())
+	router.Addcommand(comm.NewEcho())
 }
 
 func main() {
