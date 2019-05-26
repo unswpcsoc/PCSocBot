@@ -28,7 +28,7 @@ func (p *Ping) Roles() []string {
 	return nil
 }
 
-func (p *Ping) Channels() []string {
+func (p *Ping) Chans() []string {
 	return nil
 }
 
