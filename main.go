@@ -58,7 +58,11 @@ func init() {
 func init() {
 	rtr = router.NewRouter()
 	rtr.Addcommand(comm.NewPing())
-	rtr.Addcommand(comm.NewEcho())
+	rtr.AddCommand(comm.NewEcho())
+
+	rtr.Addcommand(comm.NewRole("Weeb"))
+	rtr.Addcommand(comm.NewRole("Meta"))
+	rtr.Addcommand(comm.NewRole("Bookworm"))
 }
 
 func main() {
