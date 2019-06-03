@@ -2,7 +2,6 @@ package commands
 
 import (
 	"strings"
-	"errors"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -40,14 +39,14 @@ func (r *Role) Chans() []string {
 func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
 	member, err := ses.GuildMember(msg.GuildID, msg.Author.ID)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 
 	// Find the role ID for this role name
 	roleID := ""
 	guildRoles, err := ses.GuildRoles(msg.GuildID)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 	for _, role := range guildRoles {
 		if r.role == strings.ToLower(role.Name) {
