@@ -41,7 +41,10 @@ func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []
 
 	// Find the role ID for this role name
 	var roleID string
-	guildRoles, _ := ses.GuildRoles(msg.GuildID)
+	guildRoles, err := ses.GuildRoles(msg.GuildID)
+	if err != nil {
+	    return nil, err
+	}
 	for _, role := range guildRoles {
 		if r.role == role.Name {
 			roleID = role.ID
