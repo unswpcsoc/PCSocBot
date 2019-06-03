@@ -2,7 +2,6 @@ package commands
 
 import (
 	"strings"
-	"errors"
 
 	"github.com/bwmarrin/discordgo"
 )
