@@ -16,7 +16,7 @@ func NewRole(role string) *Role {
 	return &Role{
 		names: []string{strings.ToLower(role)},
 		desc:  "Gives user the " + role + " role.",
-		role:  role,
+		role:  strings.ToLower(role),
 	}
 }
 
