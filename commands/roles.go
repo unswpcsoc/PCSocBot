@@ -46,7 +46,7 @@ func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []
 	    return nil, err
 	}
 	for _, role := range guildRoles {
-		if r.role == role.Name {
+		if r.role == strings.ToLower(role.Name) {
 			roleID = role.ID
 			break
 		}
