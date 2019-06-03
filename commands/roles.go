@@ -40,7 +40,7 @@ func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []
 	member, _ := ses.GuildMember(msg.GuildID, msg.Author.ID)
 
 	// Find the role ID for this role name
-	var roleID string
+	roleID := ""
 	guildRoles, err := ses.GuildRoles(msg.GuildID)
 	if err != nil {
 	    return nil, err
