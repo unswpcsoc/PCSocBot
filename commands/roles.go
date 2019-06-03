@@ -38,7 +38,10 @@ func (r *Role) Chans() []string {
 }
 
 func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	member, _ := ses.GuildMember(msg.GuildID, msg.Author.ID)
+	member, err := ses.GuildMember(msg.GuildID, msg.Author.ID)
+	if err != nil {
+	    return nil, err
+	}
 
 	// Find the role ID for this role name
 	roleID := ""
