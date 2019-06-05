@@ -6,16 +6,18 @@ import bs4
 import re
 import requests
 
+HANDBOOK_URL = 'https://www.handbook.unsw.edu.au/{}/courses/2019/{}'
+
 
 def subject_details(code):
     code = code.upper()
-    url = 'https://www.handbook.unsw.edu.au/undergraduate/courses/2019/' + code
+    url = HANDBOOK_URL.format('undergraduate', code)
     page = requests.get(url)
 
     if not is_good_response(page):
-        url = 'https://www.handbook.unsw.edu.au/postgraduate/courses/2019/' + code
+        # Check postgrad
+        url = HANDBOOK_URL.format('postgraduate', code)
         page = requests.get(url)
-
         if not is_good_response(page):
             return None
 
@@ -35,14 +37,13 @@ def subject_details(code):
         course_conditions = 'None'
 
     course_desc = ''
-    course_desc_cont = soup.find(
-        'div', id='readMoreIntro').contents[1].contents
-    if len(course_desc_cont) > 1 and course_desc_cont[1].name == 'p':
-        for s in course_desc_cont[1].strings:
-            course_desc += s
-    else:
-        course_desc = course_desc_cont[1].contents[0].string
-    course_desc = course_desc.strip()
+    # Get first div
+    course_desc_cont = soup.select_one('#readMoreIntro').find('div')
+    if course_desc_cont is not None:
+        course_desc = course_desc_cont.text.strip()
+        # Just get the first paragraph
+        course_desc = course_desc.split('\n', 1)[0]
+
     return {
         'title': course_title,
         'description': course_desc,
@@ -58,11 +59,11 @@ class Handbook(Command):
     def eval(self, course_code):
         if re.search(r'^[a-zA-Z]{4}[0-9]{4}$', course_code) is None:
             raise CommandFailure(
-                'Incorrectly formatted course code: ' + bold(course_code))
+                f'Incorrectly formatted course code: {bold(course_code)}')
 
         course = subject_details(course_code)
         if course is None:
-            return 'Course ' + course_code + ' could not be found'
+            return f'Course {course_code} could not be found'
 
         ret = Embed(
             title=course['title'],
