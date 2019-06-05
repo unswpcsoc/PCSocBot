@@ -15,12 +15,12 @@ const (
 
 // Command The command interface that all commands implement
 type Command interface {
-	Names() []string
-	Desc() string
-	Roles() []string
-	Chans() []string
+	Names() []string // Names of commands (used in routing)
+	Desc() string    // Description of command
+	Roles() []string // Roles required (should all be lowercased)
+	Chans() []string // Channels required (should all be lowercased)
 
-	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error)
+	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error) // Handler for MessageCreate event
 }
 
 // Send Stores the stuff we need to send
