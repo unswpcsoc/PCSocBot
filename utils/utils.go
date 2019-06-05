@@ -2,21 +2,24 @@ package utils
 
 import (
 	"reflect"
-)
+	"strings"
 
-// Italics Encloses string in italics tags
-func Italics(s string) string {
-	return "*" + s + "*"
-}
+	"github.com/bwmarrin/discordgo"
+)
 
 // Bold Encloses string in bold tags
 func Bold(s string) string {
 	return "**" + s + "**"
 }
 
-// Under Encloses string in underline tags
-func Under(s string) string {
-	return "__" + s + "__"
+// Code Encloses string in code tags
+func Code(s string) string {
+	return "`" + s + "`"
+}
+
+// Italics Encloses string in italics tags
+func Italics(s string) string {
+	return "*" + s + "*"
 }
 
 // Spoil Encloses string in spoiler tags
@@ -24,7 +27,12 @@ func Spoil(s string) string {
 	return "||" + s + "||"
 }
 
-// Strlen Recursively searches for strings and counts up the total length
+// Under Encloses string in underline tags
+func Under(s string) string {
+	return "__" + s + "__"
+}
+
+// StrLen Recursively searches for strings and counts up the total length
 func Strlen(e interface{}) int {
 	count := 0
 	// type assert e
@@ -74,4 +82,68 @@ func Strlen(e interface{}) int {
 		// do nothing
 	}
 	return count
+}
+
+// MsgHasRoles Checks if the author has the required roles
+func MsgHasRoles(ses *discordgo.Session, msg *discordgo.Message, roles []string) (bool, error) {
+	if len(roles) == 0 {
+		return true, nil
+	}
+
+	// Get member
+	member, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+	if err != nil {
+		member, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// Get guild roles
+	groles, err := ses.GuildRoles(msg.GuildID)
+	if err != nil {
+		return false, err
+	}
+
+	// Get roles required
+	rolesrequired := []string{}
+	for _, r := range roles {
+		for _, gr := range groles {
+			if strings.ToLower(gr.Name) == r {
+				rolesrequired = append(rolesrequired, gr.ID)
+			}
+		}
+	}
+
+	// Check member roles
+	mroles := member.Roles
+	for _, rr := range rolesrequired {
+		for _, mr := range mroles {
+			if mr == rr {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+// MsgInChannels Checks if message was sent in the required channels
+func MsgInChannels(s *discordgo.Session, m *discordgo.Message, channels []string) (bool, error) {
+	if len(channels) == 0 {
+		return true, nil
+	}
+
+	cha, err := s.Channel(m.ChannelID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, c := range channels {
+		if c == cha.Name {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
