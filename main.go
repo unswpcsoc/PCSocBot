@@ -13,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	comm "github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/router"
+	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
 const (
@@ -58,7 +59,7 @@ func init() {
 func init() {
 	rtr = router.NewRouter()
 	rtr.Addcommand(comm.NewPing())
-	rtr.Addcommand(comm.NewEcho())
+	rtr.Addcommand(comm.NewCrash())
 
 	rtr.Addcommand(comm.NewRole("Weeb"))
 	rtr.Addcommand(comm.NewRole("Meta"))
@@ -119,17 +120,58 @@ func main() {
 		}
 		s.ChannelTyping(m.ChannelID)
 
+		// Route message
 		argv := strings.Split(trm[1:], " ")
 		com, ind := rtr.Route(argv)
 		if com == nil {
 			// TODO help message routing
-			s.ChannelMessageSend(m.ChannelID, "Error: Unknown command")
+			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: Unknown command"))
 			return
 		}
+
+		// Check chans
+		chans := com.Chans()
+		has, err := utils.MsgInChannels(s, m.Message, chans)
+		if err != nil {
+			errs.Println(err)
+		}
+		if !has {
+			out := "Error: You must be in " + utils.Code(chans[0])
+			if len(chans) > 1 {
+				others := chans[1:]
+				for _, oth := range others {
+					out += " or " + utils.Code(oth)
+				}
+			}
+			out += " to use this command"
+			s.ChannelMessageSend(m.ChannelID, utils.Italics(out))
+			return
+		}
+
+		// Check roles
+		roles := com.Roles()
+		has, err = utils.MsgHasRoles(s, m.Message, roles)
+		if err != nil {
+			errs.Println(err)
+		}
+		if !has {
+			out := "Error: You must be a " + utils.Code(roles[0])
+			if len(roles) > 1 {
+				others := roles[1:]
+				for _, oth := range others {
+					out += " or a " + utils.Code(oth)
+				}
+			}
+			out += " to use this command"
+			s.ChannelMessageSend(m.ChannelID, utils.Italics(out))
+			return
+		}
+
+		// Handle message
 		snd, err := com.MsgHandle(s, m.Message, argv[ind:])
 		if err != nil {
 			errs.Println(err)
-			s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
 			return
 		}
 		err = snd.Send(s)
