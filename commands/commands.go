@@ -1,4 +1,4 @@
-// Packange commands implements a command interface for PCSocBot
+// Package commands implements a command interface for PCSocBot
 // with helper structs and funcs for sending discordgo messages,
 // and high-level abstractions of buntdb
 
@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	/* package global db */
+	/* package private db */
 	db *buntdb.DB
 
 	/* send errors */
@@ -37,7 +37,7 @@ const (
 	SEND_LIMIT    = 10
 )
 
-// Command The command interface that all commands implement
+// Command is the interface that all commands implement.
 type Command interface {
 	Names() []string // Names of commands (used in routing)
 	Desc() string    // Description of command
@@ -47,7 +47,7 @@ type Command interface {
 	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error) // Handler for MessageCreate event
 }
 
-// Send is a helper struct that buffers things commands need to send
+// Send is a helper struct that buffers things commands need to send.
 type CommandSend struct {
 	data      []*discordgo.MessageSend `json:"messages"`
 	channelid string                   `json:"channelid"`
@@ -100,7 +100,7 @@ func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
 	c.data = append(c.data, send)
 }
 
-// AddMessageSend Adds a discordgo MessageSend
+// AddMessageSend Adds a discordgo MessageSend.
 func (c *CommandSend) AddMessageSend(send *discordgo.MessageSend) {
 	c.data = append(c.data, send)
 }
@@ -120,6 +120,7 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 /* db stuff */
 
 // Storer is the interface for structs that will be stored into the db
+//
 // NB: You MUST export all fields in a Storer, otherwise the JSON Marshaller will freak out
 // there are workarounds, but they require more effort than we need.
 // Read https://stackoverflow.com/a/49372417 if you're interested
@@ -151,8 +152,7 @@ func DBClose() error {
 	return nil
 }
 
-// DBSet is a command method that sets an arbitrary key/value pair into the database under the current command's index.
-// note: values cannot be nil
+// DBSet is a Storer method that sets the given Storer in the db at the key.
 func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 	// Assert db open so we can rollback transactions on later errors
 	if db == nil {
