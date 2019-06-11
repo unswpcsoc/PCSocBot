@@ -7,27 +7,32 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// Bold Encloses string in bold tags
+// Bold encloses string in bold tags
 func Bold(s string) string {
 	return "**" + s + "**"
 }
 
-// Code Encloses string in code tags
+// Block encloses string in code block tags
+func Block(s string) string {
+	return "```\n" + s + "\n```"
+}
+
+// Code encloses string in code tags
 func Code(s string) string {
 	return "`" + s + "`"
 }
 
-// Italics Encloses string in italics tags
+// Italics encloses string in italics tags
 func Italics(s string) string {
 	return "*" + s + "*"
 }
 
-// Spoil Encloses string in spoiler tags
+// Spoil encloses string in spoiler tags
 func Spoil(s string) string {
 	return "||" + s + "||"
 }
 
-// Under Encloses string in underline tags
+// Under encloses string in underline tags
 func Under(s string) string {
 	return "__" + s + "__"
 }
