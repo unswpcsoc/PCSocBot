@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	comm "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/router"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
@@ -22,6 +22,7 @@ const (
 
 var (
 	echo bool
+	prod bool
 
 	dgo    *discordgo.Session
 	rtr    router.Router
@@ -33,10 +34,11 @@ var (
 // flag parsing
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Enables echo mode")
+	flag.BoolVar(&prod, "prod", false, "Enables production mode")
 	flag.Parse()
 }
 
-// discordgo things
+// discordgo session
 func init() {
 	key, exists := os.LookupEnv("KEY")
 	if !exists {
@@ -58,16 +60,26 @@ func init() {
 // command registration
 func init() {
 	rtr = router.NewRouter()
-	rtr.Addcommand(comm.NewPing())
-	rtr.Addcommand(comm.NewCrash())
+	rtr.Addcommand(commands.NewPing())
+	rtr.Addcommand(commands.NewCrash())
 
-	rtr.Addcommand(comm.NewRole("Weeb"))
-	rtr.Addcommand(comm.NewRole("Meta"))
-	rtr.Addcommand(comm.NewRole("Bookworm"))
+	rtr.Addcommand(commands.NewRole("Weeb"))
+	rtr.Addcommand(commands.NewRole("Meta"))
+	rtr.Addcommand(commands.NewRole("Bookworm"))
+}
+
+// db intialisation
+func init() {
+	if prod {
+		commands.DBOpen("./bot.db")
+	} else {
+		commands.DBOpen(":memory:")
+	}
 }
 
 func main() {
 	defer dgo.Close()
+	defer commands.DBClose()
 
 	if echo {
 		dgo.UpdateListeningStatus("stdin")
