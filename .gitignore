@@ -1,6 +1,12 @@
-*
+# vim swaps
+*~
+*.*~
+*.*.*~
 
-# Go things
-!*.go
-!*.mod
-!*.sum
+# python leftovers
+*env/
+*files/
+*models/
+
+# db
+*.db
