@@ -27,6 +27,7 @@ var (
 	ErrDBOpen     = errors.New("db already open")
 	ErrDBValueNil = errors.New("cannot set nil value")
 	ErrDBKeyEmpty = errors.New("cannot set value with empty key")
+	ErrDBNotFound = buntdb.ErrNotFound
 
 	/* storer errors */
 	ErrStorerNil = errors.New("storer method received nil")
