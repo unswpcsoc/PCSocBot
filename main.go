@@ -60,8 +60,18 @@ func init() {
 // command registration
 func init() {
 	rtr = router.NewRouter()
-	rtr.Addcommand(comm.NewPing())
-	rtr.Addcommand(comm.NewEcho())
+
+	rtr.Addcommand(commands.NewPing())
+
+	rtr.Addcommand(commands.NewEcho())
+
+	rtr.Addcommand(commands.NewQuote())
+	rtr.Addcommand(commands.NewQuoteList())
+	rtr.Addcommand(commands.NewQuotePending())
+	rtr.Addcommand(commands.NewQuoteAdd())
+	rtr.Addcommand(commands.NewQuoteApprove())
+	rtr.Addcommand(commands.NewQuoteRemove())
+	rtr.Addcommand(commands.NewQuoteReject())
 
 	rtr.Addcommand(commands.NewRole("Weeb"))
 	rtr.Addcommand(commands.NewRole("Meta"))
