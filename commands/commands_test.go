@@ -1,17 +1,17 @@
-package commands
+package commands_test
 
 import (
 	"encoding/json"
 	//"fmt"
 	"os"
 	"testing"
+
+	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
 /* preamble */
 
-const (
-	INDEX = "thing"
-)
+const INDEX = "thing"
 
 type thing struct {
 	A string `json:"name"`
@@ -23,29 +23,20 @@ func (t *thing) Index() string {
 	return INDEX
 }
 
-func (t *thing) Unmarshal(mar string) (Storer, error) {
-	var res thing
-	err := json.Unmarshal([]byte(mar), &res)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
 /* actual tests */
 
 func TestMain(m *testing.M) {
-	DBOpen(":memory:")
+	commands.DBOpen(":memory:")
 
 	// Create debug index, ignore errors
-	tx, _ := db.Begin(true)
+	tx, _ := commands.DB.Begin(true)
 	tx.CreateIndex("debug", "*", func(a, b string) bool {
 		return a < b
 	})
 	tx.Commit()
 
 	res := m.Run()
-	DBClose()
+	commands.DBClose()
 	os.Exit(res)
 }
 
@@ -54,7 +45,7 @@ func TestMain(m *testing.M) {
 // TestDBGet tests DBGet
 func TestDBGet(t *testing.T) {
 	// Setup
-	tx, err := db.Begin(true)
+	tx, err := commands.DB.Begin(true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,30 +60,28 @@ func TestDBGet(t *testing.T) {
 		t.Error(err)
 	}
 
-	thingy := &thing{
+	// Set expected
+	exp := thing{
 		A: "first thingy",
 		B: 42,
 		//c: "unexported field",
 	}
 
 	// Open transaction, Set thingy in db
-	tx, err = db.Begin(true)
+	tx, err = commands.DB.Begin(true)
 	if err != nil {
 		t.Error(err)
 	}
 
-	// Set expected
-	exp := thingy
-
 	// Marshal struct and set it
-	mar, err := json.Marshal(*thingy)
+	mar, err := json.Marshal(exp)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Set query
 	qry := "0"
-	_, _, err = tx.Set(thingy.Index()+":"+qry, string(mar), nil)
+	_, _, err = tx.Set(exp.Index()+":"+qry, string(mar), nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,12 +94,14 @@ func TestDBGet(t *testing.T) {
 	tx = nil
 
 	// Bad queries, make sure nothing panics
-	DBGet(nil, qry)   // empty storer
-	DBGet(thingy, "") // empty query
-	DBGet(nil, "")    // empty everything
+	var got thing
+	commands.DBGet(nil, qry, &got) // empty Storer
+	commands.DBGet(&exp, "", &got) // empty query
+	commands.DBGet(&exp, "", nil)  // empty ptr
+	commands.DBGet(nil, "", nil)   // empty everything
 
 	// Good query
-	got, err := DBGet(thingy, qry)
+	err = commands.DBGet(&exp, qry, &got)
 	if err != nil {
 		t.Error(err)
 	}
@@ -132,7 +123,7 @@ func TestDBGet(t *testing.T) {
 	// Compare got and exp
 	// NB: 	pointer receiver methods are added to the type's pointer's method table,
 	// 		type asserting as the pointer is required here because of that
-	if *got.(*thing) != *exp {
+	if got != exp {
 		t.Errorf("DBGet(%s) = %#v; want %#v", qry, got, exp)
 	}
 }
@@ -140,7 +131,7 @@ func TestDBGet(t *testing.T) {
 // TestDBSet tests DBSet
 func TestDBSet(t *testing.T) {
 	// Setup
-	tx, err := db.Begin(true)
+	tx, err := commands.DB.Begin(true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -155,29 +146,26 @@ func TestDBSet(t *testing.T) {
 		t.Error(err)
 	}
 
-	thingy := &thing{
+	exp := thing{
 		A: "first thingy",
 		B: 42,
 		//c: "unexported field",
 	}
 
-	// Set expected
-	exp := thingy
-
 	ind := "1"
 	// Bad sets, make sure nothing panics
-	DBSet(nil, ind)   // empty storer
-	DBSet(thingy, "") // empty key
-	DBSet(nil, "")    // empty everything
+	commands.DBSet(nil, ind) // empty storer
+	commands.DBSet(&exp, "") // empty key
+	commands.DBSet(nil, "")  // empty everything
 
-	// Set thingy in db
-	_, _, err = DBSet(thingy, ind)
+	// Set exp in db
+	_, _, err = commands.DBSet(&exp, ind)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Open RO transaction
-	tx, err = db.Begin(false)
+	tx, err = commands.DB.Begin(false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -191,7 +179,7 @@ func TestDBSet(t *testing.T) {
 	}
 
 	// Unmarshal into struct
-	var got *thing
+	var got thing
 	err = json.Unmarshal([]byte(res), &got)
 	if err != nil {
 		t.Error(err)
@@ -207,7 +195,7 @@ func TestDBSet(t *testing.T) {
 	*/
 
 	// Compare got and exp
-	if *got != *exp {
-		t.Errorf("DBSet(%[1]s, %#[3]v) set {%[2]s: %#[4]v}; want {%[2]s: %#[5]v}", ind, qry, thingy, got, exp)
+	if got != exp {
+		t.Errorf("DBSet(%[1]s, %#[3]v) set {%[2]s: %#[4]v}; want {%[2]s: %#[5]v}", ind, qry, exp, got, exp)
 	}
 }
