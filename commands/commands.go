@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/tidwall/buntdb"
@@ -16,8 +17,8 @@ import (
 )
 
 var (
-	/* package private db */
-	db *buntdb.DB
+	/* db */
+	DB *buntdb.DB
 
 	/* send errors */
 	ErrSendLimit = errors.New("message exceeds send limit of 2000 characters")
@@ -27,6 +28,7 @@ var (
 	ErrDBOpen     = errors.New("db already open")
 	ErrDBValueNil = errors.New("cannot set nil value")
 	ErrDBKeyEmpty = errors.New("cannot set value with empty key")
+	ErrDBNotPtr   = errors.New("want pointer arg, got something else")
 	ErrDBNotFound = buntdb.ErrNotFound
 
 	/* storer errors */
@@ -122,41 +124,40 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 
 // Storer is the interface for structs that will be stored into the db
 //
-// NB: You MUST export all fields in a Storer, otherwise the JSON Marshaller will freak out
+// You MUST export all fields in a Storer, otherwise the JSON Marshaller will freak out
 // there are workarounds, but they require more effort than we need.
 // Read https://stackoverflow.com/a/49372417 if you're interested
 type Storer interface {
-	Index() string                    // Determines db index
-	Unmarshal(string) (Storer, error) // Unmarshals a string json encoding into the storer's type
+	Index() string // Determines db index
 }
 
 // Open opens the db at the given path
 func DBOpen(path string) error {
-	if db != nil {
+	if DB != nil {
 		return ErrDBClosed
 	}
 	var err error
-	db, err = buntdb.Open(path)
+	DB, err = buntdb.Open(path)
 	return err
 }
 
 // Close closes the db
 func DBClose() error {
-	if db == nil {
+	if DB == nil {
 		return ErrDBOpen
 	}
-	err := db.Close()
+	err := DB.Close()
 	if err != nil {
 		return err
 	}
-	db = nil
+	DB = nil
 	return nil
 }
 
 // DBSet is a Storer method that sets the given Storer in the db at the key.
 func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 	// Assert db open so we can rollback transactions on later errors
-	if db == nil {
+	if DB == nil {
 		return "", false, ErrDBClosed
 	}
 	if s == nil {
@@ -167,7 +168,7 @@ func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 	}
 
 	// Begin RW transaction
-	tx, err := db.Begin(true)
+	tx, err := DB.Begin(true)
 	if err != nil {
 		tx.Rollback()
 		return "", false, err
@@ -197,28 +198,33 @@ func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 	return pre, rep, nil
 }
 
-// DBGet gets the Storer at the given key. Ignores expiry.
-func DBGet(s Storer, key string) (Storer, error) {
-	if db == nil {
-		return nil, ErrDBClosed
+// DBGet gets the Storer at the given key and puts it into got. Ignores expiry.
+//
+// If got is not a pointer, DBGet will throw ErrDBNotPtr
+func DBGet(s Storer, key string, got Storer) error {
+	if DB == nil {
+		return ErrDBClosed
 	}
-	if s == nil {
-		return nil, ErrStorerNil
+	if s == nil || got == nil {
+		return ErrStorerNil
+	}
+	if reflect.TypeOf(got).Kind() != reflect.Ptr {
+		return ErrDBNotPtr
 	}
 
 	// Open RO Transaction, defer rollback
-	tx, err := db.Begin(false)
+	tx, err := DB.Begin(false)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer tx.Rollback()
 
 	// Get Storer
-	got, err := tx.Get(s.Index()+":"+key, true)
+	res, err := tx.Get(s.Index()+":"+key, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Unmarshal Storer and return it
-	return s.Unmarshal(got)
+	// Unmarshal Storer
+	return json.Unmarshal([]byte(res), got)
 }
