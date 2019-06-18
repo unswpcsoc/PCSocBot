@@ -2,10 +2,11 @@ package commands
 
 import (
 	"errors"
-	"strings"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
+    "github.com/bwmarrin/discordgo"
+
+    "github.com/unswpcsoc/PCSocBot/utils"
 )
 
 var (
@@ -47,22 +48,29 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 		return nil, ErrDecimalSpiralArgs
 	}
 
-	size, err := Atoi(args[0]);
-	if err == ErrSyntax {
+	size, err := strconv.Atoi(args[0]);
+	if err == strconv.ErrSyntax {
 		return nil, ErrDecimalSpiralSyntax
 	} else if err != nil {
 		return nil, err
 	}
 
-	if isEven(size) || size < 5 || size > 101 {
+	if isEven(size) || size < 5 || size > 43 {
 		return nil, ErrDecimalSpiralRange
 	}
 
-	return NewSimpleSend(msg.ChannelID, genDecimalSpiral(args[0])), nil
+	return NewSimpleSend(msg.ChannelID, utils.Block(genDecimalSpiral(size))), nil
 }
 
 func isEven(i int) bool {
 	return i % 2 == 0
+}
+
+func abs(i int) int {
+    if (i < 0) {
+        return -i
+    }
+    return i
 }
 
 // genDecimalSpiral consists of 2 steps:
@@ -78,15 +86,17 @@ func genDecimalSpiral(size int) string {
         col := 0
         for col < size {
             if isDigit(size, row, col) {
-				out = strings.Join(out, Itoa(getDigit(size, row, col) % 10))
+				out += strconv.Itoa(getDigit(size, row, col) % 10)
             } else {
-				out = strings.Join(out, "-")
+				out += "-"
             }
             col++
         }
-        out = strings.Join(out, "\n")
+        out += "\n"
         row++
     }
+
+    return out
 }
 
 // isDigit determines whether a coordinate on a square is part of
