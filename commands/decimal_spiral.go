@@ -9,9 +9,14 @@ import (
     "github.com/unswpcsoc/PCSocBot/utils"
 )
 
+const(
+    DecimalSpiralLowerLimit = 5
+    DecimalSpiralUpperLimit = 43
+)
+
 var (
 	ErrDecimalSpiralSyntax = errors.New("size is not an integer")
-	ErrDecimalSpiralRange = errors.New("size is not an odd integer between 5 and 101")
+	ErrDecimalSpiralRange = errors.New("size is not an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit))
 	ErrDecimalSpiralArgs = errors.New("not enough args")
 )
 
@@ -23,7 +28,7 @@ type DecimalSpiral struct {
 func NewDecimalSpiral() *DecimalSpiral {
 	return &DecimalSpiral{
 		names: []string{"decimalspiral", "ds"},
-		desc: "Usage: ds <size>. Generate a decimal spiral. Size must be an odd integer between 5 and 101.",
+		desc: "Usage: ds <size>. Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit),
 	}
 }
 
@@ -48,14 +53,12 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 		return nil, ErrDecimalSpiralArgs
 	}
 
-	size, err := strconv.Atoi(args[0]);
-	if err == strconv.ErrSyntax {
-		return nil, ErrDecimalSpiralSyntax
-	} else if err != nil {
-		return nil, err
-	}
+    size, err := strconv.Atoi(args[0]);
+    if err != nil {
+        return nil, ErrDecimalSpiralSyntax
+    }
 
-	if isEven(size) || size < 5 || size > 43 {
+	if isEven(size) || size < DecimalSpiralLowerLimit || size > DecimalSpiralUpperLimit {
 		return nil, ErrDecimalSpiralRange
 	}
 
