@@ -55,7 +55,13 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 
     size, err := strconv.Atoi(args[0]);
     if err != nil {
-        return nil, ErrDecimalSpiralSyntax
+        if err.(*strconv.NumError).Err == strconv.ErrSyntax {
+            return nil, ErrDecimalSpiralSyntax
+        } else if err.(*strconv.NumError).Err == strconv.ErrRange {
+            return nil, ErrDecimalSpiralRange
+        } else {
+            return nil, err
+        }
     }
 
 	if isEven(size) || size < DecimalSpiralLowerLimit || size > DecimalSpiralUpperLimit {
