@@ -73,6 +73,8 @@ func init() {
 	rtr.Addcommand(commands.NewQuoteRemove())
 	rtr.Addcommand(commands.NewQuoteReject())
 
+	rtr.Addcommand(commands.NewDecimalSpiral())
+
 	rtr.Addcommand(commands.NewRole("Weeb"))
 	rtr.Addcommand(commands.NewRole("Meta"))
 	rtr.Addcommand(commands.NewRole("Bookworm"))
