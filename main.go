@@ -82,10 +82,14 @@ func init() {
 
 // db intialisation
 func init() {
+	var err error
 	if prod {
-		commands.DBOpen("./bot.db")
+		err = commands.DBOpen("./bot.db")
 	} else {
-		commands.DBOpen(":memory:")
+		err = commands.DBOpen(":memory:")
+	}
+	if err != nil {
+		errs.Fatalln(err)
 	}
 }
 
