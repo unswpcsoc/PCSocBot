@@ -6,6 +6,8 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -18,16 +20,17 @@ var (
 )
 
 const (
+	PREFIX        = "!"
 	MESSAGE_LIMIT = 2000
 	SEND_LIMIT    = 10
 )
 
 // Command is the interface that all commands implement.
 type Command interface {
-	Names() []string // Names of commands 					e.g. {"tags ping", "ask"}
-	Desc() string    // Description of command				e.g. "does a thing"
-	Roles() []string // Roles required to use command 		(lowercased please)
-	Chans() []string // Channels required to use command	(lowercased please)
+	Aliases() []string // Aliases of commands 					e.g. {"tags ping", "ask"}
+	Desc() string      // Description of command				e.g. "does a thing"
+	Roles() []string   // Roles required to use command 		(lowercased please)
+	Chans() []string   // Channels required to use command	(lowercased please)
 
 	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error) // Handler for MessageCreate event
 }
@@ -100,4 +103,54 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 		s.ChannelMessageSendComplex(c.channelid, data)
 	}
 	return nil
+}
+
+/* usage generation */
+
+// GetUsage generates the usage message from a Command
+func GetUsage(c Command) (usage string, ok bool) {
+	v := reflect.ValueOf(c)
+
+	if v.Kind() == reflect.Ptr {
+		// unroll pointer
+		v := v.Elem()
+		if !v.IsValid() {
+			return "", false
+		}
+	}
+
+	if v.Kind() != reflect.Struct {
+		return "", false
+	}
+
+	// command aliases
+	names := c.Aliases()
+	if len(names) == 0 {
+		return "", false
+	}
+
+	usage = "!" + names[0]
+
+	// struct fields
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Type().Field(i)
+
+		fTag := string(f.Tag)
+		if !strings.HasPrefix(fTag, "arg:") {
+			continue
+		}
+		fName := strings.Split(fTag, "arg:")[0]
+
+		usage += " (" + string(f.Type.Name()) + " " + utils.Under(fName) + ")"
+	}
+
+	// other names
+	if len(names) > 1 {
+		usage += "\n" + utils.Bold("AKA") + "\n"
+		for _, name := range names[1:] {
+			usage += "!" + name + "\n"
+		}
+	}
+
+	return usage, true
 }
