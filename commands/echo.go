@@ -18,7 +18,7 @@ func NewEcho() *Echo {
 	}
 }
 
-func (e *Echo) Names() []string {
+func (e *Echo) Aliases() []string {
 	return e.names
 }
 
