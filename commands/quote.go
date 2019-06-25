@@ -54,20 +54,14 @@ func (q *quotes) Index() string {
 /* quote */
 
 type Quote struct {
-	names []string
-	desc  string
+	Index int `arg:index`
 }
 
-func NewQuote() *Quote {
-	return &Quote{
-		names: []string{"quote"},
-		desc:  "Get a quote at given index. No args gives a random quote.",
-	}
-}
+func NewQuote() *Quote { return &Quote{} }
 
-func (q *Quote) Names() []string { return q.names }
+func (q *Quote) Aliases() []string { return []string{"quote"} }
 
-func (q *Quote) Desc() string { return q.desc }
+func (q *Quote) Desc() string { return "Get a quote at given index. No args gives a random quote." }
 
 func (q *Quote) Roles() []string { return nil }
 
@@ -103,21 +97,13 @@ func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args [
 
 /* quote list */
 
-type QuoteList struct {
-	names []string
-	desc  string
-}
+type QuoteList struct{}
 
-func NewQuoteList() *QuoteList {
-	return &QuoteList{
-		names: []string{"quote list", "quote ls"},
-		desc:  "Lists all approved quotes.",
-	}
-}
+func NewQuoteList() *QuoteList { return &QuoteList{} }
 
-func (q *QuoteList) Names() []string { return q.names }
+func (q *QuoteList) Aliases() []string { return []string{"quote list", "quote ls"} }
 
-func (q *QuoteList) Desc() string { return q.desc }
+func (q *QuoteList) Desc() string { return "Lists all approved quotes." }
 
 func (q *QuoteList) Roles() []string { return nil }
 
@@ -147,21 +133,13 @@ func (q *QuoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, ar
 
 /* quote pending */
 
-type QuotePending struct {
-	names []string
-	desc  string
-}
+type QuotePending struct{}
 
-func NewQuotePending() *QuotePending {
-	return &QuotePending{
-		names: []string{"quote pending", "quote pd"},
-		desc:  "Lists all pending quotes.",
-	}
-}
+func NewQuotePending() *QuotePending { return &QuotePending{} }
 
-func (q *QuotePending) Names() []string { return q.names }
+func (q *QuotePending) Aliases() []string { return []string{"quote pending", "quote pd"} }
 
-func (q *QuotePending) Desc() string { return q.desc }
+func (q *QuotePending) Desc() string { return "Lists all pending quotes." }
 
 func (q *QuotePending) Roles() []string { return nil }
 
@@ -192,20 +170,14 @@ func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message,
 /* quote add */
 
 type QuoteAdd struct {
-	names []string
-	desc  string
+	Quote string `arg:quote`
 }
 
-func NewQuoteAdd() *QuoteAdd {
-	return &QuoteAdd{
-		names: []string{"quote add"},
-		desc:  "Adds a quote to the pending list.",
-	}
-}
+func NewQuoteAdd() *QuoteAdd { return &QuoteAdd{} }
 
-func (q *QuoteAdd) Names() []string { return q.names }
+func (q *QuoteAdd) Aliases() []string { return []string{"quote add"} }
 
-func (q *QuoteAdd) Desc() string { return q.desc }
+func (q *QuoteAdd) Desc() string { return "Adds a quote to the pending list." }
 
 func (q *QuoteAdd) Roles() []string { return nil }
 
@@ -252,24 +224,16 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, arg
 /* quote approve */
 
 type QuoteApprove struct {
-	names []string
-	desc  string
-	roles []string
+	Index int `arg:index`
 }
 
-func NewQuoteApprove() *QuoteApprove {
-	return &QuoteApprove{
-		names: []string{"quote approve"},
-		desc:  "Approves a quote.",
-		roles: []string{"mod"},
-	}
-}
+func NewQuoteApprove() *QuoteApprove { return &QuoteApprove{} }
 
-func (q *QuoteApprove) Names() []string { return q.names }
+func (q *QuoteApprove) Aliases() []string { return []string{"quote approve"} }
 
-func (q *QuoteApprove) Desc() string { return q.desc }
+func (q *QuoteApprove) Desc() string { return "Approves a quote." }
 
-func (q *QuoteApprove) Roles() []string { return q.roles }
+func (q *QuoteApprove) Roles() []string { return []string{"mod"} }
 
 func (q *QuoteApprove) Chans() []string { return nil }
 
@@ -353,24 +317,16 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message,
 /* quote remove */
 
 type QuoteRemove struct {
-	names []string
-	desc  string
-	roles []string
+	Index int `arg:index`
 }
 
-func NewQuoteRemove() *QuoteRemove {
-	return &QuoteRemove{
-		names: []string{"quote remove", "quote rm"},
-		desc:  "Removes a quote.",
-		roles: []string{"mod"},
-	}
-}
+func NewQuoteRemove() *QuoteRemove { return &QuoteRemove{} }
 
-func (q *QuoteRemove) Names() []string { return q.names }
+func (q *QuoteRemove) Aliases() []string { return []string{"quote remove", "quote rm"} }
 
-func (q *QuoteRemove) Desc() string { return q.desc }
+func (q *QuoteRemove) Desc() string { return "Removes a quote." }
 
-func (q *QuoteRemove) Roles() []string { return nil }
+func (q *QuoteRemove) Roles() []string { return []string{"mod"} }
 
 func (q *QuoteRemove) Chans() []string { return nil }
 
@@ -424,20 +380,14 @@ func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, 
 /* quote reject */
 
 type QuoteReject struct {
-	names []string
-	desc  string
+	Index int `arg:index`
 }
 
-func NewQuoteReject() *QuoteReject {
-	return &QuoteReject{
-		names: []string{"quote reject", "quote rj"},
-		desc:  "Rejects a quote from the pending list.",
-	}
-}
+func NewQuoteReject() *QuoteReject { return &QuoteReject{} }
 
-func (q *QuoteReject) Names() []string { return q.names }
+func (q *QuoteReject) Aliases() []string { return []string{"quote reject", "quote rj"} }
 
-func (q *QuoteReject) Desc() string { return q.desc }
+func (q *QuoteReject) Desc() string { return "Rejects a quote from the pending list." }
 
 func (q *QuoteReject) Roles() []string { return nil }
 
