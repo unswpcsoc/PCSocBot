@@ -24,9 +24,8 @@ var (
 	echo bool
 	prod bool
 
-	dgo    *discordgo.Session
-	rtr    router.Router
-	prefix = "!"
+	dgo *discordgo.Session
+	rtr router.Router
 
 	errs = log.New(os.Stderr, "Error: ", log.Ltime)
 )
@@ -143,7 +142,7 @@ func main() {
 			return
 		}
 		trm := strings.TrimSpace(m.Content)
-		if !strings.HasPrefix(trm, prefix) || len(trm) == 1 {
+		if !strings.HasPrefix(trm, commands.PREFIX) || len(trm) == 1 {
 			return
 		}
 		s.ChannelTyping(m.ChannelID)
