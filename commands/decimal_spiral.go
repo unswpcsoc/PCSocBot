@@ -9,30 +9,30 @@ import (
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
-const(
+const (
 	DecimalSpiralLowerLimit = 5
 	DecimalSpiralUpperLimit = 43
 )
 
 var (
 	ErrDecimalSpiralSyntax = errors.New("size is not an integer")
-	ErrDecimalSpiralRange = errors.New("size is not an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit))
-	ErrDecimalSpiralArgs = errors.New("not enough args")
+	ErrDecimalSpiralRange  = errors.New("size is not an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit))
+	ErrDecimalSpiralArgs   = errors.New("not enough args")
 )
 
 type DecimalSpiral struct {
 	names []string
-	desc string
+	desc  string
 }
 
 func NewDecimalSpiral() *DecimalSpiral {
 	return &DecimalSpiral{
 		names: []string{"decimalspiral", "ds"},
-		desc: "Usage: ds <size>. Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit),
+		desc:  "Usage: ds <size>. Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit),
 	}
 }
 
-func (d *DecimalSpiral) Names() []string {
+func (d *DecimalSpiral) Aliases() []string {
 	return d.names
 }
 
@@ -53,7 +53,7 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 		return nil, ErrDecimalSpiralArgs
 	}
 
-	size, err := strconv.Atoi(args[0]);
+	size, err := strconv.Atoi(args[0])
 	if err != nil {
 		if err.(*strconv.NumError).Err == strconv.ErrSyntax {
 			return nil, ErrDecimalSpiralSyntax
@@ -63,7 +63,7 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 		return nil, err
 	}
 
-	if size % 2 == 0 || size < DecimalSpiralLowerLimit || size > DecimalSpiralUpperLimit {
+	if size%2 == 0 || size < DecimalSpiralLowerLimit || size > DecimalSpiralUpperLimit {
 		return nil, ErrDecimalSpiralRange
 	}
 
@@ -71,7 +71,7 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 }
 
 func abs(i int) int {
-	if (i < 0) {
+	if i < 0 {
 		return -i
 	}
 	return i
@@ -107,33 +107,33 @@ func genDecimalSpiral(size int) string {
 // the spiral of digits and returns true if it is, and false if not
 func isDigit(size int, row int, col int) bool {
 	// Absolute row distance from midpoint
-	rowDist := abs(row - size / 2)
+	rowDist := abs(row - size/2)
 	// Absolute column distance from midpoint
-	colDist := abs(col - size / 2)
+	colDist := abs(col - size/2)
 	isDigit := false
 
-	if size % 4 == 1 {
+	if size%4 == 1 {
 		// Type 1 spiral (digit in centre)
-		if row <= size / 2 && col < size / 2 && row == col + 1 {
+		if row <= size/2 && col < size/2 && row == col+1 {
 			// Special handling to turn boxes into spirals
-			if rowDist % 2 == 0 {
+			if rowDist%2 == 0 {
 				isDigit = true
 			}
-		} else if colDist >= rowDist && colDist % 2 == 0 { 
+		} else if colDist >= rowDist && colDist%2 == 0 {
 			isDigit = true
-		} else if colDist < rowDist && rowDist % 2 == 0 {
+		} else if colDist < rowDist && rowDist%2 == 0 {
 			isDigit = true
 		}
 	} else {
 		// Type 2 spiral (no digit in centre)
-		if row <= size / 2 && col < size / 2 && row == col + 1 {
+		if row <= size/2 && col < size/2 && row == col+1 {
 			// Special handling to turn boxes into spirals
-			if rowDist % 2 == 1 {
+			if rowDist%2 == 1 {
 				isDigit = true
 			}
-		} else if colDist >= rowDist && colDist % 2 != 0 {
+		} else if colDist >= rowDist && colDist%2 != 0 {
 			isDigit = true
-		} else if colDist < rowDist && rowDist % 2 != 0 {
+		} else if colDist < rowDist && rowDist%2 != 0 {
 			isDigit = true
 		}
 	}
@@ -188,66 +188,66 @@ func isDigit(size int, row int, col int) bool {
 // corner values
 func getDigit(size int, row int, col int) int {
 	// Special handling for box segments modified to be spirals
-	if (row <= size / 2 && col < size / 2 && row == col + 1) {
-		row = row -1
+	if row <= size/2 && col < size/2 && row == col+1 {
+		row = row - 1
 		col = col - 1
 	}
 
 	// Row displacement from midpoint
-	rowDist := row - size / 2
+	rowDist := row - size/2
 	// Absolute row distance from midpoint
 	absRowDist := abs(rowDist)
 	// Column displacement from midpoint
-	colDist := col - size / 2
+	colDist := col - size/2
 	// Absolute column distance from midpoint
 	absColDist := abs(colDist)
 	// Size of box current coordinate is on
 	subSize := 0
 	if absRowDist >= absColDist {
-		subSize = 2 * absRowDist + 1
+		subSize = 2*absRowDist + 1
 	} else {
-		subSize = 2 * absColDist + 1
+		subSize = 2*absColDist + 1
 	}
-	row = row - (size - subSize) / 2
-	col = col - (size - subSize) / 2
+	row = row - (size-subSize)/2
+	col = col - (size-subSize)/2
 	// Layer of current box. 0 is centre
 	layer := (subSize + 1) / 4
 
 	if rowDist <= 0 && absRowDist >= absColDist {
 		// Top quadrant
-		if subSize % 4 == 1 {
+		if subSize%4 == 1 {
 			// Type 1 boxes
-			return 8 * layer * layer + 8 * layer - col
+			return 8*layer*layer + 8*layer - col
 		} else {
 			// Type 2 boxes
-			return 8 * layer * layer - 2 - col
+			return 8*layer*layer - 2 - col
 		}
 	} else if colDist > 0 && absColDist > absRowDist {
 		// Right quadrant
-		if subSize % 4 == 1 {
+		if subSize%4 == 1 {
 			// Type 1 boxes
-			return 8 * layer * layer + 4 * layer - row
+			return 8*layer*layer + 4*layer - row
 		} else {
 			// Type 2 boxes
-			return 8 * layer * layer - 4 * layer - row
+			return 8*layer*layer - 4*layer - row
 		}
 	} else if rowDist > 0 && absRowDist >= absColDist {
 		// Bottom quadrant
-		if subSize % 4 == 1 {
+		if subSize%4 == 1 {
 			// Type 1 boxes
-			return 8 * layer * layer - 4 * layer + col
+			return 8*layer*layer - 4*layer + col
 		} else {
 			// Type 2 boxes
-			return 8 * layer * layer - 12 * layer + 4 + col
+			return 8*layer*layer - 12*layer + 4 + col
 		}
 	} else {
 		// Left quadrant
-		if subSize % 4 == 1 {
+		if subSize%4 == 1 {
 			// Type 1 boxes
-			return 8 * layer * layer - 8 * layer + row
+			return 8*layer*layer - 8*layer + row
 		} else {
 			// Type 2 boxes
-			return 8 * layer * layer - 16 * layer + 6 + row
+			return 8*layer*layer - 16*layer + 6 + row
 		}
 	}
 }
