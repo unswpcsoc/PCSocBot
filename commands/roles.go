@@ -22,7 +22,7 @@ func NewRole(role string) *Role {
 	}
 }
 
-func (r *Role) Names() []string {
+func (r *Role) Aliases() []string {
 	return r.names
 }
 
