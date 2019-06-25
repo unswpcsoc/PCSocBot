@@ -16,7 +16,7 @@ func NewPing() *Ping {
 	}
 }
 
-func (p *Ping) Names() []string {
+func (p *Ping) Aliases() []string {
 	return p.names
 }
 
