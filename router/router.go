@@ -32,11 +32,11 @@ func NewRouter() Router {
 
 // Addcommand adds command-string mapping
 func (r *Router) Addcommand(com comm.Command) {
-	if com == nil || len(com.Names()) == 0 || r.routes == nil {
+	if com == nil || len(com.Aliases()) == 0 || r.routes == nil {
 		return
 	}
 
-	for _, str := range com.Names() {
+	for _, str := range com.Aliases() {
 		argv := strings.Split(str, " ")
 
 		// Search all known leaves
