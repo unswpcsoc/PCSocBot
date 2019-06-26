@@ -54,7 +54,7 @@ func (q *quotes) Index() string {
 /* quote */
 
 type Quote struct {
-	Index int `arg:index`
+	Index int `arg:"index"`
 }
 
 func NewQuote() *Quote { return &Quote{} }
@@ -170,7 +170,7 @@ func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message,
 /* quote add */
 
 type QuoteAdd struct {
-	Quote string `arg:quote`
+	Quote string `arg:"quote"`
 }
 
 func NewQuoteAdd() *QuoteAdd { return &QuoteAdd{} }
@@ -224,7 +224,7 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, arg
 /* quote approve */
 
 type QuoteApprove struct {
-	Index int `arg:index`
+	Index int `arg:"index"`
 }
 
 func NewQuoteApprove() *QuoteApprove { return &QuoteApprove{} }
@@ -317,7 +317,7 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message,
 /* quote remove */
 
 type QuoteRemove struct {
-	Index int `arg:index`
+	Index int `arg:"index"`
 }
 
 func NewQuoteRemove() *QuoteRemove { return &QuoteRemove{} }
@@ -380,7 +380,7 @@ func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, 
 /* quote reject */
 
 type QuoteReject struct {
-	Index int `arg:index`
+	Index int `arg:"index"`
 }
 
 func NewQuoteReject() *QuoteReject { return &QuoteReject{} }
