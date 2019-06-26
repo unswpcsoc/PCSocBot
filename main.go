@@ -21,26 +21,26 @@ const (
 )
 
 var (
-	echo bool
-	prod bool
+	echo bool // echo mode
+	prod bool // production mode i.e. db saves to file rather than memory
 
 	dgo *discordgo.Session
 	rtr router.Router
 
-	errs = log.New(os.Stderr, "Error: ", log.Ltime)
+	errs = log.New(os.Stderr, "Error: ", log.Ltime) // logger for errors
 )
 
-// flag parsing
+// flag parse init
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Enables echo mode")
 	flag.BoolVar(&prod, "prod", false, "Enables production mode")
 	flag.Parse()
 }
 
-// discordgo session
+// discordgo init
 func init() {
-	key, exists := os.LookupEnv("KEY")
-	if !exists {
+	key, ok := os.LookupEnv("KEY")
+	if !ok {
 		errs.Fatalln("Missing Discord API Key: Set env var $KEY")
 	}
 
@@ -56,7 +56,7 @@ func init() {
 	}
 }
 
-// command registration
+// command init
 func init() {
 	rtr = router.NewRouter()
 
@@ -79,7 +79,7 @@ func init() {
 	rtr.Addcommand(commands.NewRole("Bookworm"))
 }
 
-// db intialisation
+// db init
 func init() {
 	var err error
 	if prod {
@@ -138,16 +138,24 @@ func main() {
 
 	dgo.UpdateListeningStatus("you")
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		// catch panics
+		defer func() {
+			if r := recover(); r != nil {
+				errs.Println("Caught panic: ", r)
+			}
+		}()
+
 		if m.Author.ID == s.State.User.ID {
 			return
 		}
+
 		trm := strings.TrimSpace(m.Content)
 		if !strings.HasPrefix(trm, commands.PREFIX) || len(trm) == 1 {
 			return
 		}
 		s.ChannelTyping(m.ChannelID)
 
-		// Route message
+		// route message
 		argv := strings.Split(trm[1:], " ")
 		com, ind := rtr.Route(argv)
 		if com == nil {
@@ -156,7 +164,7 @@ func main() {
 			return
 		}
 
-		// Check chans
+		// check chans
 		chans := com.Chans()
 		has, err := utils.MsgInChannels(s, m.Message, chans)
 		if err != nil {
@@ -175,7 +183,7 @@ func main() {
 			return
 		}
 
-		// Check roles
+		// check roles
 		roles := com.Roles()
 		has, err = utils.MsgHasRoles(s, m.Message, roles)
 		if err != nil {
@@ -194,7 +202,13 @@ func main() {
 			return
 		}
 
-		// Handle message
+		// fill args and check usage
+		err = commands.FillArgs(com, argv[ind:])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, utils.Italics(commands.GetUsage(com)))
+		}
+
+		// handle message
 		snd, err := com.MsgHandle(s, m.Message, argv[ind:])
 		if err != nil {
 			errs.Println(err)
@@ -207,7 +221,7 @@ func main() {
 		}
 	})
 
-	// Don't close the connection, wait for a kill signal
+	// keep alive
 	log.Println("Logged in as:", dgo.State.User.ID)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
