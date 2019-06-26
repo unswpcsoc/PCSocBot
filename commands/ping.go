@@ -1,36 +1,18 @@
 package commands
 
-import (
-	"github.com/bwmarrin/discordgo"
-)
+import "github.com/bwmarrin/discordgo"
 
-type Ping struct {
-	names []string
-	desc  string
-}
+type Ping struct{}
 
-func NewPing() *Ping {
-	return &Ping{
-		names: []string{"ping", "ping pong"},
-		desc:  "Ping!",
-	}
-}
+func NewPing() *Ping { return &Ping{} }
 
-func (p *Ping) Aliases() []string {
-	return p.names
-}
+func (p *Ping) Aliases() []string { return []string{"ping", "ping pong"} }
 
-func (p *Ping) Desc() string {
-	return p.desc
-}
+func (p *Ping) Desc() string { return "Ping!" }
 
-func (p *Ping) Roles() []string {
-	return nil
-}
+func (p *Ping) Roles() []string { return nil }
 
-func (p *Ping) Chans() []string {
-	return nil
-}
+func (p *Ping) Chans() []string { return nil }
 
 func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
 	return NewSimpleSend(msg.ChannelID, "Pong!"), nil
