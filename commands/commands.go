@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
+	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -108,43 +108,39 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 /* usage generation */
 
 // GetUsage generates the usage message from a Command
-func GetUsage(c Command) (usage string, ok bool) {
+// will panic if the type is not a struct
+func GetUsage(c Command) (usage string) {
 	v := reflect.ValueOf(c)
 
 	if v.Kind() == reflect.Ptr {
 		// unroll pointer
-		v := v.Elem()
+		v = v.Elem()
 		if !v.IsValid() {
-			return "", false
+			panic(fmt.Sprintf("GetUsage: %v is not valid\n", v))
 		}
 	}
 
 	if v.Kind() != reflect.Struct {
-		return "", false
+		panic(fmt.Sprintf("GetUsage: %v is not a struct\n", v))
 	}
 
-	// command aliases
+	// command alias
 	names := c.Aliases()
-	if len(names) == 0 {
-		return "", false
-	}
-
 	usage = "!" + names[0]
 
-	// struct fields
+	// parse struct fields with arg tags
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Type().Field(i)
 
-		fTag := string(f.Tag)
-		if !strings.HasPrefix(fTag, "arg:") {
+		tag, ok := f.Tag.Lookup("arg")
+		if !ok {
 			continue
 		}
-		fName := strings.Split(fTag, "arg:")[0]
 
-		usage += " (" + string(f.Type.Name()) + " " + utils.Under(fName) + ")"
+		usage += " (" + string(f.Type.Name()) + " " + utils.Under(tag) + ")"
 	}
 
-	// other names
+	// other aliases
 	if len(names) > 1 {
 		usage += "\n" + utils.Bold("AKA") + "\n"
 		for _, name := range names[1:] {
@@ -152,5 +148,122 @@ func GetUsage(c Command) (usage string, ok bool) {
 		}
 	}
 
-	return usage, true
+	return usage
+}
+
+/* arg filling */
+
+// FillArgs tries to fill the given command's struct fields with the args given
+//
+// FillArgs will return a strconv error if types cannot be matched
+// and will panic if there are unexported arg fields or if variable args are done incorrectly
+// or if input is generally messed up
+func FillArgs(c Command, args []string) error {
+	if len(args) == 0 {
+		return nil
+	}
+	var err error
+	var val reflect.Value
+	val = reflect.ValueOf(c)
+
+	if val.Kind() == reflect.Ptr {
+		// unroll pointer
+		val = val.Elem()
+		if !val.IsValid() {
+			panic(fmt.Sprintf("FillArgs: %#v is not valid\n", val))
+		}
+	}
+
+	if val.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("FillArgs: %#v is not a struct\n", val))
+	}
+
+	// get arg fields as slice of values
+	argFields := []reflect.Value{}
+	for i := 0; i < val.NumField(); i++ {
+		ft := val.Type().Field(i)
+		fv := val.Field(i)
+		_, ok := ft.Tag.Lookup("arg")
+		if !ok {
+			continue
+		}
+		if !fv.CanSet() {
+			panic("FillArgs: using unexported field with arg tag")
+		}
+		argFields = append(argFields, fv)
+	}
+
+	// iterate through arg fields
+	argIndex := 0
+	for i, fv := range argFields {
+		// kind switch for field types
+		switch fv.Kind() {
+		case reflect.String:
+			fv.SetString(args[argIndex])
+
+		case reflect.Int:
+			var got int
+			got, err = strconv.Atoi(args[argIndex])
+			if err != nil {
+				return err
+			}
+			fv.SetInt(int64(got))
+
+		case reflect.Bool:
+			var got bool
+			got, err = strconv.ParseBool(args[argIndex])
+			if err != nil {
+				return err
+			}
+			fv.SetBool(got)
+
+		case reflect.Array, reflect.Slice:
+			// check slice is last arg field
+			if i+1 != len(argFields) {
+				panic("FillArgs: variable-length arg but is not the final arg field")
+			}
+
+			// make new slice value of elem type
+			elemType := fv.Elem()
+			sv := reflect.MakeSlice(reflect.SliceOf(elemType.Type()), 0, 0)
+
+			// kind switch for slice elem types
+			switch elemType.Kind() {
+			case reflect.String:
+				for ; argIndex < len(args); argIndex++ {
+					sv = reflect.Append(sv, reflect.ValueOf(args[argIndex]))
+				}
+			case reflect.Int:
+				for ; argIndex < len(args); argIndex++ {
+					var got int
+					got, err = strconv.Atoi(args[argIndex])
+					if err != nil {
+						return err
+					}
+					sv = reflect.Append(sv, reflect.ValueOf(got))
+				}
+			case reflect.Bool:
+				for ; argIndex < len(args); argIndex++ {
+					var got bool
+					got, err = strconv.ParseBool(args[argIndex])
+					if err != nil {
+						return err
+					}
+					sv = reflect.Append(sv, reflect.ValueOf(got))
+				}
+			default:
+				panic("FillArgs: var-arg field cannot handle elem type " + elemType.Kind().String())
+			}
+
+			fv.Set(sv.Slice(0, sv.Len()))
+			return nil
+
+		default:
+			panic("FillArgs: arg field cannot handle type " + fv.Kind().String())
+		}
+
+		// continue along arg
+		argIndex++
+	}
+	return nil
 }
