@@ -7,24 +7,14 @@ import (
 )
 
 type Echo struct {
-	names []string
-	desc  string
+	input []string `arg:"input"`
 }
 
-func NewEcho() *Echo {
-	return &Echo{
-		names: []string{"echo"},
-		desc:  "Echo!",
-	}
-}
+func NewEcho() *Echo { return &Echo{} }
 
-func (e *Echo) Aliases() []string {
-	return e.names
-}
+func (e *Echo) Aliases() []string { return []string{"echo"} }
 
-func (e *Echo) Desc() string {
-	return e.desc
-}
+func (e *Echo) Desc() string { return "Echo!" }
 
 func (e *Echo) Roles() []string {
 	return nil
