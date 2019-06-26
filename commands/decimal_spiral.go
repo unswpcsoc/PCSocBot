@@ -10,34 +10,26 @@ import (
 )
 
 const (
-	DecimalSpiralLowerLimit = 5
-	DecimalSpiralUpperLimit = 43
+	LowerLimit = 5
+	UpperLimit = 43
 )
 
 var (
 	ErrDecimalSpiralSyntax = errors.New("size is not an integer")
-	ErrDecimalSpiralRange  = errors.New("size is not an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit))
+	ErrDecimalSpiralRange  = errors.New("size is not an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit))
 	ErrDecimalSpiralArgs   = errors.New("not enough args")
 )
 
 type DecimalSpiral struct {
-	names []string
-	desc  string
+	size int `arg:"size"`
 }
 
-func NewDecimalSpiral() *DecimalSpiral {
-	return &DecimalSpiral{
-		names: []string{"decimalspiral", "ds"},
-		desc:  "Usage: ds <size>. Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(DecimalSpiralLowerLimit) + " and " + strconv.Itoa(DecimalSpiralUpperLimit),
-	}
-}
+func NewDecimalSpiral() *DecimalSpiral { return &DecimalSpiral{} }
 
-func (d *DecimalSpiral) Aliases() []string {
-	return d.names
-}
+func (d *DecimalSpiral) Aliases() []string { return []string{"decimalspiral", "ds"} }
 
 func (d *DecimalSpiral) Desc() string {
-	return d.desc
+	return "Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit)
 }
 
 func (d *DecimalSpiral) Roles() []string {
@@ -63,7 +55,7 @@ func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 		return nil, err
 	}
 
-	if size%2 == 0 || size < DecimalSpiralLowerLimit || size > DecimalSpiralUpperLimit {
+	if size%2 == 0 || size < LowerLimit || size > UpperLimit {
 		return nil, ErrDecimalSpiralRange
 	}
 
