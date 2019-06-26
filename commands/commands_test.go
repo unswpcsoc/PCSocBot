@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/bwmarrin/discordgo"
+
 	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
@@ -19,8 +21,25 @@ type thing struct {
 	//c string `json:"unexported"`
 }
 
-func (t *thing) Index() string {
-	return INDEX
+func (t *thing) Index() string { return "thing" }
+
+type Ping struct {
+	Name string `arg:"name"`
+	Age  int    `arg:"age"`
+}
+
+func NewPing() *Ping { return &Ping{} }
+
+func (p *Ping) Aliases() []string { return []string{"ping", "ping pong"} }
+
+func (p *Ping) Desc() string { return "Ping!" }
+
+func (p *Ping) Roles() []string { return nil }
+
+func (p *Ping) Chans() []string { return nil }
+
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*commands.CommandSend, error) {
+	return nil, nil
 }
 
 /* actual tests */
@@ -64,7 +83,6 @@ func TestDBGet(t *testing.T) {
 	exp := thing{
 		A: "first thingy",
 		B: 42,
-		//c: "unexported field",
 	}
 
 	// Open transaction, Set thingy in db
@@ -81,7 +99,7 @@ func TestDBGet(t *testing.T) {
 
 	// Set query
 	qry := "0"
-	_, _, err = tx.Set(exp.Index()+":"+qry, string(mar), nil)
+	_, _, err = tx.Set("thing:"+qry, string(mar), nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +142,7 @@ func TestDBGet(t *testing.T) {
 	// NB: 	pointer receiver methods are added to the type's pointer's method table,
 	// 		type asserting as the pointer is required here because of that
 	if got != exp {
-		t.Errorf("DBGet(%s) = %#v; want %#v", qry, got, exp)
+		t.Errorf("DBGet(%s) got %#v; want %#v", qry, got, exp)
 	}
 }
 
@@ -198,4 +216,38 @@ func TestDBSet(t *testing.T) {
 	if got != exp {
 		t.Errorf("DBSet(%[1]s, %#[3]v) set {%[2]s: %#[4]v}; want {%[2]s: %#[5]v}", ind, qry, exp, got, exp)
 	}
+}
+
+/* arg filling test */
+
+func TestArgFill(t *testing.T) {
+	var err error
+	var args []string
+	exp := NewPing()
+	got := NewPing()
+
+	// fill with nothing
+	args = []string{}
+	err = commands.FillArgs(got, args)
+	if err != nil {
+		t.Errorf("ArgFill(%v, %v) threw error %v", got, args, err)
+	}
+
+	// fill with both args
+	exp.Name = "bob"
+	exp.Age = 42
+	args = []string{"bob", "42"}
+	err = commands.FillArgs(got, args)
+	if err != nil {
+		t.Errorf("ArgFill(%#v, %v) threw error %v", NewPing(), args, err)
+	}
+	if *got != *exp {
+		t.Errorf("ArgFill(%#v, %v) set %#v; want %#v", NewPing(), args, got, exp)
+	}
+
+	// clear fields
+	got.Name = ""
+	got.Age = 0
+
+	// TODO: more rigorous testing
 }
