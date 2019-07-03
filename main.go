@@ -127,7 +127,7 @@ func main() {
 			}
 		}()
 
-		if m.Author.ID == s.State.User.ID {
+		if m.Author.ID == s.State.User.ID || m.Author.Bot {
 			return
 		}
 
@@ -187,7 +187,8 @@ func main() {
 		// fill args and check usage
 		err = commands.FillArgs(com, argv[ind:])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, commands.GetUsage(com))
+			usage := utils.Bold("Usage: ") + commands.GetUsage(com)
+			s.ChannelMessageSend(m.ChannelID, usage)
 			errs.Println(err)
 			return
 		}
