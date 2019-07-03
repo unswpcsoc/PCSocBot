@@ -23,6 +23,7 @@ const (
 var (
 	echo bool // echo mode
 	prod bool // production mode i.e. db saves to file rather than memory
+	sync bool // sync mode - will handle events syncronously if set
 
 	dgo *discordgo.Session
 
@@ -33,6 +34,7 @@ var (
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Enables echo mode")
 	flag.BoolVar(&prod, "prod", false, "Enables production mode")
+	flag.BoolVar(&sync, "sync", false, "Enables synchronous event handling")
 	flag.Parse()
 }
 
@@ -53,6 +55,10 @@ func init() {
 	if err != nil {
 		errs.Fatalln(err)
 	}
+
+	dgo.SyncEvents = sync
+
+	log.Printf("Logged in as: %v\nSyncEvents is %v", dgo.State.User.ID, dgo.SyncEvents)
 }
 
 // db init
@@ -200,7 +206,6 @@ func main() {
 	})
 
 	// keep alive
-	log.Println("Logged in as:", dgo.State.User.ID)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	sig := <-sc
