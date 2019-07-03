@@ -27,6 +27,17 @@ func init() {
 	commandRouter.Addcommand(NewRole("Weeb"))
 	commandRouter.Addcommand(NewRole("Meta"))
 	commandRouter.Addcommand(NewRole("Bookworm"))
+
+	commandRouter.Addcommand(NewTags())
+	commandRouter.Addcommand(NewTagsAdd())
+	commandRouter.Addcommand(NewTagsList())
+	/*
+		commandRouter.Addcommand(NewTagsRemove())
+		commandRouter.Addcommand(NewTagsGet())
+		commandRouter.Addcommand(NewTagsView())
+		commandRouter.Addcommand(NewTagsPlatforms())
+		commandRouter.Addcommand(NewTagsPing())
+	*/
 }
 
 // Route is a wrapper around the handler package's internal router's Route method
