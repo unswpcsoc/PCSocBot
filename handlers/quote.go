@@ -1,4 +1,4 @@
-package commands
+package handlers
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
+	. "github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 

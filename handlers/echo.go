@@ -1,13 +1,14 @@
-package commands
+package handlers
 
 import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	. "github.com/unswpcsoc/PCSocBot/commands"
 )
 
 type Echo struct {
-	input []string `arg:"input"`
+	Input []string `arg:"input"`
 }
 
 func NewEcho() *Echo { return &Echo{} }

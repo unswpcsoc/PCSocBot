@@ -1,31 +1,42 @@
 package commands_test
 
 import (
-	"encoding/json"
-	//"fmt"
-	"os"
+	"reflect"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/unswpcsoc/PCSocBot/commands"
+	. "github.com/unswpcsoc/PCSocBot/commands"
 )
 
 /* preamble */
 
-const INDEX = "thing"
-
-type thing struct {
-	A string `json:"name"`
-	B int    `json:"age"`
-	//c string `json:"unexported"`
+type BadPing struct {
+	Name   string   `arg:"name"`
+	Age    int      `arg:"age"`
+	Rest   []string `arg:"rest"`
+	IsCool bool     `arg:"cool?"`
 }
 
-func (t *thing) Index() string { return "thing" }
+func NewBadPing() *BadPing { return &BadPing{} }
+
+func (p *BadPing) Aliases() []string { return []string{"ping", "ping pong"} }
+
+func (p *BadPing) Desc() string { return "BadPing!" }
+
+func (p *BadPing) Roles() []string { return nil }
+
+func (p *BadPing) Chans() []string { return nil }
+
+func (p *BadPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+	return nil, nil
+}
 
 type Ping struct {
-	Name string `arg:"name"`
-	Age  int    `arg:"age"`
+	Name   string   `arg:"name"`
+	Age    int      `arg:"age"`
+	IsCool bool     `arg:"cool?"`
+	Rest   []string `arg:"rest"`
 }
 
 func NewPing() *Ping { return &Ping{} }
@@ -38,188 +49,18 @@ func (p *Ping) Roles() []string { return nil }
 
 func (p *Ping) Chans() []string { return nil }
 
-func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*commands.CommandSend, error) {
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
 	return nil, nil
 }
 
-/* actual tests */
+/* tests */
 
-func TestMain(m *testing.M) {
-	commands.DBOpen(":memory:")
-
-	// Create debug index, ignore errors
-	tx, _ := commands.DB.Begin(true)
-	tx.CreateIndex("debug", "*", func(a, b string) bool {
-		return a < b
-	})
-	tx.Commit()
-
-	res := m.Run()
-	commands.DBClose()
-	os.Exit(res)
-}
-
-/* db tests */
-
-// TestDBGet tests DBGet
-func TestDBGet(t *testing.T) {
-	// Setup
-	tx, err := commands.DB.Begin(true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = tx.DeleteAll()
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Set expected
-	exp := thing{
-		A: "first thingy",
-		B: 42,
-	}
-
-	// Open transaction, Set thingy in db
-	tx, err = commands.DB.Begin(true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Marshal struct and set it
-	mar, err := json.Marshal(exp)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Set query
-	qry := "0"
-	_, _, err = tx.Set("thing:"+qry, string(mar), nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Write to db
-	err = tx.Commit()
-	if err != nil {
-		t.Error(err)
-	}
-	tx = nil
-
-	// Bad queries, make sure nothing panics
-	var got thing
-	commands.DBGet(nil, qry, &got) // empty Storer
-	commands.DBGet(&exp, "", &got) // empty query
-	commands.DBGet(&exp, "", nil)  // empty ptr
-	commands.DBGet(nil, "", nil)   // empty everything
-
-	// Good query
-	err = commands.DBGet(&exp, qry, &got)
-	if err != nil {
-		t.Error(err)
-	}
-
-	/* Get whole db, if you wish
-	tx, err = db.Begin(false)
-	if err != nil {
-		t.Error(err)
-	}
-	defer tx.Rollback()
-	buf := ""
-	tx.Ascend("debug", func(key, value string) bool {
-		buf += "\t" + key + " : " + value + "\n"
-		return true
-	})
-	fmt.Printf("TestDBGet: DB HAS {\n%s}\n", buf)
-	*/
-
-	// Compare got and exp
-	// NB: 	pointer receiver methods are added to the type's pointer's method table,
-	// 		type asserting as the pointer is required here because of that
-	if got != exp {
-		t.Errorf("DBGet(%s) got %#v; want %#v", qry, got, exp)
-	}
-}
-
-// TestDBSet tests DBSet
-func TestDBSet(t *testing.T) {
-	// Setup
-	tx, err := commands.DB.Begin(true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = tx.DeleteAll()
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		t.Error(err)
-	}
-
-	exp := thing{
-		A: "first thingy",
-		B: 42,
-		//c: "unexported field",
-	}
-
-	ind := "1"
-	// Bad sets, make sure nothing panics
-	commands.DBSet(nil, ind) // empty storer
-	commands.DBSet(&exp, "") // empty key
-	commands.DBSet(nil, "")  // empty everything
-
-	// Set exp in db
-	_, _, err = commands.DBSet(&exp, ind)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Open RO transaction
-	tx, err = commands.DB.Begin(false)
-	if err != nil {
-		t.Error(err)
-	}
-	defer tx.Rollback()
-
-	// Query db
-	qry := INDEX + ":" + ind
-	res, err := tx.Get(qry)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Unmarshal into struct
-	var got thing
-	err = json.Unmarshal([]byte(res), &got)
-	if err != nil {
-		t.Error(err)
-	}
-
-	/* Get whole db, if you wish
-	buf := ""
-	tx.Ascend("debug", func(key, value string) bool {
-		buf += "\t" + key + " : " + value + "\n"
-		return true
-	})
-	fmt.Printf("TestDBSet: DB HAS {\n%s}\n", buf)
-	*/
-
-	// Compare got and exp
-	if got != exp {
-		t.Errorf("DBSet(%[1]s, %#[3]v) set {%[2]s: %#[4]v}; want {%[2]s: %#[5]v}", ind, qry, exp, got, exp)
-	}
-}
-
-/* arg filling test */
-
+// TestArgFill gives ArgFill some args
+// and verifies that ArgFill will:
+// - Fill args correctly when possible
+// - Throws error when string conversion fails
+// - Throws error when not enough args are supplied
+// - TODO: Panics when var args are misused by the programmer
 func TestArgFill(t *testing.T) {
 	var err error
 	var args []string
@@ -228,26 +69,45 @@ func TestArgFill(t *testing.T) {
 
 	// fill with nothing
 	args = []string{}
-	err = commands.FillArgs(got, args)
-	if err != nil {
-		t.Errorf("ArgFill(%v, %v) threw error %v", got, args, err)
+	err = FillArgs(got, args)
+	if err != ErrNotEnoughArgs {
+		t.Errorf("ArgFill(%v, %v) threw error: %v\nexpected error: %v", got, args, err, ErrNotEnoughArgs)
 	}
 
-	// fill with both args
+	// fill with incomplete args
+	args = []string{"bob", "42"}
+	err = FillArgs(got, args)
+	if err != ErrNotEnoughArgs {
+		t.Errorf("ArgFill(%v, %v) threw error: %v\nexpected error: %v", got, args, err, ErrNotEnoughArgs)
+	}
+
+	// fill with all args
 	exp.Name = "bob"
 	exp.Age = 42
-	args = []string{"bob", "42"}
-	err = commands.FillArgs(got, args)
+	exp.IsCool = true
+	exp.Rest = []string{"bob", "is", "cool"}
+
+	args = []string{"bob", "42", "true", "bob", "is", "cool"}
+	err = FillArgs(got, args)
+
 	if err != nil {
-		t.Errorf("ArgFill(%#v, %v) threw error %v", NewPing(), args, err)
+		t.Errorf("ArgFill(%#v, %v)\nthrew error: %v", NewPing(), args, err)
 	}
-	if *got != *exp {
-		t.Errorf("ArgFill(%#v, %v) set %#v; want %#v", NewPing(), args, got, exp)
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("ArgFill(%#v, %v)\nset %#v\nwant %#v", NewPing(), args, got, exp)
 	}
 
-	// clear fields
-	got.Name = ""
-	got.Age = 0
+	// test panic
+	pan := NewBadPing()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Logf("Caught panic on bad var args: %v", r)
+			return
+		}
+	}()
 
-	// TODO: more rigorous testing
+	// fill with args
+	args = []string{"bob", "42", "bob", "is", "cool", "true"}
+	err = FillArgs(pan, args)
+	t.Errorf("ArgFill(%#v, %v)\nDidn't panic with bad var args placement!", NewBadPing(), args)
 }

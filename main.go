@@ -12,7 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/router"
+	"github.com/unswpcsoc/PCSocBot/handlers"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
@@ -25,7 +25,6 @@ var (
 	prod bool // production mode i.e. db saves to file rather than memory
 
 	dgo *discordgo.Session
-	rtr router.Router
 
 	errs = log.New(os.Stderr, "Error: ", log.Ltime) // logger for errors
 )
@@ -54,29 +53,6 @@ func init() {
 	if err != nil {
 		errs.Fatalln(err)
 	}
-}
-
-// command init
-func init() {
-	rtr = router.NewRouter()
-
-	rtr.Addcommand(commands.NewPing())
-
-	rtr.Addcommand(commands.NewEcho())
-
-	rtr.Addcommand(commands.NewQuote())
-	rtr.Addcommand(commands.NewQuoteList())
-	rtr.Addcommand(commands.NewQuotePending())
-	rtr.Addcommand(commands.NewQuoteAdd())
-	rtr.Addcommand(commands.NewQuoteApprove())
-	rtr.Addcommand(commands.NewQuoteRemove())
-	rtr.Addcommand(commands.NewQuoteReject())
-
-	rtr.Addcommand(commands.NewDecimalSpiral())
-
-	rtr.Addcommand(commands.NewRole("Weeb"))
-	rtr.Addcommand(commands.NewRole("Meta"))
-	rtr.Addcommand(commands.NewRole("Bookworm"))
 }
 
 // db init
@@ -157,7 +133,7 @@ func main() {
 
 		// route message
 		argv := strings.Split(trm[1:], " ")
-		com, ind := rtr.Route(argv)
+		com, ind := handlers.Route(argv)
 		if com == nil {
 			// TODO help message routing
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: Unknown command"))
@@ -205,7 +181,9 @@ func main() {
 		// fill args and check usage
 		err = commands.FillArgs(com, argv[ind:])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, utils.Italics(commands.GetUsage(com)))
+			s.ChannelMessageSend(m.ChannelID, commands.GetUsage(com))
+			errs.Println(err)
+			return
 		}
 
 		// handle message

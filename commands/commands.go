@@ -16,7 +16,8 @@ import (
 
 var (
 	/* send errors */
-	ErrSendLimit = errors.New("message exceeds send limit of 2000 characters")
+	ErrSendLimit     = errors.New("message exceeds send limit of 2000 characters")
+	ErrNotEnoughArgs = errors.New("not enough arguments provided")
 )
 
 const (
@@ -159,9 +160,6 @@ func GetUsage(c Command) (usage string) {
 // and will panic if there are unexported arg fields or if variable args are done incorrectly
 // or if input is generally messed up
 func FillArgs(c Command, args []string) error {
-	if len(args) == 0 {
-		return nil
-	}
 	var err error
 	var val reflect.Value
 	val = reflect.ValueOf(c)
@@ -191,6 +189,14 @@ func FillArgs(c Command, args []string) error {
 			panic("FillArgs: using unexported field with arg tag")
 		}
 		argFields = append(argFields, fv)
+	}
+
+	if len(argFields) == 0 {
+		return nil
+	}
+
+	if len(args) < len(argFields) {
+		return ErrNotEnoughArgs
 	}
 
 	// iterate through arg fields
@@ -223,9 +229,9 @@ func FillArgs(c Command, args []string) error {
 				panic("FillArgs: variable-length arg but is not the final arg field")
 			}
 
-			// make new slice value of elem type
-			elemType := fv.Elem()
-			sv := reflect.MakeSlice(reflect.SliceOf(elemType.Type()), 0, 0)
+			// make new slice value of slice field's element type
+			elemType := fv.Type().Elem()
+			sv := reflect.MakeSlice(reflect.SliceOf(elemType), 0, 0)
 
 			// kind switch for slice elem types
 			switch elemType.Kind() {
