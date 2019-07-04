@@ -27,10 +27,10 @@ func (e *Echo) Chans() []string {
 
 func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var out string
-	if len(args) == 0 {
+	if len(e.Input) == 0 {
 		out = "Echo!"
 	} else {
-		out = strings.Join(args, " ")
+		out = strings.Join(e.Input, " ")
 	}
 
 	return NewSimpleSend(msg.ChannelID, out), nil
