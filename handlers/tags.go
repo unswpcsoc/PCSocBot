@@ -46,6 +46,7 @@ type tag struct {
 
 type platform struct {
 	Name string
+	Role *discordgo.Role
 	//TODO: Role string
 	Users map[string]*tag // indexed by user id's
 }
@@ -116,11 +117,20 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args
 	}
 
 	// get platform
+	var drl *discordgo.Role
 	plt, ok := tgs.Platforms[t.Platform]
 	if !ok {
+		// create new role
+		drl, err = ses.GuildRoleCreate(msg.GuildID)
+		if err != nil {
+			// TODO: what do on failure?
+			return nil, err
+		}
+
 		// create new platform
 		plt = &platform{
 			Name:  t.Platform,
+			Role:  drl,
 			Users: make(map[string]*tag),
 		}
 		tgs.Platforms[t.Platform] = plt
@@ -128,12 +138,25 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args
 		// TODO: use reaction to verify
 	}
 
+	// add role to user
+	mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+	if err != nil {
+		mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role)
+	if err != nil {
+		return nil, err
+	}
+
 	// add tag to platform
 	plt.Users[msg.Author.ID] = &tag{
 		ID:       msg.Author.ID,
 		Tag:      t.Tag,
 		Platform: t.Platform,
-		PingMe:   true, // TODO: decide opt-in or opt-out
+		PingMe:   true, // opt-out pings
 	}
 
 	// set tags
@@ -182,9 +205,24 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, a
 	}
 
 	// check tag on platform
-	_, ok = plt.Users[msg.Author.ID]
+	utg, ok = plt.Users[msg.Author.ID]
 	if !ok {
 		return nil, ErrNoUser
+	}
+
+	if utg.PingMe {
+		// remove role from user
+		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// remove the tag
@@ -192,6 +230,12 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, a
 	out.AddSimpleMessage("Removed your tag from " + utils.Code(t.Platform))
 
 	if len(plt.Users) == 0 {
+		// remove the role from guild
+		err = ses.State.RoleRemove(msg.GuildID, plt.Role.ID)
+		if err != nil {
+			return nil, err
+		}
+
 		// remove the platform
 		delete(tgs.Platforms, t.Platform)
 		out.AddSimpleMessage("Removing empty platform: " + utils.Code(t.Platform))
@@ -280,13 +324,19 @@ func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, arg
 	list := utils.Code(t.Platform) + "'s tags:\n"
 	// TODO: construct embed for this
 	for _, utg := range plt.Users {
-		var dusr *discordgo.User
-		dusr, err = ses.User(utg.ID)
+		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if err != nil {
 			// silently fail
 			continue
 		}
-		list += dusr.Username + " : "
+		list += mem.Nick + " : "
 		list += utg.Tag + " : can"
 		if utg.PingMe {
 			list += "'t"
