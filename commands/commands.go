@@ -45,7 +45,7 @@ type CommandSend struct {
 // NewSend Returns a send struct.
 func NewSend(cid string) *CommandSend {
 	return &CommandSend{
-		make([]*discordgo.MessageSend, SEND_LIMIT),
+		[]*discordgo.MessageSend{},
 		cid,
 	}
 }
