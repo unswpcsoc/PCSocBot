@@ -143,8 +143,8 @@ func main() {
 		argv := strings.Split(trm[1:], " ")
 		com, ind := handlers.Route(argv)
 		if com == nil {
-			// TODO help message routing
-			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: Unknown command"))
+			out := utils.Italics("Error: Unknown command; use " + handlers.HELPALIAS)
+			s.ChannelMessageSend(m.ChannelID, out)
 			return
 		}
 
@@ -189,14 +189,14 @@ func main() {
 		// fill args and check usage
 		err = commands.FillArgs(com, argv[ind:])
 		if err != nil {
-			usage := utils.Bold("Usage: ") + commands.GetUsage(com)
+			usage := "Usage: " + commands.GetUsage(com)
 			s.ChannelMessageSend(m.ChannelID, usage)
 			errs.Println(err)
 			return
 		}
 
 		// handle message
-		snd, err := com.MsgHandle(s, m.Message, argv[ind:])
+		snd, err := com.MsgHandle(s, m.Message)
 		if err != nil {
 			errs.Println(err)
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
