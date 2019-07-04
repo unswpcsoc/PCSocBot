@@ -30,11 +30,12 @@ func init() {
 
 	commandRouter.Addcommand(NewTags())
 	commandRouter.Addcommand(NewTagsAdd())
+	commandRouter.Addcommand(NewTagsView())
 	commandRouter.Addcommand(NewTagsList())
+	commandRouter.Addcommand(NewTagsPingMe())
 	/*
 		commandRouter.Addcommand(NewTagsRemove())
 		commandRouter.Addcommand(NewTagsGet())
-		commandRouter.Addcommand(NewTagsView())
 		commandRouter.Addcommand(NewTagsPlatforms())
 		commandRouter.Addcommand(NewTagsPing())
 	*/
