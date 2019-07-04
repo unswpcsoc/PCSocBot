@@ -120,12 +120,14 @@ func main() {
 
 	dgo.UpdateListeningStatus("you")
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		// catch panics
-		defer func() {
-			if r := recover(); r != nil {
-				errs.Println("Caught panic: ", r)
-			}
-		}()
+		// catch panics on production
+		if prod {
+			defer func() {
+				if r := recover(); r != nil {
+					errs.Println("Caught panic: ", r)
+				}
+			}()
+		}
 
 		if m.Author.ID == s.State.User.ID || m.Author.Bot {
 			return
