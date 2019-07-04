@@ -1,4 +1,4 @@
-package commands
+package handlers
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
+	. "github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
@@ -21,7 +22,7 @@ var (
 )
 
 type DecimalSpiral struct {
-	size int `arg:"size"`
+	Size int `arg:"size"`
 }
 
 func NewDecimalSpiral() *DecimalSpiral { return &DecimalSpiral{} }
@@ -41,25 +42,11 @@ func (d *DecimalSpiral) Chans() []string {
 }
 
 func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	if len(args) == 0 {
-		return nil, ErrDecimalSpiralArgs
-	}
-
-	size, err := strconv.Atoi(args[0])
-	if err != nil {
-		if err.(*strconv.NumError).Err == strconv.ErrSyntax {
-			return nil, ErrDecimalSpiralSyntax
-		} else if err.(*strconv.NumError).Err == strconv.ErrRange {
-			return nil, ErrDecimalSpiralRange
-		}
-		return nil, err
-	}
-
-	if size%2 == 0 || size < LowerLimit || size > UpperLimit {
+	if d.Size%2 == 0 || d.Size < LowerLimit || d.Size > UpperLimit {
 		return nil, ErrDecimalSpiralRange
 	}
 
-	return NewSimpleSend(msg.ChannelID, utils.Block(genDecimalSpiral(size))), nil
+	return NewSimpleSend(msg.ChannelID, utils.Block(genDecimalSpiral(d.Size))), nil
 }
 
 func abs(i int) int {

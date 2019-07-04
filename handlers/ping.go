@@ -1,6 +1,9 @@
-package commands
+package handlers
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+	. "github.com/unswpcsoc/PCSocBot/commands"
+)
 
 type Ping struct{}
 

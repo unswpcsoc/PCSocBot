@@ -12,7 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/router"
+	"github.com/unswpcsoc/PCSocBot/handlers"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
@@ -23,9 +23,9 @@ const (
 var (
 	echo bool // echo mode
 	prod bool // production mode i.e. db saves to file rather than memory
+	sync bool // sync mode - will handle events syncronously if set
 
 	dgo *discordgo.Session
-	rtr router.Router
 
 	errs = log.New(os.Stderr, "Error: ", log.Ltime) // logger for errors
 )
@@ -34,6 +34,7 @@ var (
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Enables echo mode")
 	flag.BoolVar(&prod, "prod", false, "Enables production mode")
+	flag.BoolVar(&sync, "sync", false, "Enables synchronous event handling")
 	flag.Parse()
 }
 
@@ -54,29 +55,10 @@ func init() {
 	if err != nil {
 		errs.Fatalln(err)
 	}
-}
 
-// command init
-func init() {
-	rtr = router.NewRouter()
+	dgo.SyncEvents = sync
 
-	rtr.Addcommand(commands.NewPing())
-
-	rtr.Addcommand(commands.NewEcho())
-
-	rtr.Addcommand(commands.NewQuote())
-	rtr.Addcommand(commands.NewQuoteList())
-	rtr.Addcommand(commands.NewQuotePending())
-	rtr.Addcommand(commands.NewQuoteAdd())
-	rtr.Addcommand(commands.NewQuoteApprove())
-	rtr.Addcommand(commands.NewQuoteRemove())
-	rtr.Addcommand(commands.NewQuoteReject())
-
-	rtr.Addcommand(commands.NewDecimalSpiral())
-
-	rtr.Addcommand(commands.NewRole("Weeb"))
-	rtr.Addcommand(commands.NewRole("Meta"))
-	rtr.Addcommand(commands.NewRole("Bookworm"))
+	log.Printf("Logged in as: %v\nSyncEvents is %v", dgo.State.User.ID, dgo.SyncEvents)
 }
 
 // db init
@@ -138,14 +120,16 @@ func main() {
 
 	dgo.UpdateListeningStatus("you")
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		// catch panics
-		defer func() {
-			if r := recover(); r != nil {
-				errs.Println("Caught panic: ", r)
-			}
-		}()
+		// catch panics on production
+		if prod {
+			defer func() {
+				if r := recover(); r != nil {
+					errs.Println("Caught panic: ", r)
+				}
+			}()
+		}
 
-		if m.Author.ID == s.State.User.ID {
+		if m.Author.ID == s.State.User.ID || m.Author.Bot {
 			return
 		}
 
@@ -157,7 +141,7 @@ func main() {
 
 		// route message
 		argv := strings.Split(trm[1:], " ")
-		com, ind := rtr.Route(argv)
+		com, ind := handlers.Route(argv)
 		if com == nil {
 			// TODO help message routing
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: Unknown command"))
@@ -205,7 +189,10 @@ func main() {
 		// fill args and check usage
 		err = commands.FillArgs(com, argv[ind:])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, utils.Italics(commands.GetUsage(com)))
+			usage := utils.Bold("Usage: ") + commands.GetUsage(com)
+			s.ChannelMessageSend(m.ChannelID, usage)
+			errs.Println(err)
+			return
 		}
 
 		// handle message
@@ -222,7 +209,6 @@ func main() {
 	})
 
 	// keep alive
-	log.Println("Logged in as:", dgo.State.User.ID)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	sig := <-sc
