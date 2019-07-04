@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -69,7 +71,17 @@ func (t *Tags) Roles() []string { return nil }
 func (t *Tags) Chans() []string { return nil }
 
 func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	return NewSimpleSend(msg.ChannelID, "WIP"), nil
+	// TODO: route help message magic etc.
+	out := "Subcommands:"
+	out += "\n" + utils.Code("add")
+	out += "\n" + utils.Code("remove")
+	out += "\n" + utils.Code("get")
+	out += "\n" + utils.Code("list")
+	out += "\n" + utils.Code("view")
+	out += "\n" + utils.Code("platforms")
+	out += "\n" + utils.Code("ping")
+	out += "\n" + utils.Code("pingme")
+	return NewSimpleSend(msg.ChannelID, out), nil
 }
 
 /* tags add */
@@ -130,13 +142,15 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args
 		return nil, err
 	}
 
-	out.AddSimpleMessage("Added tag " + utils.Code(t.Tag) + " for platform " + utils.Code(t.Platform))
+	out.AddSimpleMessage("Added tag " + utils.Code(t.Tag) + " for " + utils.Code(t.Platform))
 	return out, nil
 }
 
 /* tags remove */
 
-type TagsRemove struct{}
+type TagsRemove struct {
+	Platform string `arg:"platform"`
+}
 
 func NewTagsRemove() *TagsRemove { return &TagsRemove{} }
 
@@ -149,12 +163,53 @@ func (t *TagsRemove) Roles() []string { return nil }
 func (t *TagsRemove) Chans() []string { return nil }
 
 func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	return nil, nil
+	var err error
+	var tgs tags
+	var out = NewSend(msg.ChannelID)
+
+	// get all tags
+	err = DBGet(&tgs, TagsKey, &tgs)
+	if err == ErrDBNotFound {
+		return nil, ErrNoPlatform
+	} else if err != nil {
+		return nil, err
+	}
+
+	// get platform
+	plt, ok := tgs.Platforms[t.Platform]
+	if !ok {
+		return nil, ErrNoPlatform
+	}
+
+	// check tag on platform
+	_, ok = plt.Users[msg.Author.ID]
+	if !ok {
+		return nil, ErrNoUser
+	}
+
+	// remove the tag
+	delete(plt.Users, msg.Author.ID)
+	out.AddSimpleMessage("Removed your tag from " + utils.Code(t.Platform))
+
+	if len(plt.Users) == 0 {
+		// remove the platform
+		delete(tgs.Platforms, t.Platform)
+		out.AddSimpleMessage("Removing empty platform: " + utils.Code(t.Platform))
+	}
+
+	_, _, err = DBSet(&tgs, TagsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 /* tags get */
 
-type TagsGet struct{}
+type TagsGet struct {
+	Platform string `arg:"platform"`
+}
 
 func NewTagsGet() *TagsGet { return &TagsGet{} }
 
@@ -167,7 +222,27 @@ func (t *TagsGet) Roles() []string { return nil }
 func (t *TagsGet) Chans() []string { return nil }
 
 func (t *TagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	return nil, nil
+	var err error
+	var tgs tags
+
+	err = DBGet(&tgs, TagsKey, &tgs)
+	if err == ErrDBNotFound {
+		return nil, ErrNoTags
+	} else if err != nil {
+		return nil, err
+	}
+
+	plt, ok := tgs.Platforms[t.Platform]
+	if !ok {
+		return nil, ErrNoPlatform
+	}
+
+	utg, ok := plt.Users[msg.Author.ID]
+	if !ok {
+		return nil, ErrNoUser
+	}
+
+	return NewSimpleSend(msg.ChannelID, "Your tag is "+utils.Code(utg.Tag)+" for platform "+utils.Code(utg.Platform)), nil
 }
 
 /* tags list */
@@ -189,7 +264,7 @@ func (t *TagsList) Chans() []string { return nil }
 func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
 	var err error
 	var tgs tags
-	// get all tags
+
 	err = DBGet(&tgs, TagsKey, &tgs)
 	if err == ErrDBNotFound {
 		return nil, ErrNoTags
@@ -288,12 +363,33 @@ func (t *TagsPlatforms) Roles() []string { return nil }
 func (t *TagsPlatforms) Chans() []string { return nil }
 
 func (t *TagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	return nil, nil
+	var err error
+	var tgs tags
+
+	// get all tags
+	err = DBGet(&tgs, TagsKey, &tgs)
+	if err == ErrDBNotFound {
+		return nil, ErrNoTags
+	} else if err != nil {
+		return nil, err
+	}
+
+	// iterate platforms
+	list := "Platforms:\n"
+	for _, plt := range tgs.Platforms {
+		list += plt.Name + "  |  "
+		list += strconv.Itoa(len(plt.Users)) + " tag(s)\n"
+	}
+
+	return NewSimpleSend(msg.ChannelID, list), nil
 }
 
 /* tags ping */
 
-type TagsPing struct{}
+type TagsPing struct {
+	Platform string   `arg:"platform"`
+	Message  []string `arg:"message"`
+}
 
 func NewTagsPing() *TagsPing { return &TagsPing{} }
 
@@ -306,7 +402,34 @@ func (t *TagsPing) Roles() []string { return nil }
 func (t *TagsPing) Chans() []string { return nil }
 
 func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
-	return nil, nil
+	var err error
+	var tgs tags
+
+	err = DBGet(&tgs, TagsKey, &tgs)
+	if err == ErrDBNotFound {
+		return nil, ErrNoTags
+	} else if err != nil {
+		return nil, err
+	}
+
+	plt, ok := tgs.Platforms[t.Platform]
+	if !ok {
+		return nil, ErrNoPlatform
+	}
+
+	pings := "Pinging"
+	// TODO: construct embed for this
+	for _, utg := range plt.Users {
+		var dusr *discordgo.User
+		dusr, err = ses.User(utg.ID)
+		if err != nil || !utg.PingMe {
+			continue
+		}
+		pings += " " + dusr.Mention()
+	}
+	pings += strings.Join(t.Message, " ")
+
+	return NewSimpleSend(msg.ChannelID, pings), nil
 }
 
 /* tags pingme */
@@ -361,6 +484,6 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, a
 	if !t.PingMe {
 		out += "'t"
 	}
-	out += " be pinged for platform " + utils.Code(t.Platform)
+	out += " be pinged for " + utils.Code(t.Platform)
 	return NewSimpleSend(msg.ChannelID, out), nil
 }
