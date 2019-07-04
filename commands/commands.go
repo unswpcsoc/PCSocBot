@@ -23,7 +23,6 @@ var (
 const (
 	PREFIX        = "!"
 	MESSAGE_LIMIT = 2000
-	SEND_LIMIT    = 10
 )
 
 // Command is the interface that all commands implement.
@@ -108,8 +107,9 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 
 /* usage generation */
 
-// GetUsage generates the usage message from a Command
-// will panic if the type is not a struct
+// GetUsage generates the usage message from a Command in the following format
+//  !alias0 (__type0__ arg0) (__type1__ arg1) (__type2__ arg 2) [...]
+//  __Aliases:__ alias1; alias2; [...]
 func GetUsage(c Command) (usage string) {
 	v := reflect.ValueOf(c)
 
@@ -117,7 +117,7 @@ func GetUsage(c Command) (usage string) {
 		// unroll pointer
 		v = v.Elem()
 		if !v.IsValid() {
-			panic(fmt.Sprintf("GetUsage: %v is not valid\n", v))
+			panic(fmt.Sprintf("GetUsage: %v is not a valid pointer\n", v))
 		}
 	}
 
@@ -127,7 +127,7 @@ func GetUsage(c Command) (usage string) {
 
 	// command alias
 	names := c.Aliases()
-	usage = "!" + names[0]
+	usage = utils.Bold("!" + names[0])
 
 	// parse struct fields with arg tags
 	for i := 0; i < v.NumField(); i++ {
@@ -138,15 +138,22 @@ func GetUsage(c Command) (usage string) {
 			continue
 		}
 
-		usage += " (" + string(f.Type.Name()) + " " + utils.Under(tag) + ")"
+		usage += " (" + f.Type.Name() + " " + utils.Under(tag) + ")"
 	}
 
 	// other aliases
 	if len(names) > 1 {
-		usage += "\n" + utils.Bold("AKA") + "\n"
+		usage += "\n" + utils.Under("Aliases:")
 		for _, name := range names[1:] {
-			usage += "!" + name + "\n"
+			usage += " " + name + ";"
 		}
+	}
+
+	// description
+	usage += "\n" + c.Desc()
+
+	if len(usage) > MESSAGE_LIMIT {
+		panic("command is too damn big!")
 	}
 
 	return usage
@@ -192,6 +199,11 @@ func FillArgs(c Command, args []string) error {
 	}
 
 	if len(argFields) == 0 {
+		return nil
+	}
+
+	// handle var args in last slot
+	if len(args) == len(argFields)-1 && argFields[len(argFields)-1].Kind() == reflect.Slice {
 		return nil
 	}
 
