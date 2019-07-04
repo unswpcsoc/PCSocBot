@@ -33,7 +33,7 @@ type Command interface {
 	Roles() []string   // Roles required to use command 		(lowercased please)
 	Chans() []string   // Channels required to use command	(lowercased please)
 
-	MsgHandle(*discordgo.Session, *discordgo.Message, []string) (*CommandSend, error) // Handler for MessageCreate event
+	MsgHandle(*discordgo.Session, *discordgo.Message) (*CommandSend, error) // Handler for MessageCreate event
 }
 
 // Send is a helper struct that buffers things commands need to send.

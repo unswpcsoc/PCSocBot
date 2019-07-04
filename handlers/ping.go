@@ -17,6 +17,6 @@ func (p *Ping) Roles() []string { return nil }
 
 func (p *Ping) Chans() []string { return nil }
 
-func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	return NewSimpleSend(msg.ChannelID, "Pong!"), nil
 }

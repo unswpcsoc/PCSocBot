@@ -28,7 +28,7 @@ func (p *BadPing) Roles() []string { return nil }
 
 func (p *BadPing) Chans() []string { return nil }
 
-func (p *BadPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (p *BadPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	return nil, nil
 }
 
@@ -49,7 +49,7 @@ func (p *Ping) Roles() []string { return nil }
 
 func (p *Ping) Chans() []string { return nil }
 
-func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	return nil, nil
 }
 

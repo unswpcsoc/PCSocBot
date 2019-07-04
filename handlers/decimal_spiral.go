@@ -41,7 +41,7 @@ func (d *DecimalSpiral) Chans() []string {
 	return nil
 }
 
-func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	if d.Size%2 == 0 || d.Size < LowerLimit || d.Size > UpperLimit {
 		return nil, ErrDecimalSpiralRange
 	}

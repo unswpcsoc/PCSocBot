@@ -71,7 +71,7 @@ func (t *Tags) Roles() []string { return nil }
 
 func (t *Tags) Chans() []string { return nil }
 
-func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// TODO: route help message magic etc.
 	out := "Subcommands:"
 	out += "\n" + utils.Code("add")
@@ -103,7 +103,7 @@ func (t *TagsAdd) Roles() []string { return nil }
 
 func (t *TagsAdd) Chans() []string { return nil }
 
-func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 	var out = NewSend(msg.ChannelID)
@@ -123,7 +123,6 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args
 		// create new role
 		drl, err = ses.GuildRoleCreate(msg.GuildID)
 		if err != nil {
-			// TODO: what do on failure?
 			return nil, err
 		}
 
@@ -185,7 +184,7 @@ func (t *TagsRemove) Roles() []string { return nil }
 
 func (t *TagsRemove) Chans() []string { return nil }
 
-func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 	var out = NewSend(msg.ChannelID)
@@ -265,7 +264,7 @@ func (t *TagsGet) Roles() []string { return nil }
 
 func (t *TagsGet) Chans() []string { return nil }
 
-func (t *TagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 
@@ -305,7 +304,7 @@ func (t *TagsList) Roles() []string { return nil }
 
 func (t *TagsList) Chans() []string { return nil }
 
-func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 
@@ -361,7 +360,7 @@ func (t *TagsView) Roles() []string { return nil }
 
 func (t *TagsView) Chans() []string { return nil }
 
-func (t *TagsView) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsView) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 	// get all tags
@@ -412,7 +411,7 @@ func (t *TagsPlatforms) Roles() []string { return nil }
 
 func (t *TagsPlatforms) Chans() []string { return nil }
 
-func (t *TagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 
@@ -451,7 +450,7 @@ func (t *TagsPing) Roles() []string { return nil }
 
 func (t *TagsPing) Chans() []string { return nil }
 
-func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 
@@ -499,7 +498,7 @@ func (t *TagsPingMe) Roles() []string { return nil }
 
 func (t *TagsPingMe) Chans() []string { return nil }
 
-func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
 

@@ -40,7 +40,7 @@ func (r *Role) Chans() []string {
 	return nil
 }
 
-func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
 	if err != nil {
 		mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)

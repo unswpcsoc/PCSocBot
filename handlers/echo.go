@@ -25,7 +25,7 @@ func (e *Echo) Chans() []string {
 	return nil
 }
 
-func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var out string
 	if len(args) == 0 {
 		out = "Echo!"

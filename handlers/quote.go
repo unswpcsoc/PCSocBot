@@ -68,7 +68,7 @@ func (q *Quote) Roles() []string { return nil }
 
 func (q *Quote) Chans() []string { return nil }
 
-func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get quotes
 	var quo quotes
 	err := DBGet(&quotes{}, KeyQuotes, &quo)
@@ -110,7 +110,7 @@ func (q *QuoteList) Roles() []string { return nil }
 
 func (q *QuoteList) Chans() []string { return nil }
 
-func (q *QuoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get all approved quotes from db
 	var quo quotes
 	err := DBGet(&quotes{}, KeyQuotes, &quo)
@@ -146,7 +146,7 @@ func (q *QuotePending) Roles() []string { return nil }
 
 func (q *QuotePending) Chans() []string { return nil }
 
-func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get all pending quotes from db
 	var pen quotes
 	err := DBGet(&quotes{}, KeyPending, &pen)
@@ -184,7 +184,7 @@ func (q *QuoteAdd) Roles() []string { return nil }
 
 func (q *QuoteAdd) Chans() []string { return nil }
 
-func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Check args
 	if len(args) == 0 {
 		return nil, ErrQuoteArgs
@@ -238,7 +238,7 @@ func (q *QuoteApprove) Roles() []string { return []string{"mod"} }
 
 func (q *QuoteApprove) Chans() []string { return nil }
 
-func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Check args
 	if len(args) == 0 {
 		return nil, ErrQuoteArgs
@@ -331,7 +331,7 @@ func (q *QuoteRemove) Roles() []string { return []string{"mod"} }
 
 func (q *QuoteRemove) Chans() []string { return nil }
 
-func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Check args
 	if len(args) == 0 {
 		return nil, ErrQuoteArgs
@@ -394,7 +394,7 @@ func (q *QuoteReject) Roles() []string { return nil }
 
 func (q *QuoteReject) Chans() []string { return nil }
 
-func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*CommandSend, error) {
+func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Check args
 	if len(args) == 0 {
 		return nil, ErrQuoteArgs
