@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -15,13 +14,13 @@ import (
 
 /* In this file:
 
-quote
-quote list
-quote pending
-quote add
-quote approve
-quote remove
-quote reject
+Quote 			- quote
+QuoteList 		- quote list
+QuotePending 	- quote pending
+QuoteAdd 	 	- quote add
+QuoteApprove 	- quote approve
+QuoteRemove 	- quote remove
+QuoteReject 	- quote reject
 
 */
 
@@ -55,7 +54,7 @@ func (q *quotes) Index() string {
 /* quote */
 
 type Quote struct {
-	Index int `arg:"index"`
+	Index []int `arg:"index"`
 }
 
 func NewQuote() *Quote { return &Quote{} }
@@ -80,14 +79,13 @@ func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comm
 
 	// Check args
 	var ind int
-	if len(args) == 0 {
+	if len(q.Index) == 0 {
 		// Gen random number
 		rand.Seed(time.Now().UnixNano())
 		ind = rand.Intn(len(quo.List))
 	} else {
-		// Try get index
-		ind, err = strconv.Atoi(args[0])
-		if err != nil || ind > quo.Last || ind < 0 {
+		ind = q.Index[0]
+		if ind > quo.Last || ind < 0 {
 			return nil, ErrQuoteIndex
 		}
 	}
@@ -171,7 +169,7 @@ func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 /* quote add */
 
 type QuoteAdd struct {
-	Quote string `arg:"quote"`
+	New string `arg:"quote"`
 }
 
 func NewQuoteAdd() *QuoteAdd { return &QuoteAdd{} }
@@ -185,11 +183,6 @@ func (q *QuoteAdd) Roles() []string { return nil }
 func (q *QuoteAdd) Chans() []string { return nil }
 
 func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	// Check args
-	if len(args) == 0 {
-		return nil, ErrQuoteArgs
-	}
-
 	// Get the pending quote list from the db
 	var pen quotes
 	err := DBGet(&quotes{}, KeyPending, &pen)
@@ -203,11 +196,8 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		return nil, err
 	}
 
-	// Join args
-	newQuote := strings.Join(args, " ")
-
 	// Put the new quote into the pending quote list and update Last
-	pen.List = append(pen.List, newQuote)
+	pen.List = append(pen.List, q.New)
 	pen.Last++
 
 	// Set the pending quote list in the db
@@ -217,7 +207,7 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 	}
 
 	// Send message to channel
-	out := "Added" + utils.Block(newQuote) + "to the Pending list at index "
+	out := "Added" + utils.Block(q.New) + "to the Pending list at index "
 	out += utils.Code(strconv.Itoa(pen.Last))
 	return NewSimpleSend(msg.ChannelID, out), nil
 }
@@ -239,11 +229,6 @@ func (q *QuoteApprove) Roles() []string { return []string{"mod"} }
 func (q *QuoteApprove) Chans() []string { return nil }
 
 func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	// Check args
-	if len(args) == 0 {
-		return nil, ErrQuoteArgs
-	}
-
 	// Get pending list
 	var pen quotes
 	err := DBGet(&quotes{}, KeyPending, &pen)
@@ -254,8 +239,7 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 	}
 
 	// Check index
-	ind, err := strconv.Atoi(args[0])
-	if err != nil || ind < 0 || ind > pen.Last {
+	if err != nil || q.Index < 0 || q.Index > pen.Last {
 		return nil, ErrQuoteIndex
 	}
 
@@ -273,7 +257,7 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 
 	// Move pending quote to approved list, filling gaps first
 	if quo.Last == -1 {
-		quo.List = append(quo.List, pen.List[ind])
+		quo.List = append(quo.List, pen.List[q.Index])
 		quo.Last++
 	} else {
 		ins := quo.Last + 1
@@ -284,17 +268,17 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 			}
 		}
 		if ins > quo.Last {
-			quo.List = append(quo.List, pen.List[ind])
+			quo.List = append(quo.List, pen.List[q.Index])
 			quo.Last = ins
 		} else {
-			quo.List[ins] = pen.List[ind]
+			quo.List[ins] = pen.List[q.Index]
 		}
 	}
 
 	// Reorder pending list
-	newPen := pen.List[:ind]
-	if ind != pen.Last {
-		newPen = append(newPen, pen.List[ind+1:]...)
+	newPen := pen.List[:q.Index]
+	if q.Index != pen.Last {
+		newPen = append(newPen, pen.List[q.Index+1:]...)
 	}
 	pen.List = newPen
 	pen.Last--
@@ -332,11 +316,6 @@ func (q *QuoteRemove) Roles() []string { return []string{"mod"} }
 func (q *QuoteRemove) Chans() []string { return nil }
 
 func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	// Check args
-	if len(args) == 0 {
-		return nil, ErrQuoteArgs
-	}
-
 	// Get quotes list
 	var quo quotes
 	err := DBGet(&quotes{}, KeyQuotes, &quo)
@@ -347,18 +326,14 @@ func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	}
 
 	// Check index
-	ind, err := strconv.Atoi(args[0])
-	if err != nil {
-		return nil, err
-	}
-	if ind < 0 || ind > quo.Last {
+	if q.Index < 0 || q.Index > quo.Last {
 		return nil, ErrQuoteIndex
 	}
 
 	// Clear index, don't reorder
-	rem := quo.List[ind]
-	quo.List[ind] = ""
-	if ind == quo.Last {
+	rem := quo.List[q.Index]
+	quo.List[q.Index] = ""
+	if q.Index == quo.Last {
 		// Change last to first non-clear last
 		for i := quo.Last; i >= 0; i-- {
 			if len(quo.List[i]) > 0 {
@@ -395,11 +370,6 @@ func (q *QuoteReject) Roles() []string { return nil }
 func (q *QuoteReject) Chans() []string { return nil }
 
 func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	// Check args
-	if len(args) == 0 {
-		return nil, ErrQuoteArgs
-	}
-
 	// Get pending list
 	var pen quotes
 	err := DBGet(&quotes{}, KeyPending, &pen)
@@ -410,16 +380,15 @@ func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	}
 
 	// Check index
-	ind, err := strconv.Atoi(args[0])
-	if err != nil || ind < 0 || ind > pen.Last {
+	if q.Index < 0 || q.Index > pen.Last {
 		return nil, ErrQuoteIndex
 	}
 
 	// Reorder list
-	rem := pen.List[ind]
-	newPen := pen.List[:ind]
-	if ind != pen.Last {
-		newPen = append(newPen, pen.List[ind+1:]...)
+	rem := pen.List[q.Index]
+	newPen := pen.List[:q.Index]
+	if q.Index != pen.Last {
+		newPen = append(newPen, pen.List[q.Index+1:]...)
 	}
 	pen.List = newPen
 	pen.Last--
