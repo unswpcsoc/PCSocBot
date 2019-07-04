@@ -249,5 +249,13 @@ func TestArgFill(t *testing.T) {
 	got.Name = ""
 	got.Age = 0
 
-	// TODO: more rigorous testing
+	// fill with less args than expected
+	args = []string{"bob"}
+	err = commands.FillArgs(got, args)
+	if err != nil {
+		t.Errorf("ArgFill(%#v, %v) threw error %v", NewPing(), args, err)
+	}
+	if *got != *exp {
+		t.Errorf("ArgFill(%#v, %v) set %#v; want %#v", NewPing(), args, got, exp)
+	}
 }
