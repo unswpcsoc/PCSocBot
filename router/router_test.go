@@ -1,51 +1,64 @@
-package router
+package router_test
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
+
 	comm "github.com/unswpcsoc/PCSocBot/commands"
+	. "github.com/unswpcsoc/PCSocBot/router"
 )
 
 // signal testing
 // https://stackoverflow.com/questions/43409919/init-function-breaking-unit-tests
+// not using this anymore, using different package for testing
+// interesting read nonetheless
 
-// Preamble
+/* preamble */
 
 type Example struct {
 	names []string
 	desc  string
 }
 
-func NewExample() *Example {
-	return &Example{
-		names: []string{"example", "an extended command string"},
-		desc:  "Example!",
-	}
+func NewExample() *Example { return &Example{} }
+
+func (e *Example) Aliases() []string { return []string{"example", "an extended command string"} }
+
+func (e *Example) Desc() string { return "Example!" }
+
+func (e *Example) Roles() []string { return nil }
+
+func (e *Example) Chans() []string { return nil }
+
+func (e *Example) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comm.CommandSend, error) {
+	return nil, nil
 }
 
-func (e *Example) Names() []string {
-	return e.names
+type Example2 struct {
+	names []string
+	desc  string
 }
 
-func (e *Example) Desc() string {
-	return e.desc
+func NewExample2() *Example2 { return &Example2{} }
+
+func (e *Example2) Aliases() []string {
+	return []string{"another example", "an extended command string 2"}
 }
 
-func (e *Example) Roles() []string {
-	return nil
+func (e *Example2) Desc() string { return "Example2!" }
+
+func (e *Example2) Roles() []string { return nil }
+
+func (e *Example2) Chans() []string { return nil }
+
+func (e *Example2) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comm.CommandSend, error) {
+	return nil, nil
 }
 
-func (e *Example) Chans() []string {
-	return nil
-}
-
-func (e *Example) MsgHandle(ses *discordgo.Session, msg *discordgo.Message, args []string) (*comm.CommandSend, error) {
-	return comm.NewSimpleSend(msg.ChannelID, "Pong!"), nil
-}
-
-// Tests
+/* tests */
 
 func TestMain(m *testing.M) {
 	// run tests
@@ -64,26 +77,26 @@ func TestAddcommand(t *testing.T) {
 
 	// assert single route made
 	r1 := "example"
-	got, ok := router.routes.leaves[r1]
+	got, ok := router.Routes.Leaves[r1]
 	if !ok {
 		t.Errorf("%s: no route made for %s\n", t.Name(), r1)
 	}
-	if got.command != exp {
-		t.Errorf("%s: made route to %v, expected %v\n", t.Name(), got.command, exp)
+	if got.Command != exp {
+		t.Errorf("%s: made route to %v, expected %v\n", t.Name(), got.Command, exp)
 	}
 
 	// assert lengthy route made
 	r2 := []string{"an", "extended", "command", "string"}
-	curr := router.routes.leaves
+	curr := router.Routes.Leaves
 	for _, str := range r2 {
 		got, ok = curr[str]
 		if !ok {
 			t.Errorf("%s: no route made for %v\n", t.Name(), r2)
 		}
-		curr = got.leaves
+		curr = got.Leaves
 	}
-	if got.command != exp {
-		t.Errorf("%s: made route to %v, expected %v\n", t.Name(), got.command, exp)
+	if got.Command != exp {
+		t.Errorf("%s: made route to %v, expected %v\n", t.Name(), got.Command, exp)
 	}
 }
 
@@ -96,7 +109,7 @@ func TestRoute(t *testing.T) {
 
 	// add simple route manually
 	expl := NewLeaf(exp)
-	router.routes.leaves["example"] = expl
+	router.Routes.Leaves["example"] = expl
 
 	// assert simple routing works
 	got, ind := router.Route([]string{"example"})
@@ -109,10 +122,10 @@ func TestRoute(t *testing.T) {
 
 	// add lengthy route manually
 	exp2 := NewLeaf(exp)
-	router.routes.leaves["an"] = NewLeaf(nil)
-	router.routes.leaves["an"].leaves["extended"] = NewLeaf(nil)
-	router.routes.leaves["an"].leaves["extended"].leaves["command"] = NewLeaf(nil)
-	router.routes.leaves["an"].leaves["extended"].leaves["command"].leaves["string"] = exp2
+	router.Routes.Leaves["an"] = NewLeaf(nil)
+	router.Routes.Leaves["an"].Leaves["extended"] = NewLeaf(nil)
+	router.Routes.Leaves["an"].Leaves["extended"].Leaves["command"] = NewLeaf(nil)
+	router.Routes.Leaves["an"].Leaves["extended"].Leaves["command"].Leaves["string"] = exp2
 
 	// assert lengthy routing works
 	got, ind = router.Route([]string{"an", "extended", "command", "string", "with", "some", "args"})
@@ -154,7 +167,7 @@ func TestAddRoute(t *testing.T) {
 		t.Errorf("%s: route did not find anything\n", t.Name())
 	}
 	if got != exp {
-		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+		t.Errorf("%s: got %#v, expected %#v\n", t.Name(), got, exp)
 	}
 
 	// assert lengthy routing works
@@ -163,6 +176,23 @@ func TestAddRoute(t *testing.T) {
 		t.Errorf("%s: route did not find anything\n", t.Name())
 	}
 	if got != exp {
-		t.Errorf("%s: got %v, expected %v\n", t.Name(), got, exp)
+		t.Errorf("%s: got %#v, expected %#v\n", t.Name(), got, exp)
+	}
+}
+
+func TestToSlice(t *testing.T) {
+	// init router
+	router := NewRouter()
+
+	// create commands
+	router.Addcommand(NewExample())
+	router.Addcommand(NewExample2())
+
+	// get slice
+	exp := []comm.Command{&Example{}, &Example2{}}
+	got := router.ToSlice()
+
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("%s: got %#v\nexpected %#v", t.Name(), got, exp)
 	}
 }
