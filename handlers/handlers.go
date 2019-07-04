@@ -30,15 +30,13 @@ func init() {
 
 	commandRouter.Addcommand(NewTags())
 	commandRouter.Addcommand(NewTagsAdd())
+	commandRouter.Addcommand(NewTagsRemove())
 	commandRouter.Addcommand(NewTagsView())
 	commandRouter.Addcommand(NewTagsList())
+	commandRouter.Addcommand(NewTagsPlatforms())
+	commandRouter.Addcommand(NewTagsGet())
+	commandRouter.Addcommand(NewTagsPing())
 	commandRouter.Addcommand(NewTagsPingMe())
-	/*
-		commandRouter.Addcommand(NewTagsRemove())
-		commandRouter.Addcommand(NewTagsGet())
-		commandRouter.Addcommand(NewTagsPlatforms())
-		commandRouter.Addcommand(NewTagsPing())
-	*/
 }
 
 // Route is a wrapper around the handler package's internal router's Route method
