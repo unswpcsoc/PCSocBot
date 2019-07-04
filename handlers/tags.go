@@ -11,8 +11,23 @@ import (
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
+/* In this file:
+
+Tags 			- tags
+TagsAdd 		- tags add
+TagsRemove 		- tags remove
+TagsGet 		- tags get
+TagsList 		- tags list
+TagsView 		- tags view
+TagsPlatforms 	- tags platforms
+TagsPing 		- tags ping
+TagsPingMe 		- tags pingme
+
+*/
+
 const (
 	TagsKey = "fulltags"
+	TEAL    = 0x008080
 )
 
 var (
@@ -20,20 +35,6 @@ var (
 	ErrNoPlatform = errors.New("no platform of that name, add a tag on that platform to create it")
 	ErrNoUser     = errors.New("you don't have a tag on this platform, add one to the specified platform")
 )
-
-/* In this file:
-
-tags
-tags add
-tags remove
-tags get
-tags list
-tags view
-tags platforms
-tags ping
-tags pingme
-
-*/
 
 /* Storer: tags */
 
@@ -126,6 +127,9 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 			return nil, err
 		}
 
+		// edit the role
+		ses.GuildRoleEdit(msg.GuildID, drl.ID, t.Platform, TEAL, false, drl.Permissions, true)
+
 		// create new platform
 		plt = &platform{
 			Name:  t.Platform,
@@ -137,15 +141,8 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 		// TODO: use reaction to verify
 	}
 
-	// add role to user
-	mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
-	if err != nil {
-		mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role)
+	// set role
+	err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -203,22 +200,15 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 		return nil, ErrNoPlatform
 	}
 
-	// check tag on platform
-	utg, ok = plt.Users[msg.Author.ID]
+	// get tag
+	utg, ok := plt.Users[msg.Author.ID]
 	if !ok {
 		return nil, ErrNoUser
 	}
 
 	if utg.PingMe {
-		// remove role from user
-		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
-		if err != nil {
-			mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
-			if err != nil {
-				return nil, err
-			}
-		}
-		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role)
+		// remove role
+		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +220,7 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 	if len(plt.Users) == 0 {
 		// remove the role from guild
-		err = ses.State.RoleRemove(msg.GuildID, plt.Role.ID)
+		err = ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -337,7 +327,7 @@ func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		}
 		list += mem.Nick + " : "
 		list += utg.Tag + " : can"
-		if utg.PingMe {
+		if !utg.PingMe {
 			list += "'t"
 		}
 		list += " ping\n"
@@ -380,8 +370,6 @@ func (t *TagsView) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		}
 		utgs = append(utgs, utg)
 	}
-
-	//
 
 	list := "Your tags:\n"
 	// TODO: construct embed for this
@@ -467,7 +455,6 @@ func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 	}
 
 	pings := "Pinging"
-	// TODO: construct embed for this
 	for _, utg := range plt.Users {
 		var dusr *discordgo.User
 		dusr, err = ses.User(utg.ID)
@@ -524,12 +511,25 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 	// set pingme
 	utg.PingMe = t.PingMe
+	if t.PingMe {
+		// set role
+		err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// remove role
+		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	_, _, err = DBSet(&tgs, TagsKey)
 	if err != nil {
 		return nil, err
 	}
 
-	out := "You can"
+	out := "You now can"
 	if !t.PingMe {
 		out += "'t"
 	}
