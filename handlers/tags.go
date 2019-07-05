@@ -156,11 +156,8 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 		// TODO: use reaction to verify
 	}
 
-	// set role
-	err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
-	if err != nil {
-		return nil, err
-	}
+	// set role, silently fails
+	ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
 
 	// add tag to platform
 	plt.Users[msg.Author.ID] = &tag{
@@ -222,11 +219,8 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	}
 
 	if utg.PingMe {
-		// remove role
-		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
-		if err != nil {
-			return nil, err
-		}
+		// remove role, silently fails
+		ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	}
 
 	// remove the tag
@@ -234,11 +228,8 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	out.AddSimpleMessage("Removed your tag from " + utils.Code(t.Platform))
 
 	if len(plt.Users) == 0 {
-		// remove the role from guild
-		err = ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
-		if err != nil {
-			return nil, err
-		}
+		// remove the role from guild, silently fails
+		ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
 
 		// remove the platform
 		delete(tgs.Platforms, t.Platform)
@@ -527,17 +518,11 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	// set pingme
 	utg.PingMe = t.PingMe
 	if t.PingMe {
-		// set role
-		err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
-		if err != nil {
-			return nil, err
-		}
+		// set role, silently fails
+		ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	} else {
-		// remove role
-		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
-		if err != nil {
-			return nil, err
-		}
+		// remove role, silently fails
+		ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	}
 	_, _, err = DBSet(&tgs, TagsKey)
 	if err != nil {
@@ -554,16 +539,17 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 /* tags clean */
 
-type TagsClean struct {
-	Platform string `arg:"platform"`
-}
+type TagsClean struct{}
 
 func NewTagsClean() *TagsClean { return &TagsClean{} }
 
 func (t *TagsClean) Aliases() []string { return []string{"tags clean"} }
 
 func (t *TagsClean) Desc() string {
-	return "Cleans invalid tags from the tags database and double-checks that user roles are assigned correctly according to their PingMe status."
+	return `Does a few things:
+	- Cleans invalid tags from the entire tags database 
+	- Creates the role for a platform if one does not exist
+	- Double-checks that platform roles are assigned based on PingMe status`
 }
 
 func (t *TagsClean) Roles() []string { return nil }
@@ -587,33 +573,51 @@ func (t *TagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	for pname, plt := range tgs.Platforms {
 		// iterate users
 		for uid, usr := range plt.Users {
+		ROLE:
 			// check user
 			_, err = ses.GuildMember(msg.GuildID, uid)
 			if err != nil {
 				// couldn't find user, remove tag from db
 				delete(plt.Users, uid)
+				out.AddSimpleMessage("Removed user: " + uid)
 				continue
 			}
 
-			// update roles, silently fails
+			// update roles, creates a new role if one does not exist for the platform
 			if usr.PingMe {
-				_ = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
+				err = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
 			} else {
-				_ = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+				err = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+			}
+			if err != nil {
+				// ASSUME only error is role not existing in server
+				// create new role
+				var drl *discordgo.Role
+				drl, err = ses.GuildRoleCreate(msg.GuildID)
+				if err != nil {
+					return nil, err
+				}
+
+				// edit the role
+				ses.GuildRoleEdit(msg.GuildID, drl.ID, pname, TEAL, false, drl.Permissions, true)
+
+				// add role to platform
+				plt.Role = drl
+				out.AddSimpleMessage("Re-created missing role for platform: " + utils.Code(pname))
+
+				// retry
+				goto ROLE
 			}
 		}
 
 		// clean empty platforms
 		if len(plt.Users) == 0 {
-			// remove the role from guild
-			err = ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
-			if err != nil {
-				return nil, err
-			}
+			// remove the role from guild, fails silently
+			ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
 
 			// remove the platform
 			delete(tgs.Platforms, pname)
-			out.AddSimpleMessage("Removing empty platform: " + utils.Code(pname))
+			out.AddSimpleMessage("Removed empty platform: " + utils.Code(pname))
 		}
 	}
 
@@ -622,5 +626,6 @@ func (t *TagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
+	out.AddSimpleMessage("All Clean!")
 	return out, nil
 }
