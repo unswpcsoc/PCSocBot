@@ -53,6 +53,7 @@ func init() {
 
 	commandRouter.Addcommand(NewTags())
 	commandRouter.Addcommand(NewTagsAdd())
+	commandRouter.Addcommand(NewTagsClean())
 	commandRouter.Addcommand(NewTagsList())
 	commandRouter.Addcommand(NewTagsGet())
 	commandRouter.Addcommand(NewTagsPing())
