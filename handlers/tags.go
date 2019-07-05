@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -26,14 +27,20 @@ TagsPingMe 		- tags pingme
 */
 
 const (
-	TagsKey = "fulltags"
-	TEAL    = 0x008080
+	TagsKey  = "fulltags"
+	TEAL     = 0x008080
+	TAG_LIM  = 32
+	PLAT_LIM = 32
+	USER_LIM = 32 // discord's nick limit is 32
 )
 
 var (
-	ErrNoTags     = errors.New("no tags found in database, add a tag to start it")
-	ErrNoPlatform = errors.New("no platform of that name, add a tag on that platform to create it")
-	ErrNoUser     = errors.New("you don't have a tag on this platform, add one to the specified platform")
+	ErrPlatTooLong = errors.New("your platform is too long, keep it under " + strconv.Itoa(PLAT_LIM) + " characters")
+	ErrTagTooLong  = errors.New("your tag is too long, keep it under " + strconv.Itoa(TAG_LIM) + " characters")
+	ErrNoTags      = errors.New("no tags found in database, add a tag to start it")
+	ErrNoPlatform  = errors.New("no platform of that name, add a tag on that platform to create it")
+	ErrNoUser      = errors.New("you don't have a tag on this platform, add one to the specified platform")
+	ErrNoMention   = errors.New("use a proper @ping")
 )
 
 /* Storer: tags */
@@ -108,6 +115,14 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 	var err error
 	var tgs tags
 	var out = NewSend(msg.ChannelID)
+
+	if len(t.Tag) > 30 {
+		return nil, ErrTagTooLong
+	}
+
+	if len(t.Platform) > 30 {
+		return nil, ErrPlatTooLong
+	}
 
 	// get all tags
 	err = DBGet(&tgs, TagsKey, &tgs)
@@ -286,7 +301,7 @@ type TagsList struct {
 
 func NewTagsList() *TagsList { return &TagsList{} }
 
-func (t *TagsList) Aliases() []string { return []string{"tags list", "tags ls"} }
+func (t *TagsList) Aliases() []string { return []string{"tags list", "tags ls", "tags view"} }
 
 func (t *TagsList) Desc() string { return "Lists all tags on a platform" }
 
@@ -310,8 +325,7 @@ func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		return nil, ErrNoPlatform
 	}
 
-	list := utils.Code(t.Platform) + "'s tags:\n"
-	// TODO: construct embed for this
+	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", PLAT_LIM), "User", "Tag")
 	for _, utg := range plt.Users {
 		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
@@ -320,39 +334,43 @@ func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 				return nil, err
 			}
 		}
-
-		if err != nil {
-			// silently fail
-			continue
-		}
-		list += mem.Nick + " : "
-		list += utg.Tag + " : can"
-		if !utg.PingMe {
-			list += "'t"
-		}
-		list += " ping\n"
+		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, USER_LIM),
+			utg.PingMe,
+			mem.Nick,
+			utg.Tag)
 	}
 
-	return NewSimpleSend(msg.ChannelID, list), nil
+	return NewSimpleSend(msg.ChannelID, t.Platform+"'s tags:\n"+utils.Block(list)), nil
 }
 
-/* tags view */
+/* tags user */
 
-type TagsView struct{}
+type TagsUser struct {
+	User string `arg:"user_id"`
+}
 
-func NewTagsView() *TagsView { return &TagsView{} }
+func NewTagsUser() *TagsUser { return &TagsUser{} }
 
-func (t *TagsView) Aliases() []string { return []string{"tags view"} }
+func (t *TagsUser) Aliases() []string { return []string{"tags user"} }
 
-func (t *TagsView) Desc() string { return "Lists all tags of a user" }
+func (t *TagsUser) Desc() string { return "Lists all tags of a user" }
 
-func (t *TagsView) Roles() []string { return nil }
+func (t *TagsUser) Roles() []string { return nil }
 
-func (t *TagsView) Chans() []string { return nil }
+func (t *TagsUser) Chans() []string { return nil }
 
-func (t *TagsView) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (t *TagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
 	var tgs tags
+	var usr *discordgo.User
+
+	// get user
+	if len(msg.Mentions) > 0 {
+		usr = msg.Mentions[0]
+	} else {
+		return nil, ErrNoMention
+	}
+
 	// get all tags
 	err = DBGet(&tgs, TagsKey, &tgs)
 	if err == ErrDBNotFound {
@@ -361,28 +379,25 @@ func (t *TagsView) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		return nil, err
 	}
 
-	// collect user tags
+	// collect user's tags
 	var utgs []*tag
 	for _, plt := range tgs.Platforms {
-		utg, ok := plt.Users[msg.Author.ID]
+		utg, ok := plt.Users[usr.ID]
 		if !ok {
 			continue
 		}
 		utgs = append(utgs, utg)
 	}
 
-	list := "Your tags:\n"
-	// TODO: construct embed for this
+	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", USER_LIM), "User", "Tag")
 	for _, utg := range utgs {
-		list += utg.Platform + "  |  "
-		list += utg.Tag + "  |  "
-		if utg.PingMe {
-			list += " no"
-		}
-		list += " ping\n"
+		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, PLAT_LIM),
+			utg.PingMe,
+			utg.Platform,
+			utg.Tag)
 	}
 
-	return NewSimpleSend(msg.ChannelID, list), nil
+	return NewSimpleSend(msg.ChannelID, usr.Username+"'s tags:\n"+utils.Block(list)), nil
 }
 
 /* tags platforms */
