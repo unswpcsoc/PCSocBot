@@ -25,6 +25,8 @@ var (
 	prod bool // production mode i.e. db saves to file rather than memory
 	sync bool // sync mode - will handle events syncronously if set
 
+	lastCom = make(map[string]commands.Command) // map of uid->command for most recently used command
+
 	dgo *discordgo.Session
 
 	errs = log.New(os.Stderr, "Error: ", log.Ltime) // logger for errors
@@ -124,7 +126,7 @@ func main() {
 		if prod {
 			defer func() {
 				if r := recover(); r != nil {
-					errs.Println("Caught panic: ", r)
+					errs.Printf("Caught panic: %#v\n", r)
 				}
 			}()
 		}
@@ -140,19 +142,34 @@ func main() {
 		s.ChannelTyping(m.ChannelID)
 
 		// route message
+		var com commands.Command
+		var ind int
+		var ok bool
 		argv := strings.Split(trm[1:], " ")
-		com, ind := handlers.Route(argv)
-		if com == nil {
-			out := utils.Italics("Error: Unknown command; use " + handlers.HELPALIAS)
-			s.ChannelMessageSend(m.ChannelID, out)
-			return
+		if argv[0] == "!" {
+			com, ok = lastCom[m.Message.Author.ID]
+			if !ok {
+				out := utils.Italics("Error: You haven't issued any commands yet!")
+				s.ChannelMessageSend(m.ChannelID, out)
+				return
+			}
+			// !! args...
+			ind = 1
+		} else {
+			// regular routing
+			com, ind = handlers.Route(argv)
+			if com == nil {
+				out := utils.Italics("Error: Unknown command; use " + handlers.HELPALIAS)
+				s.ChannelMessageSend(m.ChannelID, out)
+				return
+			}
 		}
 
 		// check chans
 		chans := com.Chans()
 		has, err := utils.MsgInChannels(s, m.Message, chans)
 		if err != nil {
-			errs.Println(err)
+			errs.Printf("Channel checking threw: %#v\n", err)
 		}
 		if !has {
 			out := "Error: You must be in " + utils.Code(chans[0])
@@ -171,7 +188,7 @@ func main() {
 		roles := com.Roles()
 		has, err = utils.MsgHasRoles(s, m.Message, roles)
 		if err != nil {
-			errs.Println(err)
+			errs.Printf("Role checking threw: %#v\n", err)
 		}
 		if !has {
 			out := "Error: You must be a " + utils.Code(roles[0])
@@ -186,26 +203,34 @@ func main() {
 			return
 		}
 
+		// successfully routed, register in !! before usage check
+		lastCom[m.Message.Author.ID] = com
+
 		// fill args and check usage
 		err = commands.FillArgs(com, argv[ind:])
 		if err != nil {
 			usage := "Usage: " + commands.GetUsage(com)
 			s.ChannelMessageSend(m.ChannelID, usage)
-			errs.Println(err)
+			errs.Printf("Usage error on command %#v: %#v\n", com, err)
 			return
 		}
 
 		// handle message
 		snd, err := com.MsgHandle(s, m.Message)
 		if err != nil {
-			errs.Println(err)
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
+			errs.Printf("%#v threw error: %#v\n", com, err)
 			return
 		}
+
+		// send message
 		err = snd.Send(s)
 		if err != nil {
-			errs.Println(err)
+			errs.Printf("Send error: %#v\n", err)
 		}
+
+		// clean up args
+		commands.CleanArgs(com)
 	})
 
 	// keep alive
