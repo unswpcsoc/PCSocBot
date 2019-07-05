@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -169,7 +170,7 @@ func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 /* quote add */
 
 type QuoteAdd struct {
-	New string `arg:"quote"`
+	New []string `arg:"quote"`
 }
 
 func NewQuoteAdd() *QuoteAdd { return &QuoteAdd{} }
@@ -197,7 +198,8 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 	}
 
 	// Put the new quote into the pending quote list and update Last
-	pen.List = append(pen.List, q.New)
+	newQuote := strings.Join(q.New, " ")
+	pen.List = append(pen.List, newQuote)
 	pen.Last++
 
 	// Set the pending quote list in the db
@@ -207,7 +209,7 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 	}
 
 	// Send message to channel
-	out := "Added" + utils.Block(q.New) + "to the Pending list at index "
+	out := "Added" + utils.Block(newQuote) + "to the Pending list at index "
 	out += utils.Code(strconv.Itoa(pen.Last))
 	return NewSimpleSend(msg.ChannelID, out), nil
 }
