@@ -46,9 +46,8 @@ type tag struct {
 }
 
 type platform struct {
-	Name string
-	Role *discordgo.Role
-	//TODO: Role string
+	Name  string
+	Role  *discordgo.Role
 	Users map[string]*tag // indexed by user id's
 }
 
@@ -74,6 +73,7 @@ func (t *Tags) Chans() []string { return nil }
 
 func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// TODO: route help message magic etc.
+	// If you're reading this as an example: This is a hack, do not do this.
 	out := "Subcommands:"
 	out += "\n" + utils.Code("add")
 	out += "\n" + utils.Code("remove")
@@ -535,4 +535,77 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	}
 	out += " be pinged for " + utils.Code(t.Platform)
 	return NewSimpleSend(msg.ChannelID, out), nil
+}
+
+/* tags clean */
+
+type TagsClean struct {
+	Platform string `arg:"platform"`
+}
+
+func NewTagsClean() *TagsClean { return &TagsClean{} }
+
+func (t *TagsClean) Aliases() []string { return []string{"tags clean"} }
+
+func (t *TagsClean) Desc() string {
+	return "Cleans invalid tags from the tags database and double-checks that user roles are assigned correctly according to their PingMe status."
+}
+
+func (t *TagsClean) Roles() []string { return nil }
+
+func (t *TagsClean) Chans() []string { return nil }
+
+func (t *TagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+	var err error
+	var tgs tags
+	var out = NewSend(msg.ChannelID)
+
+	// get all tags
+	err = DBGet(&tgs, TagsKey, &tgs)
+	if err == ErrDBNotFound {
+		return nil, ErrNoPlatform
+	} else if err != nil {
+		return nil, err
+	}
+
+	// iterate platforms
+	for pname, plt := range tgs.Platforms {
+		// iterate users
+		for uid, usr := range plt.Users {
+			// check user
+			_, err = ses.GuildMember(msg.GuildID, uid)
+			if err != nil {
+				// couldn't find user, remove tag from db
+				delete(plt.Users, uid)
+				continue
+			}
+
+			// update roles, silently fails
+			if usr.PingMe {
+				_ = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
+			} else {
+				_ = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+			}
+		}
+
+		// clean empty platforms
+		if len(plt.Users) == 0 {
+			// remove the role from guild
+			err = ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			// remove the platform
+			delete(tgs.Platforms, pname)
+			out.AddSimpleMessage("Removing empty platform: " + utils.Code(pname))
+		}
+	}
+
+	_, _, err = DBSet(&tgs, TagsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
