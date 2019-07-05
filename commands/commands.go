@@ -285,3 +285,42 @@ func FillArgs(c Command, args []string) error {
 	}
 	return nil
 }
+
+// CleanArgs cleans arg-fields from commands after they've been handled
+//
+// This should be called after your Command is done handling the message.
+//
+// Also should be called on Command creation if you don't trust your programmers
+func CleanArgs(c Command) {
+	var val reflect.Value
+	val = reflect.ValueOf(c)
+
+	if val.Kind() == reflect.Ptr {
+		// unroll pointer
+		val = val.Elem()
+		if !val.IsValid() {
+			panic(fmt.Sprintf("CleanArgs: %#v is not valid\n", val))
+		}
+	}
+
+	if val.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("CleanArgs: %#v is not a struct\n", val))
+	}
+
+	// iterate over arg fields and zero them
+	for i := 0; i < val.NumField(); i++ {
+		ft := val.Type().Field(i)
+		fv := val.Field(i)
+		_, ok := ft.Tag.Lookup("arg")
+		if !ok {
+			continue
+		}
+		if !fv.CanSet() {
+			panic("FillArgs: using unexported field with arg tag")
+		}
+
+		// TODO: default arg handling goes here
+		// zero out field
+		fv.Set(reflect.Zero(fv.Type()))
+	}
+}
