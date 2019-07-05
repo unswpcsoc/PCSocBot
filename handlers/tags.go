@@ -454,7 +454,7 @@ func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		return nil, ErrNoPlatform
 	}
 
-	pings := "Pinging"
+	pings := utils.Bold(plt.Name)
 	for _, utg := range plt.Users {
 		var dusr *discordgo.User
 		dusr, err = ses.User(utg.ID)
@@ -463,7 +463,7 @@ func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 		}
 		pings += " " + dusr.Mention()
 	}
-	pings += strings.Join(t.Message, " ")
+	pings += " " + strings.Join(t.Message, " ")
 
 	return NewSimpleSend(msg.ChannelID, pings), nil
 }
