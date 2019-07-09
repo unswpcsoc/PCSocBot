@@ -27,10 +27,11 @@ const (
 
 // Command is the interface that all commands implement.
 type Command interface {
-	Aliases() []string // Aliases of commands 					e.g. {"tags ping", "ask"}
-	Desc() string      // Description of command				e.g. "does a thing"
-	Roles() []string   // Roles required to use command 		(lowercased please)
-	Chans() []string   // Channels required to use command	(lowercased please)
+	Aliases() []string      // Aliases
+	Desc() string           // Description
+	Subcommands() []Command // Slice of subcommands, if any
+	Roles() []string        // Roles required
+	Chans() []string        // Channels required
 
 	MsgHandle(*discordgo.Session, *discordgo.Message) (*CommandSend, error) // Handler for MessageCreate event
 }

@@ -21,6 +21,8 @@ func (h *Help) Aliases() []string { return []string{"helpme", "h", "commands", "
 
 func (h *Help) Desc() string { return "Help!" }
 
+func (h *Help) Subcommands() []Command { return nil }
+
 func (h *Help) Roles() []string { return nil }
 
 func (h *Help) Chans() []string { return nil }

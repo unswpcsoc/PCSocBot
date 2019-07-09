@@ -33,6 +33,8 @@ func (d *DecimalSpiral) Desc() string {
 	return "Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit)
 }
 
+func (d *DecimalSpiral) Subcommands() []Command { return nil }
+
 func (d *DecimalSpiral) Roles() []string {
 	return nil
 }

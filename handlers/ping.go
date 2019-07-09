@@ -13,6 +13,8 @@ func (p *Ping) Aliases() []string { return []string{"ping", "ping pong"} }
 
 func (p *Ping) Desc() string { return "Ping!" }
 
+func (p *Ping) Subcommands() []Command { return nil }
+
 func (p *Ping) Roles() []string { return nil }
 
 func (p *Ping) Chans() []string { return nil }

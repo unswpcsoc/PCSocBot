@@ -14,6 +14,8 @@
 //
 //  func ( *YourCommand) Desc() string { return "YourCommand!" }
 //
+//  func ( *YourCommand) Subcommands() []Command { return nil }
+//
 //  func ( *YourCommand) Roles() []string { return nil }
 //
 //  func ( *YourCommand) Chans() []string { return nil }

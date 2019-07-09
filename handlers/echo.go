@@ -17,6 +17,8 @@ func (e *Echo) Aliases() []string { return []string{"echo"} }
 
 func (e *Echo) Desc() string { return "Echo!" }
 
+func (e *Echo) Subcommands() []Command { return nil }
+
 func (e *Echo) Roles() []string {
 	return nil
 }
