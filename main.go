@@ -157,7 +157,7 @@ func main() {
 			ind = 1
 		} else {
 			// regular routing
-			com, ind = handlers.Route(argv)
+			com, ind = handlers.RouterRoute(argv)
 			if com == nil {
 				out := utils.Italics("Error: Unknown command; use " + handlers.HELPALIAS)
 				s.ChannelMessageSend(m.ChannelID, out)

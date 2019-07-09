@@ -65,12 +65,12 @@ func init() {
 	commandRouter.Addcommand(NewTagsUser())
 }
 
-// Route is a wrapper around the handler package's internal router's Route method
-func Route(argv []string) (Command, int) {
+// RouterRoute is a wrapper around the handler package's internal router's Route method
+func RouterRoute(argv []string) (Command, int) {
 	return commandRouter.Route(argv)
 }
 
-// ToSlice is a wrapper around the blah blah blah's ToSlice method
-func ToSlice() []Command {
+// RouterToSlice is a wrapper around the blah blah blah's ToSlice method
+func RouterToSlice() []Command {
 	return commandRouter.ToSlice()
 }

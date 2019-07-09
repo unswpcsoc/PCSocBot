@@ -30,10 +30,26 @@ func (h *Help) Chans() []string { return nil }
 func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	snd := NewSend(msg.ChannelID)
 	if len(h.Query) == 0 {
-		// consider rate-limiting/re-routing/disabling this if your message is enormous
+		// consider rate-limiting/re-routing/disabling this if your message becomes enormous
+		ignore := map[string]bool{}
+		slice := RouterToSlice()
+		for _, com := range slice {
+			// register subcommands to be ignored using first alias
+			if com.Subcommands() != nil {
+				for _, sub := range com.Subcommands() {
+					ignore[sub.Aliases()[0]] = true
+				}
+			}
+		}
+
 		count := 0
 		out := utils.Bold("All Commands:")
-		for _, com := range ToSlice() {
+		for _, com := range slice {
+			// ignore subcommands
+			if seen, _ := ignore[com.Aliases()[0]]; seen {
+				continue
+			}
+
 			tmp := "\n" + GetUsage(com)
 			count += len(tmp)
 			if count < 2000 {
@@ -46,11 +62,22 @@ func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 		}
 		snd.AddSimpleMessage(out)
 	} else {
-		com, _ := Route(h.Query)
+		com, _ := RouterRoute(h.Query)
 		if com == nil {
 			return nil, errors.New("Error: Unknown command; use " + HELPALIAS)
 		}
-		snd.AddSimpleMessage(GetUsage(com))
+
+		out := "Command " + utils.Bold(com.Aliases()[0])
+		if com.Subcommands() != nil {
+			out += "\n" + GetUsage(com)
+			out += "\n\nSubcommands:"
+			for _, sub := range com.Subcommands() {
+				out += "\n" + GetUsage(sub)
+			}
+		} else {
+			out += "\n" + GetUsage(com)
+		}
+		snd.AddSimpleMessage(out)
 	}
 	return snd, nil
 }
