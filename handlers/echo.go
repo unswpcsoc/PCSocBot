@@ -8,6 +8,7 @@ import (
 )
 
 type Echo struct {
+	NilCommand
 	Input []string `arg:"input"`
 }
 
@@ -16,16 +17,6 @@ func NewEcho() *Echo { return &Echo{} }
 func (e *Echo) Aliases() []string { return []string{"echo"} }
 
 func (e *Echo) Desc() string { return "Echo!" }
-
-func (e *Echo) Subcommands() []Command { return nil }
-
-func (e *Echo) Roles() []string {
-	return nil
-}
-
-func (e *Echo) Chans() []string {
-	return nil
-}
 
 func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var out string

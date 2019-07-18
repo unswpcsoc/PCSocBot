@@ -12,6 +12,7 @@ const HELPALIAS = PREFIX + "h"
 
 // Help is a special command that needs a concrete router to work
 type Help struct {
+	NilCommand
 	Query []string `arg:"query"`
 }
 
@@ -20,12 +21,6 @@ func NewHelp() *Help { return &Help{} }
 func (h *Help) Aliases() []string { return []string{"helpme", "h", "commands", "fuck", "fuck you"} }
 
 func (h *Help) Desc() string { return "Help!" }
-
-func (h *Help) Subcommands() []Command { return nil }
-
-func (h *Help) Roles() []string { return nil }
-
-func (h *Help) Chans() []string { return nil }
 
 func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	snd := NewSend(msg.ChannelID)

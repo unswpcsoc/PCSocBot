@@ -67,7 +67,9 @@ func (t *tags) Index() string { return "tags" }
 
 /* tags */
 
-type Tags struct{}
+type Tags struct {
+	NilCommand
+}
 
 func NewTags() *Tags { return &Tags{} }
 
@@ -90,10 +92,6 @@ func (t *Tags) Subcommands() []Command {
 	}
 }
 
-func (t *Tags) Roles() []string { return nil }
-
-func (t *Tags) Chans() []string { return nil }
-
 func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// TODO: route help message magic etc.
 	// If you're reading this as an example: This is a hack, do not do this.
@@ -112,6 +110,7 @@ func (t *Tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 /* tags add */
 
 type TagsAdd struct {
+	NilCommand
 	Platform string `arg:"platform"`
 	Tag      string `arg:"tag"`
 }
@@ -121,12 +120,6 @@ func NewTagsAdd() *TagsAdd { return &TagsAdd{} }
 func (t *TagsAdd) Aliases() []string { return []string{"tags add"} }
 
 func (t *TagsAdd) Desc() string { return "Adds your tag to a platform" }
-
-func (t *TagsAdd) Subcommands() []Command { return nil }
-
-func (t *TagsAdd) Roles() []string { return nil }
-
-func (t *TagsAdd) Chans() []string { return nil }
 
 func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -196,7 +189,9 @@ func (t *TagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 
 /* tags clean */
 
-type TagsClean struct{}
+type TagsClean struct {
+	NilCommand
+}
 
 func NewTagsClean() *TagsClean { return &TagsClean{} }
 
@@ -208,12 +203,6 @@ func (t *TagsClean) Desc() string {
 	- Creates the role for a platform if one does not exist
 	- Double-checks that platform roles are assigned based on PingMe status`
 }
-
-func (t *TagsClean) Subcommands() []Command { return nil }
-
-func (t *TagsClean) Roles() []string { return nil }
-
-func (t *TagsClean) Chans() []string { return nil }
 
 func (t *TagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -292,6 +281,7 @@ func (t *TagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 /* tags get */
 
 type TagsGet struct {
+	NilCommand
 	Platform string `arg:"platform"`
 }
 
@@ -300,12 +290,6 @@ func NewTagsGet() *TagsGet { return &TagsGet{} }
 func (t *TagsGet) Aliases() []string { return []string{"tags get"} }
 
 func (t *TagsGet) Desc() string { return "Gets your tag for a platform." }
-
-func (t *TagsGet) Subcommands() []Command { return nil }
-
-func (t *TagsGet) Roles() []string { return nil }
-
-func (t *TagsGet) Chans() []string { return nil }
 
 func (t *TagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -334,6 +318,7 @@ func (t *TagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 /* tags list */
 
 type TagsList struct {
+	NilCommand
 	Platform string `arg:"platform"`
 }
 
@@ -342,12 +327,6 @@ func NewTagsList() *TagsList { return &TagsList{} }
 func (t *TagsList) Aliases() []string { return []string{"tags list", "tags ls", "tags view"} }
 
 func (t *TagsList) Desc() string { return "Lists all tags for that platform." }
-
-func (t *TagsList) Subcommands() []Command { return nil }
-
-func (t *TagsList) Roles() []string { return nil }
-
-func (t *TagsList) Chans() []string { return nil }
 
 func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -385,19 +364,15 @@ func (t *TagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 
 /* tags platforms */
 
-type TagsPlatforms struct{}
+type TagsPlatforms struct {
+	NilCommand
+}
 
 func NewTagsPlatforms() *TagsPlatforms { return &TagsPlatforms{} }
 
 func (t *TagsPlatforms) Aliases() []string { return []string{"tags platforms"} }
 
 func (t *TagsPlatforms) Desc() string { return "Lists all platforms." }
-
-func (t *TagsPlatforms) Subcommands() []Command { return nil }
-
-func (t *TagsPlatforms) Roles() []string { return nil }
-
-func (t *TagsPlatforms) Chans() []string { return nil }
 
 func (t *TagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -424,6 +399,7 @@ func (t *TagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 /* tags ping */
 
 type TagsPing struct {
+	NilCommand
 	Platform string   `arg:"platform"`
 	Message  []string `arg:"message"`
 }
@@ -435,12 +411,6 @@ func (t *TagsPing) Aliases() []string { return []string{"tags ping", "ask", "pin
 func (t *TagsPing) Desc() string {
 	return "Pings all users with `PingMe` set on the platform. Can also add your own message."
 }
-
-func (t *TagsPing) Subcommands() []Command { return nil }
-
-func (t *TagsPing) Roles() []string { return nil }
-
-func (t *TagsPing) Chans() []string { return nil }
 
 func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -475,6 +445,7 @@ func (t *TagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 /* tags pingme */
 
 type TagsPingMe struct {
+	NilCommand
 	Platform string `arg:"platform"`
 	PingMe   bool   `arg:"wants pings"`
 }
@@ -484,12 +455,6 @@ func NewTagsPingMe() *TagsPingMe { return &TagsPingMe{} }
 func (t *TagsPingMe) Aliases() []string { return []string{"tags pingme", "askme"} }
 
 func (t *TagsPingMe) Desc() string { return "Set your ping status for a given platform" }
-
-func (t *TagsPingMe) Subcommands() []Command { return nil }
-
-func (t *TagsPingMe) Roles() []string { return nil }
-
-func (t *TagsPingMe) Chans() []string { return nil }
 
 func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -540,6 +505,7 @@ func (t *TagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 /* tags remove */
 
 type TagsRemove struct {
+	NilCommand
 	Platform string `arg:"platform"`
 }
 
@@ -548,12 +514,6 @@ func NewTagsRemove() *TagsRemove { return &TagsRemove{} }
 func (t *TagsRemove) Aliases() []string { return []string{"tags remove", "tags rm"} }
 
 func (t *TagsRemove) Desc() string { return "Removes your tag from a platform" }
-
-func (t *TagsRemove) Subcommands() []Command { return nil }
-
-func (t *TagsRemove) Roles() []string { return nil }
-
-func (t *TagsRemove) Chans() []string { return nil }
 
 func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error
@@ -609,6 +569,7 @@ func (t *TagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 /* tags user */
 
 type TagsUser struct {
+	NilCommand
 	User string `arg:"user_id"`
 }
 
@@ -617,12 +578,6 @@ func NewTagsUser() *TagsUser { return &TagsUser{} }
 func (t *TagsUser) Aliases() []string { return []string{"tags user"} }
 
 func (t *TagsUser) Desc() string { return "Lists all tags of a user" }
-
-func (t *TagsUser) Subcommands() []Command { return nil }
-
-func (t *TagsUser) Roles() []string { return nil }
-
-func (t *TagsUser) Chans() []string { return nil }
 
 func (t *TagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	var err error

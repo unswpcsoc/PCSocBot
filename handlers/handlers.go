@@ -1,27 +1,5 @@
 // Package containing concrete implementations of the Command interface
 //
-// Boilerplate:
-//  import (
-//  	"github.com/bwmarrin/discordgo"
-//  	. "github.com/unswpcsoc/PCSocBot/commands"
-//  )
-//
-//  type YourCommand struct{}
-//
-//  func NewYourCommand() *YourCommand { return &YourCommand{} }
-//
-//  func ( *YourCommand) Aliases() []string { return []string{"",}
-//
-//  func ( *YourCommand) Desc() string { return "YourCommand!" }
-//
-//  func ( *YourCommand) Subcommands() []Command { return nil }
-//
-//  func ( *YourCommand) Roles() []string { return nil }
-//
-//  func ( *YourCommand) Chans() []string { return nil }
-//
-//  func ( *YourCommand) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) { return nil, nil }
-//
 package handlers
 
 import (
@@ -74,3 +52,16 @@ func RouterRoute(argv []string) (Command, int) {
 func RouterToSlice() []Command {
 	return commandRouter.ToSlice()
 }
+
+// NilCommand is a thing that you can struct embed to avoid boilerplate
+type NilCommand struct{}
+
+func (n *NilCommand) Aliases() []string { return []string{""} }
+
+func (n *NilCommand) Desc() string { return "" }
+
+func (n *NilCommand) Subcommands() []Command { return nil }
+
+func (n *NilCommand) Roles() []string { return nil }
+
+func (n *NilCommand) Chans() []string { return nil }

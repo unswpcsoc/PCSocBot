@@ -22,6 +22,7 @@ var (
 )
 
 type DecimalSpiral struct {
+	NilCommand
 	Size int `arg:"size"`
 }
 
@@ -31,16 +32,6 @@ func (d *DecimalSpiral) Aliases() []string { return []string{"decimalspiral", "d
 
 func (d *DecimalSpiral) Desc() string {
 	return "Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit)
-}
-
-func (d *DecimalSpiral) Subcommands() []Command { return nil }
-
-func (d *DecimalSpiral) Roles() []string {
-	return nil
-}
-
-func (d *DecimalSpiral) Chans() []string {
-	return nil
 }
 
 func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {

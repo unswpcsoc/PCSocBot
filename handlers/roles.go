@@ -11,6 +11,7 @@ import (
 )
 
 type Role struct {
+	NilCommand
 	names []string
 	desc  string
 	role  string
@@ -27,12 +28,6 @@ func NewRole(role string) *Role {
 func (r *Role) Aliases() []string { return r.names }
 
 func (r *Role) Desc() string { return r.desc }
-
-func (r *Role) Subcommands() []Command { return nil }
-
-func (r *Role) Roles() []string { return nil }
-
-func (r *Role) Chans() []string { return nil }
 
 func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)

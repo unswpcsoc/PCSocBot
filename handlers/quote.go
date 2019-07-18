@@ -55,6 +55,7 @@ func (q *quotes) Index() string {
 /* quote */
 
 type Quote struct {
+	NilCommand
 	Index []int `arg:"index"`
 }
 
@@ -74,10 +75,6 @@ func (q *Quote) Subcommands() []Command {
 		NewQuoteReject(),
 	}
 }
-
-func (q *Quote) Roles() []string { return nil }
-
-func (q *Quote) Chans() []string { return nil }
 
 func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get quotes
@@ -109,6 +106,7 @@ func (q *Quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comm
 /* quote add */
 
 type QuoteAdd struct {
+	NilCommand
 	New []string `arg:"quote"`
 }
 
@@ -117,12 +115,6 @@ func NewQuoteAdd() *QuoteAdd { return &QuoteAdd{} }
 func (q *QuoteAdd) Aliases() []string { return []string{"quote add"} }
 
 func (q *QuoteAdd) Desc() string { return "Adds a quote to the pending list." }
-
-func (q *QuoteAdd) Subcommands() []Command { return nil }
-
-func (q *QuoteAdd) Roles() []string { return nil }
-
-func (q *QuoteAdd) Chans() []string { return nil }
 
 func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get the pending quote list from the db
@@ -158,6 +150,7 @@ func (q *QuoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*C
 /* quote approve */
 
 type QuoteApprove struct {
+	NilCommand
 	Index int `arg:"index"`
 }
 
@@ -167,11 +160,7 @@ func (q *QuoteApprove) Aliases() []string { return []string{"quote approve"} }
 
 func (q *QuoteApprove) Desc() string { return "Approves a quote." }
 
-func (q *QuoteApprove) Subcommands() []Command { return nil }
-
 func (q *QuoteApprove) Roles() []string { return []string{"mod"} }
-
-func (q *QuoteApprove) Chans() []string { return nil }
 
 func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get pending list
@@ -246,19 +235,15 @@ func (q *QuoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 
 /* quote list */
 
-type QuoteList struct{}
+type QuoteList struct {
+	NilCommand
+}
 
 func NewQuoteList() *QuoteList { return &QuoteList{} }
 
 func (q *QuoteList) Aliases() []string { return []string{"quote list", "quote ls"} }
 
 func (q *QuoteList) Desc() string { return "Lists all approved quotes." }
-
-func (q *QuoteList) Subcommands() []Command { return nil }
-
-func (q *QuoteList) Roles() []string { return nil }
-
-func (q *QuoteList) Chans() []string { return nil }
 
 func (q *QuoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get all approved quotes from db
@@ -284,19 +269,15 @@ func (q *QuoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 /* quote pending */
 
-type QuotePending struct{}
+type QuotePending struct {
+	NilCommand
+}
 
 func NewQuotePending() *QuotePending { return &QuotePending{} }
 
 func (q *QuotePending) Aliases() []string { return []string{"quote pending", "quote pd"} }
 
 func (q *QuotePending) Desc() string { return "Lists all pending quotes." }
-
-func (q *QuotePending) Subcommands() []Command { return nil }
-
-func (q *QuotePending) Roles() []string { return nil }
-
-func (q *QuotePending) Chans() []string { return nil }
 
 func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get all pending quotes from db
@@ -323,6 +304,7 @@ func (q *QuotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 /* quote reject */
 
 type QuoteReject struct {
+	NilCommand
 	Index int `arg:"index"`
 }
 
@@ -331,12 +313,6 @@ func NewQuoteReject() *QuoteReject { return &QuoteReject{} }
 func (q *QuoteReject) Aliases() []string { return []string{"quote reject", "quote rj"} }
 
 func (q *QuoteReject) Desc() string { return "Rejects a quote from the pending list." }
-
-func (q *QuoteReject) Subcommands() []Command { return nil }
-
-func (q *QuoteReject) Roles() []string { return nil }
-
-func (q *QuoteReject) Chans() []string { return nil }
 
 func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get pending list
@@ -375,6 +351,7 @@ func (q *QuoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 /* quote remove */
 
 type QuoteRemove struct {
+	NilCommand
 	Index int `arg:"index"`
 }
 
@@ -384,11 +361,7 @@ func (q *QuoteRemove) Aliases() []string { return []string{"quote remove", "quot
 
 func (q *QuoteRemove) Desc() string { return "Removes a quote." }
 
-func (q *QuoteRemove) Subcommands() []Command { return nil }
-
 func (q *QuoteRemove) Roles() []string { return []string{"mod"} }
-
-func (q *QuoteRemove) Chans() []string { return nil }
 
 func (q *QuoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	// Get quotes list
