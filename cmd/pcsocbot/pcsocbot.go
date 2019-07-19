@@ -1,3 +1,7 @@
+// This package contains an implementation of PCSocBot
+// using the provided utilities.
+//
+// You can make your own if you like I guess.
 package main
 
 import (
