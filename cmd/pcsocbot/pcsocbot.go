@@ -25,7 +25,6 @@ const (
 )
 
 var (
-	echo bool // echo mode
 	prod bool // production mode i.e. db saves to file rather than memory
 	sync bool // sync mode - will handle events syncronously if set
 
@@ -83,46 +82,6 @@ func init() {
 func main() {
 	defer dgo.Close()
 	defer commands.DBClose()
-
-	if echo {
-		dgo.UpdateListeningStatus("stdin")
-		dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-			if m.Author.ID == s.State.User.ID {
-				return
-			}
-			log.Printf("%s: %s\n", m.Author.Username, m.Content)
-		})
-
-		fmt.Print("Enter a channel ID: ")
-		var outch string
-		if _, err := fmt.Scanf("%s", &outch); err != nil {
-			errs.Fatalln(err)
-		}
-
-		if _, err := dgo.Channel(outch); err != nil {
-			errs.Fatalln(err)
-		}
-
-		outstr := ""
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("\n>")
-
-		got, err := reader.ReadString('\n')
-
-		for err == nil {
-			if len(outstr) > MESSAGE_LIMIT {
-				fmt.Println("Error: Message above message limit")
-				continue
-			}
-
-			_, err = dgo.ChannelMessageSend(outch, got)
-
-			fmt.Print("\n>")
-			got, err = reader.ReadString('\n')
-		}
-
-		return
-	}
 
 	dgo.UpdateListeningStatus("you")
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -235,6 +194,10 @@ func main() {
 
 		// clean up args
 		commands.CleanArgs(com)
+	})
+
+	// TODO:
+	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageDelete) {
 	})
 
 	// keep alive
