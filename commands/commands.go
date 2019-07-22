@@ -77,7 +77,7 @@ func (c *CommandSend) AddSimpleMessage(msg string) {
 	c.data = append(c.data, send)
 }
 
-// AddEmbedMessage Adds an embed message to be sent.
+// AddEmbedMessage Adds an embed-only message to be sent.
 func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
 	send := &discordgo.MessageSend{
 		Content: "",

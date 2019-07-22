@@ -7,50 +7,53 @@ import (
 	"github.com/unswpcsoc/PCSocBot/router"
 )
 
-var commandRouter *router.Router
+var crt *router.Router
 
 func init() {
-	commandRouter = router.NewRouter()
-	commandRouter.Addcommand(NewHelp())
+	crt = router.NewRouter()
 
-	commandRouter.Addcommand(NewPing())
+	crt.Addcommand(NewDecimalSpiral())
 
-	commandRouter.Addcommand(NewEcho())
+	crt.Addcommand(NewEcho())
 
-	commandRouter.Addcommand(NewQuote())
-	commandRouter.Addcommand(NewQuoteAdd())
-	commandRouter.Addcommand(NewQuoteApprove())
-	commandRouter.Addcommand(NewQuoteList())
-	commandRouter.Addcommand(NewQuotePending())
-	commandRouter.Addcommand(NewQuoteRemove())
-	commandRouter.Addcommand(NewQuoteReject())
+	crt.Addcommand(NewHelp())
 
-	commandRouter.Addcommand(NewDecimalSpiral())
+	crt.Addcommand(NewLog())
 
-	commandRouter.Addcommand(NewRole("Bookworm"))
-	commandRouter.Addcommand(NewRole("Meta"))
-	commandRouter.Addcommand(NewRole("Weeb"))
+	crt.Addcommand(NewPing())
 
-	commandRouter.Addcommand(NewTags())
-	commandRouter.Addcommand(NewTagsAdd())
-	commandRouter.Addcommand(NewTagsClean())
-	commandRouter.Addcommand(NewTagsList())
-	commandRouter.Addcommand(NewTagsGet())
-	commandRouter.Addcommand(NewTagsPing())
-	commandRouter.Addcommand(NewTagsPingMe())
-	commandRouter.Addcommand(NewTagsPlatforms())
-	commandRouter.Addcommand(NewTagsRemove())
-	commandRouter.Addcommand(NewTagsUser())
+	crt.Addcommand(NewQuote())
+	crt.Addcommand(NewQuoteAdd())
+	crt.Addcommand(NewQuoteApprove())
+	crt.Addcommand(NewQuoteList())
+	crt.Addcommand(NewQuotePending())
+	crt.Addcommand(NewQuoteRemove())
+	crt.Addcommand(NewQuoteReject())
+
+	crt.Addcommand(NewRole("Bookworm"))
+	crt.Addcommand(NewRole("Meta"))
+	crt.Addcommand(NewRole("Weeb"))
+
+	crt.Addcommand(NewTags())
+	crt.Addcommand(NewTagsAdd())
+	crt.Addcommand(NewTagsClean())
+	crt.Addcommand(NewTagsList())
+	crt.Addcommand(NewTagsGet())
+	crt.Addcommand(NewTagsPing())
+	crt.Addcommand(NewTagsPingMe())
+	crt.Addcommand(NewTagsPlatforms())
+	crt.Addcommand(NewTagsRemove())
+	crt.Addcommand(NewTagsUser())
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
 func RouterRoute(argv []string) (Command, int) {
-	return commandRouter.Route(argv)
+	return crt.Route(argv)
 }
 
 // RouterToSlice is a wrapper around the blah blah blah's ToSlice method
 func RouterToSlice() []Command {
-	return commandRouter.ToSlice()
+	return crt.ToSlice()
 }
 
 // NilCommand is a thing that you can struct embed to avoid boilerplate

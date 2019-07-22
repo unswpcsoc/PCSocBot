@@ -5,9 +5,7 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -37,7 +35,6 @@ var (
 
 // flag parse init
 func init() {
-	flag.BoolVar(&echo, "echo", false, "Enables echo mode")
 	flag.BoolVar(&prod, "prod", false, "Enables production mode")
 	flag.BoolVar(&sync, "sync", false, "Enables synchronous event handling")
 	flag.Parse()
@@ -194,10 +191,6 @@ func main() {
 
 		// clean up args
 		commands.CleanArgs(com)
-	})
-
-	// TODO:
-	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageDelete) {
 	})
 
 	// keep alive
