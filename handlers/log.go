@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"bytes"
-	"net/http"
-
 	"log"
+	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -20,9 +20,17 @@ const (
 )
 
 var (
-	msgFunc  func()
-	delFunc  func()
+	giantTrick bool
+	delFunc    func()
+	filFUnc    func()
+
 	msgCache = NewMapCache(CACHE_LIM)
+
+	badWords = []regexp.Regexp{
+		regexp.MustCompile("(?i)kms"),
+		regexp.MustCompile("(?i)kill[[::space::]]*myself"),
+		regexp.MustCompile("(?i)kill[[::space::]]*me"),
+	}
 )
 
 /* helpers */
@@ -107,24 +115,55 @@ func (m *MapCache) Pop(ky string) (*discordgo.Message, *discordgo.File, bool) {
 
 /* log */
 
-type Log struct{ NilCommand }
+type Log struct {
+	NilCommand
+	Mode bool `arg:"mode"`
+}
 
 func NewLog() *Log { return &Log{} }
 
 func (l *Log) Aliases() []string { return []string{"log"} }
 
 func (l *Log) Desc() string {
-	return "Moderation logging tool for deleted messages. This command toggles logging."
+	return "Moderation logging tool for deleted messages. This command controls all logging."
 }
 
 func (l *Log) Roles() []string { return []string{"mod"} }
 
-func (l *Log) Chans() []string { return []string{"mods"} }
+func (l *Log) Subcommands() []Command { return []Command{LogDelete} }
 
 func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
-	if msgFunc == nil {
-		msgFunc = ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+	if l.Mode {
+		stat = "on"
+	} else {
+		stat = "off"
+	}
+	giantTrick = l.Mode
+	return NewSimpleSend(msg.ChannelID, "Logging has been turned "+stat), nil
+}
+
+type LogDelete struct {
+	Log
+	Mode bool `arg:"mode"`
+}
+
+/* log delete */
+
+func NewLogDelete() *LogDelete { return &LogDelete{} }
+
+func (l *Log) Aliases() []string { return []string{"log delete", "log del"} }
+
+func (l *Log) Desc() string {
+	return "This command controls logging of deleted messages."
+}
+
+func (l *Log) Subcommands() []Command { return nil }
+
+func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+	stat := ""
+	if delFunc == nil && giantTrick {
+		tmp1 := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
 			msg := mc.Message
 			if msg.Author.ID == se.State.User.ID {
 				return
@@ -132,11 +171,11 @@ func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comman
 			msgCache.Insert(msg.ID+msg.ChannelID, msg)
 		})
 
-		delFunc = ses.AddHandler(func(se *discordgo.Session, dm *discordgo.MessageDelete) {
+		tmp2 := ses.AddHandler(func(se *discordgo.Session, dm *discordgo.MessageDelete) {
 			// get from cache
 			dtd, img, ok := msgCache.Pop(dm.Message.ID + dm.Message.ChannelID)
 			if !ok {
-				log.Println("Warning: MessageDelete event on uncached message.")
+				log.Println("Warning: Cache miss on logged MessageDelete event.")
 				return
 			}
 
@@ -188,14 +227,92 @@ func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comman
 
 			se.ChannelMessageSendComplex(LOG_CHAN, out)
 		})
+		delFunc = func() {
+			tmp1()
+			tmp2()
+		}
 		stat = "on"
 	} else {
-		msgFunc()
-		delFunc()
+		if delFunc != nil {
+			delFunc()
+			delFunc = nil
+		}
 		stat = "off"
-		msgFunc = nil
-		delFunc = nil
 	}
 
-	return NewSimpleSend(msg.ChannelID, "Logging is now "+stat), nil
+	return NewSimpleSend(msg.ChannelID, "MessageDelete logging has been turned "+stat), nil
+}
+
+/* log filter */
+
+type LogFilter struct {
+	Log
+	Mode bool `arg:"mode"`
+}
+
+func NewLogFilter() *LogFilter { return &LogFilter{} }
+
+func (l *Log) Aliases() []string { return []string{"log filter", "log fil"} }
+
+func (l *Log) Desc() string {
+	return "This command controls logging of messages containing bad words."
+}
+
+func (l *Log) Subcommands() []Command { return nil }
+
+func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+	stat := ""
+	if filFunc == nil && giantTrick {
+		filFunc := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+			msg := mc.Message
+			if msg.Author.ID == se.State.User.ID {
+				return
+			}
+
+			bad := false
+			// check for BAD WORDS
+			for _, bw := range badWords {
+				if bw.MatchString(msg.Content) {
+					// bad word detected
+					bad = true
+					break
+				}
+			}
+
+			if !bad {
+				return
+			}
+
+			// craft fields
+			fields := []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "Content:",
+					Value:  dtd.Content,
+					Inline: false,
+				},
+			}
+
+			se.ChannelMessageSendEmbed(LOG_CHAN, &discordgo.MessageEmbed{
+				Title: "Bad Word Detected",
+				Author: &discordgo.MessageEmbedAuthor{
+					IconURL: dtd.Author.AvatarURL(""),
+					Name:    dtd.Author.String(),
+				},
+				Footer: &discordgo.MessageEmbedFooter{
+					Text: string(dtd.Timestamp),
+				},
+				Fields: fields,
+				Color:  EMB_COL,
+			})
+		})
+		stat = "on"
+	} else {
+		if filFunc != nil {
+			filFunc()
+			filFunc = nil
+		}
+		stat = "off"
+	}
+
+	return NewSimpleSend(msg.ChannelID, "MessageFilter logging has been turned "+stat), nil
 }
