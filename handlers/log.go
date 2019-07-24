@@ -44,7 +44,7 @@ var (
 // Also need to cache images as well since deleted messages remove all attachments
 type MapCache struct {
 	limit  int
-	order  chan string
+	order  []string
 	cache  map[string]*discordgo.Message
 	images map[string]*discordgo.File
 }
@@ -53,7 +53,7 @@ type MapCache struct {
 func NewMapCache(lim int) *MapCache {
 	return &MapCache{
 		limit:  lim,
-		order:  make(chan string, lim),
+		order:  make([]string, lim),
 		cache:  make(map[string]*discordgo.Message),
 		images: make(map[string]*discordgo.File),
 	}
@@ -63,12 +63,13 @@ func NewMapCache(lim int) *MapCache {
 func (m *MapCache) Insert(ky string, vl *discordgo.Message) {
 	// just in case we have garbage keys...
 	for len(m.order) >= m.limit {
-		first := <-m.order
+		first := m.order[0]
 		delete(m.cache, first)
 		delete(m.images, first)
+		m.order = m.order[1:len(m.order)]
 	}
 	m.cache[ky] = vl
-	m.order <- ky
+	m.order = m.order[1:len(m.order)]
 	// try decode images and cache them too
 	if len(vl.Attachments) > 0 {
 		// get response, assuming only 1 attachment
