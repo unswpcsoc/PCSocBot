@@ -22,14 +22,15 @@ const (
 var (
 	giantTrick bool
 	delFunc    func()
-	filFUnc    func()
+	filFunc    func()
 
 	msgCache = NewMapCache(CACHE_LIM)
 
-	badWords = []regexp.Regexp{
+	badWords = []*regexp.Regexp{
 		regexp.MustCompile("(?i)kms"),
-		regexp.MustCompile("(?i)kill[[::space::]]*myself"),
-		regexp.MustCompile("(?i)kill[[::space::]]*me"),
+		regexp.MustCompile("(?i)kill[[:space:]]*myself"),
+		regexp.MustCompile("(?i)kill[[:space:]]*me"),
+		regexp.MustCompile("(?i)autis"),
 	}
 )
 
@@ -131,7 +132,7 @@ func (l *Log) Desc() string {
 
 func (l *Log) Roles() []string { return []string{"mod"} }
 
-func (l *Log) Subcommands() []Command { return []Command{LogDelete} }
+func (l *Log) Subcommands() []Command { return []Command{&LogDelete{}, &LogFilter{}} }
 
 func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
@@ -153,13 +154,13 @@ type LogDelete struct {
 
 func NewLogDelete() *LogDelete { return &LogDelete{} }
 
-func (l *Log) Aliases() []string { return []string{"log delete", "log del"} }
+func (l *LogDelete) Aliases() []string { return []string{"log delete", "log del"} }
 
-func (l *Log) Desc() string {
+func (l *LogDelete) Desc() string {
 	return "This command controls logging of deleted messages."
 }
 
-func (l *Log) Subcommands() []Command { return nil }
+func (l *LogDelete) Subcommands() []Command { return nil }
 
 func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
@@ -186,15 +187,20 @@ func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 				Tts:     false,
 			}
 
-			// craft fields
+			// get content
+			con := dtd.Content
+			if len(con) == 0 {
+				con = "[MESSAGE WAS EMPTY]"
+			}
 			fields := []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
 					Name:   "Content:",
-					Value:  dtd.Content,
+					Value:  con,
 					Inline: false,
 				},
 			}
 
+			// get reactions
 			if len(dtd.Reactions) > 0 {
 				var reacts string
 				for _, react := range dtd.Reactions {
@@ -253,18 +259,18 @@ type LogFilter struct {
 
 func NewLogFilter() *LogFilter { return &LogFilter{} }
 
-func (l *Log) Aliases() []string { return []string{"log filter", "log fil"} }
+func (l *LogFilter) Aliases() []string { return []string{"log filter", "log fil"} }
 
-func (l *Log) Desc() string {
+func (l *LogFilter) Desc() string {
 	return "This command controls logging of messages containing bad words."
 }
 
-func (l *Log) Subcommands() []Command { return nil }
+func (l *LogFilter) Subcommands() []Command { return nil }
 
 func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
 	if filFunc == nil && giantTrick {
-		filFunc := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+		filFunc = ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
 			msg := mc.Message
 			if msg.Author.ID == se.State.User.ID {
 				return
@@ -288,7 +294,7 @@ func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			fields := []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
 					Name:   "Content:",
-					Value:  dtd.Content,
+					Value:  msg.Content,
 					Inline: false,
 				},
 			}
@@ -296,11 +302,11 @@ func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			se.ChannelMessageSendEmbed(LOG_CHAN, &discordgo.MessageEmbed{
 				Title: "Bad Word Detected",
 				Author: &discordgo.MessageEmbedAuthor{
-					IconURL: dtd.Author.AvatarURL(""),
-					Name:    dtd.Author.String(),
+					IconURL: msg.Author.AvatarURL(""),
+					Name:    msg.Author.String(),
 				},
 				Footer: &discordgo.MessageEmbedFooter{
-					Text: string(dtd.Timestamp),
+					Text: string(msg.Timestamp),
 				},
 				Fields: fields,
 				Color:  EMB_COL,
