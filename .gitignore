@@ -10,3 +10,7 @@
 
 # db
 *.db
+
+# go mod
+go.mod
+go.sum
