@@ -20,16 +20,15 @@ const (
 )
 
 var (
-	giantTrick bool
-	delFunc    func()
-	filFUnc    func()
+	delFunc func()
+	filFunc func()
 
 	msgCache = NewMapCache(CACHE_LIM)
 
-	badWords = []regexp.Regexp{
+	badWords = []*regexp.Regexp{
 		regexp.MustCompile("(?i)kms"),
-		regexp.MustCompile("(?i)kill[[::space::]]*myself"),
-		regexp.MustCompile("(?i)kill[[::space::]]*me"),
+		regexp.MustCompile("(?i)kill[[:space:]]*myself"),
+		regexp.MustCompile("(?i)kill[[:space:]]*me"),
 	}
 )
 
@@ -131,16 +130,24 @@ func (l *Log) Desc() string {
 
 func (l *Log) Roles() []string { return []string{"mod"} }
 
-func (l *Log) Subcommands() []Command { return []Command{LogDelete} }
+func (l *Log) Subcommands() []Command { return []Command{&LogDelete{}, &LogFilter{}} }
 
 func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
 	if l.Mode {
+		initDel(ses)
+		initFill(ses)
+
 		stat = "on"
 	} else {
+		delFunc()
+		delFunc = nil
+		filFunc()
+		filFunc = nil
+
 		stat = "off"
 	}
-	giantTrick = l.Mode
+
 	return NewSimpleSend(msg.ChannelID, "Logging has been turned "+stat), nil
 }
 
@@ -153,85 +160,18 @@ type LogDelete struct {
 
 func NewLogDelete() *LogDelete { return &LogDelete{} }
 
-func (l *Log) Aliases() []string { return []string{"log delete", "log del"} }
+func (l *LogDelete) Aliases() []string { return []string{"log delete", "log del"} }
 
-func (l *Log) Desc() string {
+func (l *LogDelete) Desc() string {
 	return "This command controls logging of deleted messages."
 }
 
-func (l *Log) Subcommands() []Command { return nil }
+func (l *LogDelete) Subcommands() []Command { return nil }
 
 func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
-	if delFunc == nil && giantTrick {
-		tmp1 := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
-			msg := mc.Message
-			if msg.Author.ID == se.State.User.ID {
-				return
-			}
-			msgCache.Insert(msg.ID+msg.ChannelID, msg)
-		})
-
-		tmp2 := ses.AddHandler(func(se *discordgo.Session, dm *discordgo.MessageDelete) {
-			// get from cache
-			dtd, img, ok := msgCache.Pop(dm.Message.ID + dm.Message.ChannelID)
-			if !ok {
-				log.Println("Warning: Cache miss on logged MessageDelete event.")
-				return
-			}
-
-			// craft message
-			out := &discordgo.MessageSend{
-				Content: "",
-				Tts:     false,
-			}
-
-			// craft fields
-			fields := []*discordgo.MessageEmbedField{
-				&discordgo.MessageEmbedField{
-					Name:   "Content:",
-					Value:  dtd.Content,
-					Inline: false,
-				},
-			}
-
-			if len(dtd.Reactions) > 0 {
-				var reacts string
-				for _, react := range dtd.Reactions {
-					reacts += "[" + strconv.Itoa(react.Count) + "] "
-					reacts += react.Emoji.Name
-				}
-				fields = append(fields, &discordgo.MessageEmbedField{
-					Name:   "Reactions:",
-					Value:  reacts,
-					Inline: false,
-				})
-			}
-
-			out.Embed = &discordgo.MessageEmbed{
-				Title: "Deleted Message",
-				Author: &discordgo.MessageEmbedAuthor{
-					IconURL: dtd.Author.AvatarURL(""),
-					Name:    dtd.Author.String(),
-				},
-				Footer: &discordgo.MessageEmbedFooter{
-					Text: string(dtd.Timestamp),
-				},
-				Fields: fields,
-				Color:  EMB_COL,
-			}
-
-			if len(dtd.Attachments) > 0 {
-				// assume only one attachment (limit for normal users)
-				out.Files = []*discordgo.File{img}
-			}
-
-			se.ChannelMessageSendComplex(LOG_CHAN, out)
-		})
-		delFunc = func() {
-			tmp1()
-			tmp2()
-		}
+	if delFunc == nil {
+		initDel(ses)
 		stat = "on"
 	} else {
 		if delFunc != nil {
@@ -253,59 +193,18 @@ type LogFilter struct {
 
 func NewLogFilter() *LogFilter { return &LogFilter{} }
 
-func (l *Log) Aliases() []string { return []string{"log filter", "log fil"} }
+func (l *LogFilter) Aliases() []string { return []string{"log filter", "log fil"} }
 
-func (l *Log) Desc() string {
+func (l *LogFilter) Desc() string {
 	return "This command controls logging of messages containing bad words."
 }
 
-func (l *Log) Subcommands() []Command { return nil }
+func (l *LogFilter) Subcommands() []Command { return nil }
 
 func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
 	stat := ""
-	if filFunc == nil && giantTrick {
-		filFunc := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
-			msg := mc.Message
-			if msg.Author.ID == se.State.User.ID {
-				return
-			}
-
-			bad := false
-			// check for BAD WORDS
-			for _, bw := range badWords {
-				if bw.MatchString(msg.Content) {
-					// bad word detected
-					bad = true
-					break
-				}
-			}
-
-			if !bad {
-				return
-			}
-
-			// craft fields
-			fields := []*discordgo.MessageEmbedField{
-				&discordgo.MessageEmbedField{
-					Name:   "Content:",
-					Value:  dtd.Content,
-					Inline: false,
-				},
-			}
-
-			se.ChannelMessageSendEmbed(LOG_CHAN, &discordgo.MessageEmbed{
-				Title: "Bad Word Detected",
-				Author: &discordgo.MessageEmbedAuthor{
-					IconURL: dtd.Author.AvatarURL(""),
-					Name:    dtd.Author.String(),
-				},
-				Footer: &discordgo.MessageEmbedFooter{
-					Text: string(dtd.Timestamp),
-				},
-				Fields: fields,
-				Color:  EMB_COL,
-			})
-		})
+	if filFunc == nil {
+		initFill(ses)
 		stat = "on"
 	} else {
 		if filFunc != nil {
@@ -316,4 +215,127 @@ func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	}
 
 	return NewSimpleSend(msg.ChannelID, "MessageFilter logging has been turned "+stat), nil
+}
+
+func initDel(ses *discordgo.Session) {
+	tmp1 := ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+		msg := mc.Message
+		if msg.Author.ID == se.State.User.ID {
+			return
+		}
+		msgCache.Insert(msg.ID+msg.ChannelID, msg)
+	})
+
+	tmp2 := ses.AddHandler(func(se *discordgo.Session, dm *discordgo.MessageDelete) {
+		// get from cache
+		dtd, img, ok := msgCache.Pop(dm.Message.ID + dm.Message.ChannelID)
+		if !ok {
+			log.Println("Warning: Cache miss on logged MessageDelete event.")
+			return
+		}
+
+		// craft message
+		out := &discordgo.MessageSend{
+			Content: "",
+			Tts:     false,
+		}
+
+		// craft fields
+		fields := []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Content:",
+				Value:  dtd.Content,
+				Inline: false,
+			},
+		}
+
+		// TODO: fix
+		if len(dtd.Reactions) > 0 {
+			var reacts string
+			for _, react := range dtd.Reactions {
+				reacts += "[" + strconv.Itoa(react.Count) + "] "
+				reacts += react.Emoji.Name
+			}
+			fields = append(fields, &discordgo.MessageEmbedField{
+				Name:   "Reactions:",
+				Value:  reacts,
+				Inline: false,
+			})
+		}
+
+		cha, err := ses.State.Channel(dtd.ChannelID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		out.Embed = &discordgo.MessageEmbed{
+			Title: "Deleted Message from " + cha.Name,
+			Author: &discordgo.MessageEmbedAuthor{
+				IconURL: dtd.Author.AvatarURL(""),
+				Name:    dtd.Author.String(),
+			},
+			Footer: &discordgo.MessageEmbedFooter{
+				Text: string(dtd.Timestamp),
+			},
+			Fields: fields,
+			Color:  EMB_COL,
+		}
+
+		if len(dtd.Attachments) > 0 {
+			// assume only one attachment (limit for normal users)
+			out.File = img
+		}
+
+		se.ChannelMessageSendComplex(LOG_CHAN, out)
+	})
+	delFunc = func() {
+		tmp1()
+		tmp2()
+	}
+}
+
+func initFill(ses *discordgo.Session) {
+	filFunc = ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+		msg := mc.Message
+		if msg.Author.ID == se.State.User.ID {
+			return
+		}
+
+		bad := false
+		// check for BAD WORDS
+		for _, bw := range badWords {
+			if bw.MatchString(msg.Content) {
+				// bad word detected
+				bad = true
+				break
+			}
+		}
+
+		if !bad {
+			return
+		}
+
+		// craft fields
+		fields := []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Content:",
+				Value:  msg.Content,
+				Inline: false,
+			},
+		}
+
+		se.ChannelMessageSendEmbed(LOG_CHAN, &discordgo.MessageEmbed{
+			Title: "Bad Word Detected",
+			Author: &discordgo.MessageEmbedAuthor{
+				IconURL: msg.Author.AvatarURL(""),
+				Name:    msg.Author.String(),
+			},
+			Footer: &discordgo.MessageEmbedFooter{
+				Text: string(msg.Timestamp),
+			},
+			Fields: fields,
+			Color:  EMB_COL,
+		})
+	})
 }

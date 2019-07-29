@@ -81,6 +81,11 @@ func main() {
 	defer commands.DBClose()
 
 	dgo.UpdateListeningStatus("you")
+
+	// init loggers
+	handlers.InitLogs(dgo)
+
+	// handle commands
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// catch panics on production
 		if prod {

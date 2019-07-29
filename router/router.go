@@ -31,8 +31,8 @@ func NewRouter() *Router {
 	return &Router{NewLeaf(nil)}
 }
 
-// Addcommand adds command-string mapping
-func (r *Router) Addcommand(com comm.Command) {
+// AddCommand adds command-string mapping
+func (r *Router) AddCommand(com comm.Command) {
 	if com == nil || len(com.Aliases()) == 0 || r.Routes == nil {
 		return
 	}

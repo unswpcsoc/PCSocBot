@@ -1,8 +1,10 @@
-// Package containing concrete implementations of the Command interface
+// Package handlers contains concrete implementations of the Command interface
 //
 package handlers
 
 import (
+	"github.com/bwmarrin/discordgo"
+
 	. "github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/router"
 )
@@ -12,38 +14,40 @@ var crt *router.Router
 func init() {
 	crt = router.NewRouter()
 
-	crt.Addcommand(NewDecimalSpiral())
+	crt.AddCommand(NewDecimalSpiral())
 
-	crt.Addcommand(NewEcho())
+	crt.AddCommand(NewEcho())
 
-	crt.Addcommand(NewHelp())
+	crt.AddCommand(NewHelp())
 
-	crt.Addcommand(NewLog())
+	crt.AddCommand(NewLog())
 
-	crt.Addcommand(NewPing())
+	crt.AddCommand(NewPing())
 
-	crt.Addcommand(NewQuote())
-	crt.Addcommand(NewQuoteAdd())
-	crt.Addcommand(NewQuoteApprove())
-	crt.Addcommand(NewQuoteList())
-	crt.Addcommand(NewQuotePending())
-	crt.Addcommand(NewQuoteRemove())
-	crt.Addcommand(NewQuoteReject())
+	crt.AddCommand(NewQuote())
+	crt.AddCommand(NewQuoteAdd())
+	crt.AddCommand(NewQuoteApprove())
+	crt.AddCommand(NewQuoteList())
+	crt.AddCommand(NewQuotePending())
+	crt.AddCommand(NewQuoteRemove())
+	crt.AddCommand(NewQuoteReject())
 
-	crt.Addcommand(NewRole("Bookworm"))
-	crt.Addcommand(NewRole("Meta"))
-	crt.Addcommand(NewRole("Weeb"))
+	crt.AddCommand(NewRole("Bookworm"))
+	crt.AddCommand(NewRole("Meta"))
+	crt.AddCommand(NewRole("Weeb"))
 
-	crt.Addcommand(NewTags())
-	crt.Addcommand(NewTagsAdd())
-	crt.Addcommand(NewTagsClean())
-	crt.Addcommand(NewTagsList())
-	crt.Addcommand(NewTagsGet())
-	crt.Addcommand(NewTagsPing())
-	crt.Addcommand(NewTagsPingMe())
-	crt.Addcommand(NewTagsPlatforms())
-	crt.Addcommand(NewTagsRemove())
-	crt.Addcommand(NewTagsUser())
+	crt.AddCommand(NewTags())
+	crt.AddCommand(NewTagsAdd())
+	crt.AddCommand(NewTagsClean())
+	crt.AddCommand(NewTagsList())
+	crt.AddCommand(NewTagsGet())
+	crt.AddCommand(NewTagsPing())
+	crt.AddCommand(NewTagsPingMe())
+	crt.AddCommand(NewTagsPlatforms())
+	crt.AddCommand(NewTagsRemove())
+	crt.AddCommand(NewTagsUser())
+
+	crt.AddCommand(NewArchive())
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
@@ -68,3 +72,10 @@ func (n *NilCommand) Subcommands() []Command { return nil }
 func (n *NilCommand) Roles() []string { return nil }
 
 func (n *NilCommand) Chans() []string { return nil }
+
+// InitLogs inits all logging commands
+func InitLogs(ses *discordgo.Session) {
+	initFill(ses)
+	initDel(ses)
+	initArchive(ses)
+}

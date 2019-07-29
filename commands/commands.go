@@ -14,15 +14,15 @@ import (
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
-var (
-	/* send errors */
-	ErrSendLimit     = errors.New("message exceeds send limit of 2000 characters")
-	ErrNotEnoughArgs = errors.New("not enough arguments provided")
-)
-
 const (
 	PREFIX        = "!"
-	MESSAGE_LIMIT = 2000
+	MESSAGE_LIMIT = 2000 // char limit for messages
+)
+
+var (
+	// send errors
+	ErrSendLimit     = errors.New("message exceeds send limit of 2000 characters")
+	ErrNotEnoughArgs = errors.New("not enough arguments provided")
 )
 
 // Command is the interface that all commands implement.
@@ -159,8 +159,6 @@ func GetUsage(c Command) (usage string) {
 
 	return usage
 }
-
-/* arg filling */
 
 // FillArgs tries to fill the given command's struct fields with the args given
 //
