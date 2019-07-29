@@ -59,8 +59,8 @@ func (a *Archive) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 		return nil, errors.New("index not in range")
 	}
 
-	cid := history[len(history)-a.Index].cID
-	mid := history[len(history)-a.Index].mID
+	cid := history[len(history)-a.Index-1].cID
+	mid := history[len(history)-a.Index-1].mID
 
 	// get archive target
 	var arc *discordgo.Message
