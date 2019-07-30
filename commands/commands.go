@@ -15,13 +15,16 @@ import (
 )
 
 const (
-	PREFIX        = "!"
-	MESSAGE_LIMIT = 2000 // char limit for messages
+	// Prefix is the prefix for commands
+	Prefix = "!"
+	// MessageLimit is the character limit for messages
+	MessageLimit = 2000
 )
 
 var (
-	// send errors
-	ErrSendLimit     = errors.New("message exceeds send limit of 2000 characters")
+	// ErrSendLimit means the message was too long
+	ErrSendLimit = errors.New("message exceeds send limit of 2000 characters")
+	// ErrNotEnoughArgs means the user did not provide enough arguments to the command
 	ErrNotEnoughArgs = errors.New("not enough arguments provided")
 )
 
@@ -36,7 +39,7 @@ type Command interface {
 	MsgHandle(*discordgo.Session, *discordgo.Message) (*CommandSend, error) // Handler for MessageCreate event
 }
 
-// Send is a helper struct that buffers things commands need to send.
+// CommandSend is a helper struct that buffers things commands need to send.
 type CommandSend struct {
 	data      []*discordgo.MessageSend
 	channelid string
@@ -98,7 +101,7 @@ func (c *CommandSend) AddMessageSend(send *discordgo.MessageSend) {
 func (c *CommandSend) Send(s *discordgo.Session) error {
 	// Get the stuff out of BeegYoshi and send it into the server
 	for _, data := range c.data {
-		if utils.Strlen(data) > MESSAGE_LIMIT {
+		if utils.Strlen(data) > MessageLimit {
 			return fmt.Errorf("Send: following message exceeds limit\n%#v", data)
 		}
 		s.ChannelMessageSendComplex(c.channelid, data)
@@ -109,8 +112,9 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 /* usage generation */
 
 // GetUsage generates the usage message from a Command in the following format
-//  !alias0 (__type0__ arg0) (__type1__ arg1) (__type2__ arg 2) [...]
-//  __Aliases:__ alias1; alias2; [...]
+//  !alias0 (type0) __arg0__ (type1) __arg1__ ...
+//  description of command
+//  __Aliases__ | !alias1 | !alias2 ...
 func GetUsage(c Command) (usage string) {
 	v := reflect.ValueOf(c)
 
@@ -139,21 +143,53 @@ func GetUsage(c Command) (usage string) {
 			continue
 		}
 
-		usage += " (" + f.Type.Name() + " " + utils.Under(tag) + ")"
-	}
-
-	// other aliases
-	if len(names) > 1 {
-		usage += "\n" + utils.Under("Aliases:")
-		for _, name := range names[1:] {
-			usage += " " + name + ";"
+		// kind switch to parse into human-readable
+		// names for types
+		var tName string
+		switch f.Type.Kind() {
+		case reflect.Bool:
+			tName = "true/false"
+		case reflect.Int:
+			tName = "number"
+		case reflect.String:
+			tName = "word"
+		case reflect.Array, reflect.Slice:
+			tName = "zero or more "
+			switch f.Type.Elem().Kind() {
+			case reflect.Bool:
+				tName += "true/false"
+			case reflect.Int:
+				tName += "numbers"
+			case reflect.String:
+				tName += "words"
+			}
+		default:
+			tName = f.Type.Name()
 		}
+
+		usage += " (" + tName + ") " + utils.Under(tag)
 	}
 
 	// description
 	usage += "\n" + c.Desc()
 
-	if len(usage) > MESSAGE_LIMIT {
+	// aliases
+	if len(names) > 1 {
+		usage += "\n" + utils.Under("Aliases")
+		for _, name := range names[1:] {
+			usage += " | !" + name
+		}
+	}
+
+	// subcommands
+	if len(c.Subcommands()) > 0 {
+		usage += "\n" + utils.Under("Subcommands")
+		for _, sc := range c.Subcommands() {
+			usage += " | !" + sc.Aliases()[0]
+		}
+	}
+
+	if len(usage) > MessageLimit {
 		panic("command is too damn big!")
 	}
 

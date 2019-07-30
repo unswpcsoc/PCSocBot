@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"bytes"
-	"log"
+	logs "log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -10,20 +10,20 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
 const (
-	CACHE_LIM = 100
-	EMB_COL   = 0xff0000
-	LOG_CHAN  = "462063414408249376" // currently just the #commands channel in pcsoc2
+	cacheLimit  = 100
+	embedColour = 0xff0000
+	logChannel  = "462063414408249376" // currently just the #commands channel in pcsoc2
 )
 
 var (
 	delFunc func()
 	filFunc func()
 
-	msgCache = NewMapCache(CACHE_LIM)
+	msgCache = NewMapCache(cacheLimit)
 
 	badWords = []*regexp.Regexp{
 		regexp.MustCompile("(?i)kms"),
@@ -75,11 +75,11 @@ func (m *MapCache) Insert(ky string, vl *discordgo.Message) {
 		url := vl.Attachments[0].URL
 		splits := strings.Split(url, ".")
 		format := splits[len(splits)-1]
-		log.Println("Got attachment format: " + format)
+		logs.Println("Got attachment format: " + format)
 
 		resp, err := http.Get(url)
 		if err != nil {
-			log.Println(err)
+			logs.Println(err)
 			return
 		}
 		defer resp.Body.Close()
@@ -88,7 +88,7 @@ func (m *MapCache) Insert(ky string, vl *discordgo.Message) {
 		var buf = bytes.NewBuffer([]byte{})
 		_, err = buf.ReadFrom(resp.Body)
 		if err != nil {
-			log.Println(err)
+			logs.Println(err)
 			return
 		}
 
@@ -115,24 +115,29 @@ func (m *MapCache) Pop(ky string) (*discordgo.Message, *discordgo.File, bool) {
 
 /* log */
 
-type Log struct {
-	NilCommand
+type log struct {
+	nilCommand
 	Mode bool `arg:"mode"`
 }
 
-func NewLog() *Log { return &Log{} }
+func newLog() *log { return &log{} }
 
-func (l *Log) Aliases() []string { return []string{"log"} }
+func (l *log) Aliases() []string { return []string{"log"} }
 
-func (l *Log) Desc() string {
+func (l *log) Desc() string {
 	return "Moderation logging tool for deleted messages. This command controls all logging."
 }
 
-func (l *Log) Roles() []string { return []string{"mod"} }
+func (l *log) Roles() []string { return []string{"mod"} }
 
-func (l *Log) Subcommands() []Command { return []Command{&LogDelete{}, &LogFilter{}} }
+func (l *log) Subcommands() []commands.Command {
+	return []commands.Command{
+		newLogDelete(),
+		newLogFilter(),
+	}
+}
 
-func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (l *log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
 	if l.Mode {
 		initDel(ses)
@@ -148,27 +153,27 @@ func (l *Log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comman
 		stat = "off"
 	}
 
-	return NewSimpleSend(msg.ChannelID, "Logging has been turned "+stat), nil
-}
-
-type LogDelete struct {
-	Log
-	Mode bool `arg:"mode"`
+	return commands.NewSimpleSend(msg.ChannelID, "logging has been turned "+stat), nil
 }
 
 /* log delete */
 
-func NewLogDelete() *LogDelete { return &LogDelete{} }
+type logDelete struct {
+	log
+	Mode bool `arg:"mode"`
+}
 
-func (l *LogDelete) Aliases() []string { return []string{"log delete", "log del"} }
+func newLogDelete() *logDelete { return &logDelete{} }
 
-func (l *LogDelete) Desc() string {
+func (l *logDelete) Aliases() []string { return []string{"log delete", "log del"} }
+
+func (l *logDelete) Desc() string {
 	return "This command controls logging of deleted messages."
 }
 
-func (l *LogDelete) Subcommands() []Command { return nil }
+func (l *logDelete) Subcommands() []commands.Command { return nil }
 
-func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (l *logDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
 	if delFunc == nil {
 		initDel(ses)
@@ -181,27 +186,27 @@ func (l *LogDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		stat = "off"
 	}
 
-	return NewSimpleSend(msg.ChannelID, "MessageDelete logging has been turned "+stat), nil
+	return commands.NewSimpleSend(msg.ChannelID, "MessageDelete logging has been turned "+stat), nil
 }
 
 /* log filter */
 
-type LogFilter struct {
-	Log
+type logFilter struct {
+	log
 	Mode bool `arg:"mode"`
 }
 
-func NewLogFilter() *LogFilter { return &LogFilter{} }
+func newLogFilter() *logFilter { return &logFilter{} }
 
-func (l *LogFilter) Aliases() []string { return []string{"log filter", "log fil"} }
+func (l *logFilter) Aliases() []string { return []string{"log filter", "log fil"} }
 
-func (l *LogFilter) Desc() string {
+func (l *logFilter) Desc() string {
 	return "This command controls logging of messages containing bad words."
 }
 
-func (l *LogFilter) Subcommands() []Command { return nil }
+func (l *logFilter) Subcommands() []commands.Command { return nil }
 
-func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (l *logFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
 	if filFunc == nil {
 		initFill(ses)
@@ -214,7 +219,7 @@ func (l *LogFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		stat = "off"
 	}
 
-	return NewSimpleSend(msg.ChannelID, "MessageFilter logging has been turned "+stat), nil
+	return commands.NewSimpleSend(msg.ChannelID, "MessageFilter logging has been turned "+stat), nil
 }
 
 func initDel(ses *discordgo.Session) {
@@ -230,7 +235,7 @@ func initDel(ses *discordgo.Session) {
 		// get from cache
 		dtd, img, ok := msgCache.Pop(dm.Message.ID + dm.Message.ChannelID)
 		if !ok {
-			log.Println("Warning: Cache miss on logged MessageDelete event.")
+			logs.Println("Warning: Cache miss on logged MessageDelete event.")
 			return
 		}
 
@@ -265,7 +270,7 @@ func initDel(ses *discordgo.Session) {
 
 		cha, err := ses.State.Channel(dtd.ChannelID)
 		if err != nil {
-			log.Println(err)
+			logs.Println(err)
 			return
 		}
 
@@ -279,7 +284,7 @@ func initDel(ses *discordgo.Session) {
 				Text: string(dtd.Timestamp),
 			},
 			Fields: fields,
-			Color:  EMB_COL,
+			Color:  embedColour,
 		}
 
 		if len(dtd.Attachments) > 0 {
@@ -287,7 +292,7 @@ func initDel(ses *discordgo.Session) {
 			out.File = img
 		}
 
-		se.ChannelMessageSendComplex(LOG_CHAN, out)
+		se.ChannelMessageSendComplex(logChannel, out)
 	})
 	delFunc = func() {
 		tmp1()
@@ -325,7 +330,7 @@ func initFill(ses *discordgo.Session) {
 			},
 		}
 
-		se.ChannelMessageSendEmbed(LOG_CHAN, &discordgo.MessageEmbed{
+		se.ChannelMessageSendEmbed(logChannel, &discordgo.MessageEmbed{
 			Title: "Bad Word Detected",
 			Author: &discordgo.MessageEmbedAuthor{
 				IconURL: msg.Author.AvatarURL(""),
@@ -335,7 +340,7 @@ func initFill(ses *discordgo.Session) {
 				Text: string(msg.Timestamp),
 			},
 			Fields: fields,
-			Color:  EMB_COL,
+			Color:  embedColour,
 		})
 	})
 }

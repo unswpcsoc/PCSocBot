@@ -4,34 +4,42 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
-const HELPALIAS = PREFIX + "h"
+const (
+	// HelpAlias is the default alias for help command
+	HelpAlias = commands.Prefix + "h"
+)
 
-// Help is a special command that needs a concrete router to work
-type Help struct {
-	NilCommand
+// help is a special command that needs a concrete router to work
+type help struct {
+	nilCommand
 	Query []string `arg:"query"`
 }
 
-func NewHelp() *Help { return &Help{} }
+func newHelp() *help { return &help{} }
 
-func (h *Help) Aliases() []string { return []string{"helpme", "h", "commands", "fuck", "fuck you"} }
+func (h *help) Aliases() []string { return []string{"helpme", "h", "commands", "fuck", "fuck you"} }
 
-func (h *Help) Desc() string { return "Help!" }
+func (h *help) Desc() string { return "help!" }
 
-func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	snd := NewSend(msg.ChannelID)
+func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	snd := commands.NewSend(msg.ChannelID)
 	if len(h.Query) == 0 {
 		// consider rate-limiting/re-routing/disabling this if your message becomes enormous
 		ignore := map[string]bool{}
-		slice := RouterToSlice()
-		for _, com := range slice {
+		routerSlice := RouterToSlice()
+		for _, com := range routerSlice {
 			// register subcommands to be ignored using first alias
 			if com.Subcommands() != nil {
 				for _, sub := range com.Subcommands() {
+					// check if programmer has accidentally included root command as a subcommand
+					if sub.Aliases()[0] == com.Aliases()[0] {
+						panic("you idiot")
+					}
+
 					ignore[sub.Aliases()[0]] = true
 				}
 			}
@@ -39,15 +47,15 @@ func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 
 		count := 0
 		out := utils.Bold("All Commands:")
-		for _, com := range slice {
+		for _, com := range routerSlice {
 			// ignore subcommands
 			if seen, _ := ignore[com.Aliases()[0]]; seen {
 				continue
 			}
 
-			tmp := "\n" + GetUsage(com)
+			tmp := "\n" + commands.GetUsage(com)
 			count += len(tmp)
-			if count < 2000 {
+			if count < commands.MessageLimit {
 				out += tmp
 			} else {
 				snd.AddSimpleMessage(out)
@@ -59,19 +67,11 @@ func (h *Help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 	} else {
 		com, _ := RouterRoute(h.Query)
 		if com == nil {
-			return nil, errors.New("Error: Unknown command; use " + HELPALIAS)
+			return nil, errors.New("Error: Unknown command; use " + HelpAlias)
 		}
 
 		out := "Command " + utils.Bold(com.Aliases()[0])
-		if com.Subcommands() != nil {
-			out += "\n" + GetUsage(com)
-			out += "\n\nSubcommands:"
-			for _, sub := range com.Subcommands() {
-				out += "\n" + GetUsage(sub)
-			}
-		} else {
-			out += "\n" + GetUsage(com)
-		}
+		out += "\n" + commands.GetUsage(com)
 		snd.AddSimpleMessage(out)
 	}
 	return snd, nil

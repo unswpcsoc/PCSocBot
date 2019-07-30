@@ -5,7 +5,7 @@ package handlers
 import (
 	"github.com/bwmarrin/discordgo"
 
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/router"
 )
 
@@ -14,66 +14,67 @@ var crt *router.Router
 func init() {
 	crt = router.NewRouter()
 
-	crt.AddCommand(NewDecimalSpiral())
+	crt.AddCommand(newDecimalSpiral())
 
-	crt.AddCommand(NewEcho())
+	crt.AddCommand(newEcho())
 
-	crt.AddCommand(NewHelp())
+	crt.AddCommand(newHelp())
 
-	crt.AddCommand(NewLog())
+	crt.AddCommand(newLog())
 
-	crt.AddCommand(NewPing())
+	crt.AddCommand(newPing())
 
-	crt.AddCommand(NewQuote())
-	crt.AddCommand(NewQuoteAdd())
-	crt.AddCommand(NewQuoteApprove())
-	crt.AddCommand(NewQuoteList())
-	crt.AddCommand(NewQuotePending())
-	crt.AddCommand(NewQuoteRemove())
-	crt.AddCommand(NewQuoteReject())
+	crt.AddCommand(newQuote())
+	crt.AddCommand(newQuoteAdd())
+	crt.AddCommand(newQuoteApprove())
+	crt.AddCommand(newQuoteList())
+	crt.AddCommand(newQuotePending())
+	crt.AddCommand(newQuoteRemove())
+	crt.AddCommand(newQuoteReject())
 
-	crt.AddCommand(NewRole("Bookworm"))
-	crt.AddCommand(NewRole("Meta"))
-	crt.AddCommand(NewRole("Weeb"))
+	crt.AddCommand(newRole("Bookworm"))
+	crt.AddCommand(newRole("Meta"))
+	crt.AddCommand(newRole("Weeb"))
 
-	crt.AddCommand(NewTags())
-	crt.AddCommand(NewTagsAdd())
-	crt.AddCommand(NewTagsClean())
-	crt.AddCommand(NewTagsList())
-	crt.AddCommand(NewTagsGet())
-	crt.AddCommand(NewTagsPing())
-	crt.AddCommand(NewTagsPingMe())
-	crt.AddCommand(NewTagsPlatforms())
-	crt.AddCommand(NewTagsRemove())
-	crt.AddCommand(NewTagsUser())
+	crt.AddCommand(newTags())
+	crt.AddCommand(newTagsAdd())
+	crt.AddCommand(newTagsClean())
+	crt.AddCommand(newTagsList())
+	crt.AddCommand(newTagsGet())
+	crt.AddCommand(newTagsPing())
+	crt.AddCommand(newTagsPingMe())
+	crt.AddCommand(newTagsPlatforms())
+	crt.AddCommand(newTagsRemove())
+	crt.AddCommand(newTagsUser())
 
-	crt.AddCommand(NewArchive())
+	crt.AddCommand(newArchive())
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
-func RouterRoute(argv []string) (Command, int) {
+func RouterRoute(argv []string) (commands.Command, int) {
 	return crt.Route(argv)
 }
 
 // RouterToSlice is a wrapper around the blah blah blah's ToSlice method
-func RouterToSlice() []Command {
+func RouterToSlice() []commands.Command {
 	return crt.ToSlice()
 }
 
-// NilCommand is a thing that you can struct embed to avoid boilerplate
-type NilCommand struct{}
+// nilCommand is a thing that you can struct embed to avoid boilerplate
+type nilCommand struct{}
 
-func (n *NilCommand) Aliases() []string { return []string{""} }
+func (n *nilCommand) Aliases() []string { return []string{""} }
 
-func (n *NilCommand) Desc() string { return "" }
+func (n *nilCommand) Desc() string { return "" }
 
-func (n *NilCommand) Subcommands() []Command { return nil }
+func (n *nilCommand) Subcommands() []commands.Command { return nil }
 
-func (n *NilCommand) Roles() []string { return nil }
+func (n *nilCommand) Roles() []string { return nil }
 
-func (n *NilCommand) Chans() []string { return nil }
+func (n *nilCommand) Chans() []string { return nil }
 
-// InitLogs inits all logging commands
+// InitLogs inits all logging commands.
+// Needs to be maually updated when adding new loggers
 func InitLogs(ses *discordgo.Session) {
 	initFill(ses)
 	initDel(ses)

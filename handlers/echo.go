@@ -4,21 +4,21 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
-type Echo struct {
-	NilCommand
+type echo struct {
+	nilCommand
 	Input []string `arg:"input"`
 }
 
-func NewEcho() *Echo { return &Echo{} }
+func newEcho() *echo { return &echo{} }
 
-func (e *Echo) Aliases() []string { return []string{"echo"} }
+func (e *echo) Aliases() []string { return []string{"echo"} }
 
-func (e *Echo) Desc() string { return "Echo!" }
+func (e *echo) Desc() string { return "Echo!" }
 
-func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (e *echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var out string
 	if len(e.Input) == 0 {
 		out = "Echo!"
@@ -26,5 +26,5 @@ func (e *Echo) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 		out = strings.Join(e.Input, " ")
 	}
 
-	return NewSimpleSend(msg.ChannelID, out), nil
+	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }

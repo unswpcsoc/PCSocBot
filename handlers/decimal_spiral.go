@@ -6,40 +6,40 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
 const (
-	LowerLimit = 5
-	UpperLimit = 43
+	lowerLimit = 5
+	upperLimit = 43
 )
 
 var (
-	ErrDecimalSpiralSyntax = errors.New("size is not an integer")
-	ErrDecimalSpiralRange  = errors.New("size is not an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit))
-	ErrDecimalSpiralArgs   = errors.New("not enough args")
+	// ErrdecimalSpiralRange means user gave invalid input outside of range
+	ErrdecimalSpiralRange = errors.New("size is not an odd integer between " + strconv.Itoa(lowerLimit) + " and " + strconv.Itoa(upperLimit))
 )
 
-type DecimalSpiral struct {
-	NilCommand
+type decimalSpiral struct {
+	nilCommand
 	Size int `arg:"size"`
 }
 
-func NewDecimalSpiral() *DecimalSpiral { return &DecimalSpiral{} }
+func newDecimalSpiral() *decimalSpiral { return &decimalSpiral{} }
 
-func (d *DecimalSpiral) Aliases() []string { return []string{"decimalspiral", "ds"} }
+func (d *decimalSpiral) Aliases() []string { return []string{"decimalspiral", "ds"} }
 
-func (d *DecimalSpiral) Desc() string {
-	return "Generate a decimal spiral. Size must be an odd integer between " + strconv.Itoa(LowerLimit) + " and " + strconv.Itoa(UpperLimit)
+func (d *decimalSpiral) Desc() string {
+	return "Generate a decimal spiral. Size must be an odd integer between " +
+		strconv.Itoa(lowerLimit) + " and " + strconv.Itoa(upperLimit)
 }
 
-func (d *DecimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	if d.Size%2 == 0 || d.Size < LowerLimit || d.Size > UpperLimit {
-		return nil, ErrDecimalSpiralRange
+func (d *decimalSpiral) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	if d.Size%2 == 0 || d.Size < lowerLimit || d.Size > upperLimit {
+		return nil, ErrdecimalSpiralRange
 	}
 
-	return NewSimpleSend(msg.ChannelID, utils.Block(genDecimalSpiral(d.Size))), nil
+	return commands.NewSimpleSend(msg.ChannelID, utils.Block(genDecimalSpiral(d.Size))), nil
 }
 
 func abs(i int) int {
@@ -167,19 +167,25 @@ func getDigit(size int, row int, col int) int {
 
 	// Row displacement from midpoint
 	rowDist := row - size/2
+
 	// Absolute row distance from midpoint
 	absRowDist := abs(rowDist)
+
 	// Column displacement from midpoint
 	colDist := col - size/2
+
 	// Absolute column distance from midpoint
 	absColDist := abs(colDist)
+
 	// Size of box current coordinate is on
 	subSize := 0
+
 	if absRowDist >= absColDist {
 		subSize = 2*absRowDist + 1
 	} else {
 		subSize = 2*absColDist + 1
 	}
+
 	row = row - (size-subSize)/2
 	col = col - (size-subSize)/2
 	// Layer of current box. 0 is centre
@@ -190,36 +196,31 @@ func getDigit(size int, row int, col int) int {
 		if subSize%4 == 1 {
 			// Type 1 boxes
 			return 8*layer*layer + 8*layer - col
-		} else {
-			// Type 2 boxes
-			return 8*layer*layer - 2 - col
 		}
+		return 8*layer*layer - 2 - col
 	} else if colDist > 0 && absColDist > absRowDist {
 		// Right quadrant
 		if subSize%4 == 1 {
 			// Type 1 boxes
 			return 8*layer*layer + 4*layer - row
-		} else {
-			// Type 2 boxes
-			return 8*layer*layer - 4*layer - row
 		}
+		// Type 2 boxes
+		return 8*layer*layer - 4*layer - row
 	} else if rowDist > 0 && absRowDist >= absColDist {
 		// Bottom quadrant
 		if subSize%4 == 1 {
 			// Type 1 boxes
 			return 8*layer*layer - 4*layer + col
-		} else {
-			// Type 2 boxes
-			return 8*layer*layer - 12*layer + 4 + col
 		}
+		// Type 2 boxes
+		return 8*layer*layer - 12*layer + 4 + col
 	} else {
 		// Left quadrant
 		if subSize%4 == 1 {
 			// Type 1 boxes
 			return 8*layer*layer - 8*layer + row
-		} else {
-			// Type 2 boxes
-			return 8*layer*layer - 16*layer + 6 + row
 		}
+		// Type 2 boxes
+		return 8*layer*layer - 16*layer + 6 + row
 	}
 }

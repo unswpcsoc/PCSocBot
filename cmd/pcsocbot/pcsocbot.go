@@ -18,10 +18,6 @@ import (
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
-const (
-	MESSAGE_LIMIT = 2000 // discord's message character limit
-)
-
 var (
 	prod bool // production mode i.e. db saves to file rather than memory
 	sync bool // sync mode - will handle events syncronously if set
@@ -101,7 +97,7 @@ func main() {
 		}
 
 		trm := strings.TrimSpace(m.Content)
-		if !strings.HasPrefix(trm, commands.PREFIX) || len(trm) == 1 {
+		if !strings.HasPrefix(trm, commands.Prefix) || len(trm) == 1 {
 			return
 		}
 		s.ChannelTyping(m.ChannelID)
@@ -124,7 +120,7 @@ func main() {
 			// regular routing
 			com, ind = handlers.RouterRoute(argv)
 			if com == nil {
-				out := utils.Italics("Error: Unknown command; use " + handlers.HELPALIAS)
+				out := utils.Italics("Error: Unknown command; use " + handlers.HelpAlias)
 				s.ChannelMessageSend(m.ChannelID, out)
 				return
 			}

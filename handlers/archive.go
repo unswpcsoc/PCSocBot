@@ -9,7 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
 const (
@@ -34,20 +34,20 @@ func enqueue(cid, mid string) {
 	}
 }
 
-type Archive struct {
-	NilCommand
+type archive struct {
+	nilCommand
 	Index int `arg:"index"`
 }
 
-func NewArchive() *Archive { return &Archive{} }
+func newArchive() *archive { return &archive{} }
 
-func (a *Archive) Aliases() []string { return []string{"archive"} }
+func (a *archive) Aliases() []string { return []string{"archive"} }
 
-func (a *Archive) Desc() string { return "Generates an embed for archiving a message" }
+func (a *archive) Desc() string { return "Generates an embed for archiving a message" }
 
-func (a *Archive) Roles() []string { return []string{"mod"} }
+func (a *archive) Roles() []string { return []string{"mod"} }
 
-func (a *Archive) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (a *archive) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
 
 	if len(history) == 0 {
@@ -127,7 +127,7 @@ func (a *Archive) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 		Description: arc.Content,
 
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Archived message from " + cha.Name + " | " + string(arc.Timestamp),
+			Text: "archived message from " + cha.Name + " | " + string(arc.Timestamp),
 		},
 
 		Color: ses.State.UserColor(arc.Author.ID, cid),
@@ -136,7 +136,7 @@ func (a *Archive) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Co
 	// send to archive channel
 	ses.ChannelMessageSendComplex(archiveChan, out)
 
-	return NewSimpleSend(msg.ChannelID, "Archived message!"), nil
+	return commands.NewSimpleSend(msg.ChannelID, "archived message!"), nil
 }
 
 func initArchive(ses *discordgo.Session) {

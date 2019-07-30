@@ -6,30 +6,32 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
 
-type Role struct {
-	NilCommand
+type role struct {
+	nilCommand
 	names []string
 	desc  string
-	role  string
+	rol   string
 }
 
-func NewRole(role string) *Role {
-	return &Role{
-		names: []string{strings.ToLower(role)},
-		desc:  "Gives user the " + role + " role.",
-		role:  strings.ToLower(role),
+func newRole(rol string) *role {
+	return &role{
+		names: []string{strings.ToLower(rol)},
+		desc:  "Gives user the " + rol + " role.",
+		rol:   strings.ToLower(rol),
 	}
 }
 
-func (r *Role) Aliases() []string { return r.names }
+func (r *role) Aliases() []string { return r.names }
 
-func (r *Role) Desc() string { return r.desc }
+func (r *role) Desc() string { return r.desc }
 
-func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
+func (r *role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	var err error
+
 	mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
 	if err != nil {
 		mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
@@ -41,20 +43,20 @@ func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 	// Check if user has role
 	roleID := ""
 	has := false
-	guildRoles, err := ses.GuildRoles(msg.GuildID)
+	guildroles, err := ses.GuildRoles(msg.GuildID)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, role := range guildRoles {
-		if strings.ToLower(r.role) == strings.ToLower(role.Name) {
+	for _, role := range guildroles {
+		if strings.ToLower(r.rol) == strings.ToLower(role.Name) {
 			roleID = role.ID
 			break
 		}
 	}
 
 	if len(roleID) == 0 {
-		return nil, errors.New("no such role " + utils.Code(r.role) + " in guild: " + msg.GuildID + "\n")
+		return nil, errors.New("no such role " + utils.Code(r.rol) + " in guild: " + msg.GuildID + "\n")
 	}
 
 	for _, role := range mem.Roles {
@@ -65,18 +67,18 @@ func (r *Role) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*Comma
 
 	// Add / remove the role accordingly
 	if has {
-		err := ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, roleID)
+		err = ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, roleID)
 		if err != nil {
 			return nil, err
 		}
 
-		return NewSimpleSend(msg.ChannelID, mem.Mention()+" is no longer a "+r.role), nil
-	} else {
-		err := ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, roleID)
-		if err != nil {
-			return nil, err
-		}
-
-		return NewSimpleSend(msg.ChannelID, mem.Mention()+" is now a "+r.role), nil
+		return commands.NewSimpleSend(msg.ChannelID, mem.Mention()+" is no longer a "+r.rol), nil
 	}
+
+	err = ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	return commands.NewSimpleSend(msg.ChannelID, mem.Mention()+" is now a "+r.rol), nil
 }

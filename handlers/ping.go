@@ -2,19 +2,19 @@ package handlers
 
 import (
 	"github.com/bwmarrin/discordgo"
-	. "github.com/unswpcsoc/PCSocBot/commands"
+	"github.com/unswpcsoc/PCSocBot/commands"
 )
 
-type Ping struct {
-	NilCommand
+type ping struct {
+	nilCommand
 }
 
-func NewPing() *Ping { return &Ping{} }
+func newPing() *ping { return &ping{} }
 
-func (p *Ping) Aliases() []string { return []string{"ping", "ping pong"} }
+func (p *ping) Aliases() []string { return []string{"ping", "ping pong"} }
 
-func (p *Ping) Desc() string { return "Ping!" }
+func (p *ping) Desc() string { return "ping!" }
 
-func (p *Ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*CommandSend, error) {
-	return NewSimpleSend(msg.ChannelID, "Pong!"), nil
+func (p *ping) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	return commands.NewSimpleSend(msg.ChannelID, "Pong!"), nil
 }
