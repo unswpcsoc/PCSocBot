@@ -62,7 +62,7 @@ func (s *staticIce) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	for _, ent := range res {
 		fields = append(fields, &discordgo.MessageEmbedField{
 			Name: fmt.Sprintf("**%s**", ent.Seller),
-			Value: fmt.Sprintf("**$%.2f**\n%s\nLast Updated: %s ago", ent.Price,
+			Value: fmt.Sprintf("**$%.2f**\nLink: %s\n%s\nLast Updated: %s ago", ent.Price, ent.Link,
 				ent.Description, time.Now().Sub(ent.LastUpdated).String()),
 			Inline: false,
 		})
