@@ -53,6 +53,10 @@ func (s *staticIce) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
+	if len(res) == 0 {
+		return nil, errors.New("no search results for " + strings.Join(s.Query, " "))
+	}
+
 	if len(res) > 10 {
 		res = res[0:10]
 	}
