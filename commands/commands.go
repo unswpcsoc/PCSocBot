@@ -240,18 +240,21 @@ func FillArgs(c Command, args []string) error {
 		return nil
 	}
 
-	// handle var args in last slot
-	if len(args) == len(argFields)-1 && argFields[len(argFields)-1].Kind() == reflect.Slice {
-		return nil
-	}
-
 	if len(args) < len(argFields) {
-		return ErrNotEnoughArgs
+		// check var args in the last slot
+		if !(len(args) == len(argFields)-1 && argFields[len(argFields)-1].Kind() == reflect.Slice) {
+			return ErrNotEnoughArgs
+		}
 	}
 
 	// iterate through arg fields
 	argIndex := 0
 	for i, fv := range argFields {
+		// make sure we don't hit invalid indexes
+		if i == len(args) {
+			break
+		}
+
 		// kind switch for field types
 		switch fv.Kind() {
 		case reflect.String:

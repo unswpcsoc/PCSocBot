@@ -180,6 +180,7 @@ func main() {
 		snd, err := com.MsgHandle(s, m.Message)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
+			s.ChannelMessageSend(m.ChannelID, commands.GetUsage(com))
 			errs.Printf("%#v threw error: %#v\n", com, err)
 			return
 		}
