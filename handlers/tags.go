@@ -381,9 +381,9 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 
 	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "User", "Tag")
 	for _, utg := range plt.Users {
-		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+		mem, err := ses.State.Member(msg.GuildID, utg.ID)
 		if err != nil {
-			mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+			mem, err = ses.GuildMember(msg.GuildID, utg.ID)
 			if err != nil {
 				return nil, err
 			}
