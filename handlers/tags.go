@@ -16,7 +16,6 @@ const (
 	emojiConfirm     = string(0x2714)
 	emojiDeny        = string(0x274C)
 	guildMemberLimit = 1000
-	selfUserString   = "$ME"
 	tagsKey          = "fulltags"
 	teal             = 0x008080
 
@@ -57,6 +56,7 @@ type platform struct {
 	Users map[string]*tag // indexed by user id's
 }
 
+// TODO: default games and api integrations
 type tagStorer struct {
 	Platforms map[string]*platform
 }
@@ -198,7 +198,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 			Users: make(map[string]*tag),
 		}
 		tgs.Platforms[t.Platform] = plt
-		out.AddSimpleMessage("Creating new platform: " + utils.Code(t.Platform))
+		out.Message("Creating new platform: " + utils.Code(t.Platform))
 	}
 
 	// set role, silently fails
@@ -218,7 +218,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		return nil, err
 	}
 
-	out.AddSimpleMessage("Added tag " + utils.Code(t.Tag) + " for " + utils.Code(t.Platform))
+	out.Message("Added tag " + utils.Code(t.Tag) + " for " + utils.Code(t.Platform))
 	return out, nil
 }
 
@@ -262,7 +262,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			if err != nil {
 				// couldn't find user, remove tag from db
 				delete(plt.Users, uid)
-				out.AddSimpleMessage("Removed user: " + uid)
+				out.Message("Removed user: " + uid)
 				continue
 			}
 
@@ -286,7 +286,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 				// add role to platform
 				plt.Role = drl
-				out.AddSimpleMessage("Re-created missing role for platform: " + utils.Code(pname))
+				out.Message("Re-created missing role for platform: " + utils.Code(pname))
 
 				// retry
 				goto ROLE
@@ -300,7 +300,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 			// remove the platform
 			delete(tgs.Platforms, pname)
-			out.AddSimpleMessage("Removed empty platform: " + utils.Code(pname))
+			out.Message("Removed empty platform: " + utils.Code(pname))
 		}
 	}
 
@@ -309,7 +309,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
-	out.AddSimpleMessage("All Clean!")
+	out.Message("All Clean!")
 	return out, nil
 }
 
@@ -582,7 +582,7 @@ func (t *tagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 	// remove the tag
 	delete(plt.Users, msg.Author.ID)
-	out.AddSimpleMessage("Removed your tag from " + utils.Code(t.Platform))
+	out.Message("Removed your tag from " + utils.Code(t.Platform))
 
 	if len(plt.Users) == 0 {
 		// remove the role from guild, silently fails
@@ -590,7 +590,7 @@ func (t *tagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 		// remove the platform
 		delete(tgs.Platforms, t.Platform)
-		out.AddSimpleMessage("Removing empty platform: " + utils.Code(t.Platform))
+		out.Message("Removing empty platform: " + utils.Code(t.Platform))
 	}
 
 	_, _, err = commands.DBSet(&tgs, tagsKey)
@@ -605,31 +605,33 @@ func (t *tagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 type tagsUser struct {
 	nilCommand
-	User string `arg:"user_id"`
+	User []string `arg:"username"`
 }
 
 func newTagsUser() *tagsUser { return &tagsUser{} }
 
 func (t *tagsUser) Aliases() []string { return []string{"tags user", "tags view"} }
 
-func (t *tagsUser) Desc() string { return "Lists all tags of a user" }
+func (t *tagsUser) Desc() string { return "Lists all tags of a user. Empty username will get your own." }
 
 func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
 	var tgs tagStorer
 	var usr *discordgo.User
 
-	// get user
-	if t.User == selfUserString {
+	if len(t.User) == 0 {
+		// get self
 		usr = msg.Author
 	} else {
+		// get user
 		members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, mem := range members {
-			if mem.User.Username == t.User {
+			// case-insensitive
+			if strings.ToLower(mem.User.Username) == strings.ToLower(t.User[0]) {
 				usr = mem.User
 			}
 		}
@@ -661,7 +663,8 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		return nil, ErrNoUserTags
 	}
 
-	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", userLimit), "User", "Tag")
+	// print stuff
+	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "Platform", "Tag")
 	for _, utg := range utgs {
 		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, platLimit),
 			utg.PingMe,

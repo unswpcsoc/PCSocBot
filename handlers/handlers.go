@@ -48,6 +48,8 @@ func init() {
 	crt.AddCommand(newTagsUser())
 
 	crt.AddCommand(newArchive())
+
+	crt.AddCommand(newStaticIce())
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method

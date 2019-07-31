@@ -68,8 +68,8 @@ func NewSimpleSend(cid string, msg string) *CommandSend {
 	}
 }
 
-// AddSimpleMessage Adds another simple message to be sent.
-func (c *CommandSend) AddSimpleMessage(msg string) {
+// Message Adds another simple message to be sent.
+func (c *CommandSend) Message(msg string) *CommandSend {
 	send := &discordgo.MessageSend{
 		Content: msg,
 		Embed:   nil,
@@ -78,10 +78,11 @@ func (c *CommandSend) AddSimpleMessage(msg string) {
 		File:    nil,
 	}
 	c.data = append(c.data, send)
+	return c
 }
 
-// AddEmbedMessage Adds an embed-only message to be sent.
-func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
+// Embed Adds an embed-only message to be sent.
+func (c *CommandSend) Embed(emb *discordgo.MessageEmbed) *CommandSend {
 	send := &discordgo.MessageSend{
 		Content: "",
 		Embed:   emb,
@@ -90,11 +91,13 @@ func (c *CommandSend) AddEmbedMessage(emb *discordgo.MessageEmbed) {
 		File:    nil,
 	}
 	c.data = append(c.data, send)
+	return c
 }
 
-// AddMessageSend Adds a discordgo MessageSend.
-func (c *CommandSend) AddMessageSend(send *discordgo.MessageSend) {
+// MessageSend Adds a discordgo MessageSend.
+func (c *CommandSend) MessageSend(send *discordgo.MessageSend) *CommandSend {
 	c.data = append(c.data, send)
+	return c
 }
 
 // Send Sends the messages a command returns while also checking message length

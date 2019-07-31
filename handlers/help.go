@@ -58,12 +58,12 @@ func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comma
 			if count < commands.MessageLimit {
 				out += tmp
 			} else {
-				snd.AddSimpleMessage(out)
+				snd.Message(out)
 				out = tmp
 				count = len(tmp)
 			}
 		}
-		snd.AddSimpleMessage(out)
+		snd.Message(out)
 	} else {
 		com, _ := RouterRoute(h.Query)
 		if com == nil {
@@ -72,7 +72,7 @@ func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comma
 
 		out := "Command " + utils.Bold(com.Aliases()[0])
 		out += "\n" + commands.GetUsage(com)
-		snd.AddSimpleMessage(out)
+		snd.Message(out)
 	}
 	return snd, nil
 }

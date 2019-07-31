@@ -20,7 +20,7 @@ import (
 
 var (
 	prod bool // production mode i.e. db saves to file rather than memory
-	sync bool // sync mode - will handle events syncronously if set
+	sync bool // sync mode - will handle events syncronously if set, might break things if you do this
 
 	lastCom = make(map[string]commands.Command) // map of uid->command for most recently used command
 
