@@ -388,10 +388,12 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 				return nil, err
 			}
 		}
+		nick := mem.Nick
+		if len(nick) == 0 {
+			nick = mem.User.Username
+		}
 		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-			utg.PingMe,
-			mem.Nick,
-			utg.Tag)
+			utg.PingMe, nick, utg.Tag)
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, t.Platform+"'s tags:\n"+utils.Block(list)), nil
