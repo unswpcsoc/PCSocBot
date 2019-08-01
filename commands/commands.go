@@ -57,10 +57,6 @@ func NewSend(cid string) *CommandSend {
 func NewSimpleSend(cid string, msg string) *CommandSend {
 	send := &discordgo.MessageSend{
 		Content: msg,
-		Embed:   nil,
-		Tts:     false,
-		Files:   nil,
-		File:    nil,
 	}
 	return &CommandSend{
 		data:      []*discordgo.MessageSend{send},
@@ -72,10 +68,6 @@ func NewSimpleSend(cid string, msg string) *CommandSend {
 func (c *CommandSend) Message(msg string) *CommandSend {
 	send := &discordgo.MessageSend{
 		Content: msg,
-		Embed:   nil,
-		Tts:     false,
-		Files:   nil,
-		File:    nil,
 	}
 	c.data = append(c.data, send)
 	return c
@@ -84,11 +76,7 @@ func (c *CommandSend) Message(msg string) *CommandSend {
 // Embed Adds an embed-only message to be sent.
 func (c *CommandSend) Embed(emb *discordgo.MessageEmbed) *CommandSend {
 	send := &discordgo.MessageSend{
-		Content: "",
-		Embed:   emb,
-		Tts:     false,
-		Files:   nil,
-		File:    nil,
+		Embed: emb,
 	}
 	c.data = append(c.data, send)
 	return c
