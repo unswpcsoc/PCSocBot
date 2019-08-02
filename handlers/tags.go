@@ -420,12 +420,23 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 
 	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "User", "Tag")
+	for i := range list {
+		if i == 6 || i == platLimit+9 {
+			list += "+"
+		} else {
+			list += "-"
+		}
+	}
+	list += "\n"
+
 	for _, utg := range plt.Users {
 		mem, err := ses.State.Member(msg.GuildID, utg.ID)
 		if err != nil {
 			mem, err = ses.GuildMember(msg.GuildID, utg.ID)
 			if err != nil {
-				return nil, err
+				// fail silently
+				list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
+					false, "[INVALID]", "Please run !tags clean")
 			}
 		}
 		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
@@ -717,8 +728,16 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		return nil, ErrNoUserTags
 	}
 
-	// print stuff
 	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "Platform", "Tag")
+	for i := range list {
+		if i == 6 || i == platLimit+9 {
+			list += "+"
+		} else {
+			list += "-"
+		}
+	}
+	list += "\n"
+
 	for _, utg := range utgs {
 		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, platLimit),
 			utg.PingMe,
