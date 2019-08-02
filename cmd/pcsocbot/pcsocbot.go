@@ -122,15 +122,22 @@ func main() {
 			// regular routing
 			com, ind = handlers.RouterRoute(argv)
 			if com == nil {
-				out := utils.Italics("Error: Unknown command, did you mean:") + "\n"
+				mat := fuzzy.Find(strings.Join(argv, " "), handlers.RouterToStringSlice())
 
-				// fuzzy find suggestions
-				for i, m := range fuzzy.Find(strings.Join(argv, " "), handlers.RouterToStringSlice()) {
-					// only get 3 suggestions at most
-					if i == 3 {
-						break
+				var out string
+				if len(matches) > 0 {
+					out = utils.Italics("Error: Unknown command, did you mean:") + "\n"
+
+					// fuzzy find suggestions
+					for i, m := range mat {
+						// only get 3 suggestions at most
+						if i == 3 {
+							break
+						}
+						out += utils.Code(commands.Prefix+m.Str) + "\n"
 					}
-					out += utils.Code(commands.Prefix+m.Str) + "\n"
+				} else {
+					out = utils.Italics("Error: Unknown command") + "\n"
 				}
 
 				out += utils.Italics("Use") + " " + utils.Code(handlers.HelpAlias) + " " + utils.Italics("for more.")
