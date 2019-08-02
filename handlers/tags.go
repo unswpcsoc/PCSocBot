@@ -233,7 +233,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		// add tag to platform
 		plt.Users[msg.Author.ID] = &tag{
 			ID:       msg.Author.ID,
-			Tag:      t.Tag,
+			Tag:      argTag,
 			Platform: t.Platform,
 			PingMe:   true, // opt-out pings
 		}
@@ -244,7 +244,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 			return
 		}
 
-		out.Message("Added tag " + utils.Code(t.Tag) + " for " + utils.Code(t.Platform))
+		out.Message("Added tag " + utils.Code(argTag) + " for " + utils.Code(t.Platform))
 		snd = out
 		return
 	})
