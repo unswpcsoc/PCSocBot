@@ -53,14 +53,13 @@ func init() {
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
-func RouterRoute(argv []string) (commands.Command, int) {
-	return crt.Route(argv)
-}
+func RouterRoute(argv []string) (commands.Command, int) { return crt.Route(argv) }
 
 // RouterToSlice is a wrapper around the blah blah blah's ToSlice method
-func RouterToSlice() []commands.Command {
-	return crt.ToSlice()
-}
+func RouterToSlice() []commands.Command { return crt.ToSlice() }
+
+// RouterToStringSlice is a wrapper around the blah blah blah's ToStringSlice method
+func RouterToStringSlice() []string { return crt.ToStringSlice() }
 
 // nilCommand is a thing that you can struct embed to avoid boilerplate
 type nilCommand struct{}
