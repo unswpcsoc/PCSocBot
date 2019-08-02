@@ -102,8 +102,8 @@ func (t *tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comma
 
 type tagsAdd struct {
 	nilCommand
-	Platform string `arg:"platform"`
-	Tag      string `arg:"tag"`
+	Platform string   `arg:"platform"`
+	Tag      []string `arg:"tag"`
 }
 
 func newTagsAdd() *tagsAdd { return &tagsAdd{} }
@@ -118,7 +118,11 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 	var tgs tagStorer
 	var out = commands.NewSend(msg.ChannelID)
 
-	if len(t.Tag) > 30 {
+	if len(t.Tag) == 0 {
+		return nil, errors.New("please provide a tag")
+	}
+	argTag := strings.Join(t.Tag, " ")
+	if len(argTag) > 30 {
 		return nil, ErrTagTooLong
 	}
 
@@ -417,17 +421,15 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 
 	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "User", "Tag")
 	for _, utg := range plt.Users {
-		mem, err := ses.State.Member(msg.GuildID, msg.Author.ID)
+		mem, err := ses.State.Member(msg.GuildID, utg.ID)
 		if err != nil {
-			mem, err = ses.GuildMember(msg.GuildID, msg.Author.ID)
+			mem, err = ses.GuildMember(msg.GuildID, utg.ID)
 			if err != nil {
 				return nil, err
 			}
 		}
 		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-			utg.PingMe,
-			mem.Nick,
-			utg.Tag)
+			utg.PingMe, mem.User.Username, utg.Tag)
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, t.Platform+"'s tags:\n"+utils.Block(list)), nil
@@ -508,7 +510,7 @@ func (t *tagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		}
 		pings += " " + dusr.Mention()
 	}
-	pings += " " + strings.Join(t.Message, " ")
+	pings += "\n" + strings.Join(t.Message, " ")
 
 	return commands.NewSimpleSend(msg.ChannelID, pings), nil
 }
@@ -656,7 +658,10 @@ func newTagsUser() *tagsUser { return &tagsUser{} }
 
 func (t *tagsUser) Aliases() []string { return []string{"tags user", "tags view"} }
 
-func (t *tagsUser) Desc() string { return "Lists all tags of a user. Empty username will get your own." }
+func (t *tagsUser) Desc() string {
+	return "Lists all tags of a user. Use a @ping or a case-insensitive username (not nickname) search." +
+		" Empty username will get your own tags."
+}
 
 func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
@@ -667,21 +672,26 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		// get self
 		usr = msg.Author
 	} else {
-		// get user
-		members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, mem := range members {
-			// case-insensitive
-			if strings.ToLower(mem.User.Username) == strings.ToLower(t.User[0]) {
-				usr = mem.User
+		if len(msg.Mentions) > 0 {
+			// use mention to get user
+			usr = msg.Mentions[0]
+		} else {
+			// use string to search for user
+			members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
+			if err != nil {
+				return nil, err
 			}
-		}
 
-		if usr == nil {
-			return nil, ErrUserNotFound
+			for _, mem := range members {
+				// case-insensitive
+				if strings.ToLower(mem.User.Username) == strings.ToLower(t.User[0]) {
+					usr = mem.User
+				}
+			}
+
+			if usr == nil {
+				return nil, ErrUserNotFound
+			}
 		}
 	}
 

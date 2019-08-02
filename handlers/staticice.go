@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/1lann/staticice"
 	"github.com/bwmarrin/discordgo"
+	"github.com/dustin/go-humanize"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
 )
@@ -53,6 +53,10 @@ func (s *staticIce) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
+	if len(res) == 0 {
+		return nil, errors.New("no search results for " + strings.Join(s.Query, " "))
+	}
+
 	if len(res) > 10 {
 		res = res[0:10]
 	}
@@ -62,8 +66,8 @@ func (s *staticIce) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	for _, ent := range res {
 		fields = append(fields, &discordgo.MessageEmbedField{
 			Name: fmt.Sprintf("**%s**", ent.Seller),
-			Value: fmt.Sprintf("**$%.2f**\nLink: %s\n%s\nLast Updated: %s ago", ent.Price, ent.Link,
-				ent.Description, time.Now().Sub(ent.LastUpdated).String()),
+			Value: fmt.Sprintf("**$%.2f**\nLink: %s\n%s\nLast Updated %s", ent.Price, ent.Link,
+				ent.Description, humanize.Time(ent.LastUpdated)),
 			Inline: false,
 		})
 	}
