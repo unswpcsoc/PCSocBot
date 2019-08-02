@@ -13,6 +13,8 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sahilm/fuzzy"
+
 	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/handlers"
 	"github.com/unswpcsoc/PCSocBot/utils"
@@ -120,7 +122,18 @@ func main() {
 			// regular routing
 			com, ind = handlers.RouterRoute(argv)
 			if com == nil {
-				out := utils.Italics("Error: Unknown command; use " + handlers.HelpAlias)
+				out := utils.Italics("Error: Unknown command, did you mean:") + "\n"
+
+				// fuzzy find suggestions
+				for i, m := range fuzzy.Find(strings.Join(argv, " "), handlers.RouterToStringSlice()) {
+					// only get 3 suggestions at most
+					if i == 3 {
+						break
+					}
+					out += utils.Code(commands.Prefix+m.Str) + "\n"
+				}
+
+				out += utils.Italics("Use") + " " + utils.Code(handlers.HelpAlias) + " " + utils.Italics("for more.")
 				s.ChannelMessageSend(m.ChannelID, out)
 				return
 			}
