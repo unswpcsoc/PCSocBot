@@ -4,24 +4,33 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"sync"
 
 	"github.com/tidwall/buntdb"
 )
 
 var (
-	/* db */
+	// DB is the database
 	DB *buntdb.DB
 
-	/* db errors */
-	ErrDBClosed   = errors.New("db not open, use DBOpen()")
-	ErrDBOpen     = errors.New("db already open")
+	// ErrDBNotOpen means db wasn't opened when trying to use it
+	ErrDBNotOpen = errors.New("db not open, use DBOpen()")
+	// ErrDBClosed means db was closed already
+	ErrDBClosed = errors.New("db already closes")
+	// ErrDBValueNil means you tried to set a nil value into the db
 	ErrDBValueNil = errors.New("cannot set nil value")
+	// ErrDBKeyEmpty means you tried to set a value without a key
 	ErrDBKeyEmpty = errors.New("cannot set value with empty key")
-	ErrDBNotPtr   = errors.New("want pointer arg, got something else")
+	// ErrDBNotPtr means you didn't give a pointer
+	ErrDBNotPtr = errors.New("want pointer arg, got something else")
+	// ErrDBNotFound means there is no db
 	ErrDBNotFound = buntdb.ErrNotFound
 
-	/* storer errors */
+	// ErrStorerNil means you have made bad life decisions
 	ErrStorerNil = errors.New("storer method received nil")
+
+	lock = &sync.Mutex{}
+	once = &sync.Once{}
 )
 
 /* db stuff */
@@ -35,17 +44,17 @@ type Storer interface {
 	Index() string // Determines db index
 }
 
-// Open opens the db at the given path
+// DBOpen opens the db at the given path
 func DBOpen(path string) error {
 	var err error
 	DB, err = buntdb.Open(path)
 	return err
 }
 
-// Close closes the db
+// DBClose closes the db
 func DBClose() error {
 	if DB == nil {
-		return ErrDBOpen
+		return ErrDBClosed
 	}
 	err := DB.Close()
 	if err != nil {
@@ -59,7 +68,7 @@ func DBClose() error {
 func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 	// Assert db open so we can rollback transactions on later errors
 	if DB == nil {
-		return "", false, ErrDBClosed
+		return "", false, ErrDBNotOpen
 	}
 	if s == nil {
 		return "", false, ErrStorerNil
@@ -104,7 +113,7 @@ func DBSet(s Storer, key string) (previous string, replaced bool, err error) {
 // If got is not a pointer, DBGet will throw ErrDBNotPtr
 func DBGet(s Storer, key string, got Storer) error {
 	if DB == nil {
-		return ErrDBClosed
+		return ErrDBNotOpen
 	}
 	if s == nil || got == nil {
 		return ErrStorerNil
@@ -129,3 +138,15 @@ func DBGet(s Storer, key string, got Storer) error {
 	// Unmarshal Storer
 	return json.Unmarshal([]byte(res), got)
 }
+
+// DBLock locks the db
+func DBLock() { lock.Lock() }
+
+// DBUnlock unlocks the db
+func DBUnlock() { lock.Unlock() }
+
+// DBNewOnce refreshes the once primitive
+func DBNewOnce() { once = &sync.Once{} }
+
+// DBOnce uses the once primitive
+func DBOnce(do func()) { once.Do(do) }
