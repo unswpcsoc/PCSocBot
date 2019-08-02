@@ -60,15 +60,17 @@ func NewMapCache(lim int) *MapCache {
 
 // Insert puts a key-value pair
 func (m *MapCache) Insert(ky string, vl *discordgo.Message) {
-	// just in case we have garbage keys...
+	// ensure order slice is below limit
 	for len(m.order) >= m.limit {
 		first := m.order[0]
 		delete(m.cache, first)
 		delete(m.images, first)
 		m.order = m.order[1:len(m.order)]
 	}
+	// set kv
 	m.cache[ky] = vl
-	m.order = m.order[1:len(m.order)]
+	// append order
+	m.order = append(m.order, ky)
 	// try decode images and cache them too
 	if len(vl.Attachments) > 0 {
 		// get response, assuming only 1 attachment
