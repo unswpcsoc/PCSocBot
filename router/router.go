@@ -132,3 +132,14 @@ func (r *Router) ToSlice() []comm.Command {
 	})
 	return keys
 }
+
+// ToStringSlice wraps ToSlice and populates a strings slice of aliases
+func (r *Router) ToStringSlice() []string {
+	out := []string{}
+	for _, cmd := range r.ToSlice() {
+		for _, ali := range cmd.Aliases() {
+			out = append(out, ali)
+		}
+	}
+	return out
+}
