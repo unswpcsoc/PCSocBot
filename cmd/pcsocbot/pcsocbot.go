@@ -125,7 +125,7 @@ func main() {
 				mat := fuzzy.Find(strings.Join(argv, " "), handlers.RouterToStringSlice())
 
 				var out string
-				if len(matches) > 0 {
+				if len(mat) > 0 {
 					out = utils.Italics("Error: Unknown command, did you mean:") + "\n"
 
 					// fuzzy find suggestions
