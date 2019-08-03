@@ -37,16 +37,14 @@ var (
 	// ErrNoUserTags means there are no tags for the queried user
 	ErrNoUserTags = errors.New("no tags found for that user")
 	// ErrNoPlatform means the user queried a platform that doesn't exist
-	ErrNoPlatform = errors.New("no platform of that name, add a tag on that platform to create it")
+	ErrNoPlatform = errors.New("no platform of that name")
 	// ErrNoUser means the user queried a platform they did not have a tag on
-	ErrNoUser = errors.New("you don't have a tag on this platform, add one to the specified platform")
+	ErrNoUser = errors.New("you don't have a tag on this platform")
 	// ErrUserNotFound means the user queried a username that doesn't exist on the server
 	ErrUserNotFound = errors.New("user not found")
 	// ErrAddSpam means the user tried to add while a new platform was being waited on
 	ErrAddSpam = errors.New("please do not try add anything while I'm waiting")
 )
-
-/* Storer: tags */
 
 type tag struct {
 	ID       string
@@ -68,8 +66,6 @@ type tagStorer struct {
 
 func (t *tagStorer) Index() string { return "tags" }
 
-/* tags */
-
 type tags struct {
 	nilCommand
 }
@@ -86,6 +82,7 @@ func (t *tags) Subcommands() []commands.Command {
 		newTagsClean(),
 		newTagsGet(),
 		newTagsList(),
+		newTagsModRemove(),
 		newTagsPlatforms(),
 		newTagsPing(),
 		newTagsPingMe(),
@@ -97,8 +94,6 @@ func (t *tags) Subcommands() []commands.Command {
 func (t *tags) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	return commands.NewSimpleSend(msg.ChannelID, commands.GetUsage(t)), nil
 }
-
-/* tags add */
 
 type tagsAdd struct {
 	nilCommand
@@ -258,8 +253,6 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 	return snd, nil
 }
 
-/* tags clean */
-
 type tagsClean struct {
 	nilCommand
 }
@@ -334,7 +327,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		}
 
 		// clean empty platforms
-		if len(plt.Users) == 0 {
+		if len(plt.Users) == 0 || len(plt.Name) == 0 {
 			// remove the role from guild, fails silently
 			ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
 
@@ -352,8 +345,6 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	out.Message("All Clean!")
 	return out, nil
 }
-
-/* tags get */
 
 type tagsGet struct {
 	nilCommand
@@ -389,8 +380,6 @@ func (t *tagsGet) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 
 	return commands.NewSimpleSend(msg.ChannelID, "Your tag is "+utils.Code(utg.Tag)+" for platform "+utils.Code(utg.Platform)), nil
 }
-
-/* tags list */
 
 type tagsList struct {
 	nilCommand
@@ -446,8 +435,6 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	return commands.NewSimpleSend(msg.ChannelID, t.Platform+"'s tags:\n"+utils.Block(list)), nil
 }
 
-/* tags platforms */
-
 type tagsPlatforms struct {
 	nilCommand
 }
@@ -479,8 +466,6 @@ func (t *tagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 
 	return commands.NewSimpleSend(msg.ChannelID, list), nil
 }
-
-/* tags ping */
 
 type tagsPing struct {
 	nilCommand
@@ -525,8 +510,6 @@ func (t *tagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 
 	return commands.NewSimpleSend(msg.ChannelID, pings), nil
 }
-
-/* tags pingme */
 
 type tagsPingMe struct {
 	nilCommand
@@ -589,8 +572,6 @@ func (t *tagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	out += " be pinged for " + utils.Code(t.Platform)
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
-
-/* tags remove */
 
 type tagsRemove struct {
 	nilCommand
@@ -657,8 +638,6 @@ func (t *tagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 	return out, nil
 }
-
-/* tags user */
 
 type tagsUser struct {
 	nilCommand
@@ -746,4 +725,54 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, usr.Username+"'s tags:\n"+utils.Block(list)), nil
+}
+
+type tagsModRemove struct {
+	nilCommand
+	Platform string `arg:"platform"`
+}
+
+func newTagsModRemove() *tagsModRemove { return &tagsModRemove{} }
+
+func (t *tagsModRemove) Aliases() []string { return []string{"tags modremove", "tags mod remove"} }
+
+func (t *tagsModRemove) Desc() string { return "Moderator tool to forcibly remove platforms" }
+
+func (t *tagsModRemove) Roles() []string { return []string{"mod"} }
+
+func (t *tagsModRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	var err error
+	var tgs tagStorer
+
+	// lock the db
+	commands.DBLock()
+	defer commands.DBUnlock()
+
+	// get all tags
+	err = commands.DBGet(&tgs, tagsKey, &tgs)
+	if err == commands.ErrDBNotFound {
+		return nil, ErrNoPlatform
+	} else if err != nil {
+		return nil, err
+	}
+
+	// iterate platforms
+	for pname, plt := range tgs.Platforms {
+		if pname == t.Platform {
+			// remove the role from guild, fails silently
+			ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
+
+			// remove the platform
+			delete(tgs.Platforms, pname)
+
+			// commit changes
+			_, _, err = commands.DBSet(&tgs, tagsKey)
+			if err != nil {
+				return nil, err
+			}
+			return commands.NewSimpleSend(msg.ChannelID, "Removed platform: "+utils.Code(pname)), nil
+		}
+	}
+
+	return nil, ErrNoPlatform
 }

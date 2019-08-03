@@ -39,8 +39,9 @@ func init() {
 	crt.AddCommand(newTags())
 	crt.AddCommand(newTagsAdd())
 	crt.AddCommand(newTagsClean())
-	crt.AddCommand(newTagsList())
 	crt.AddCommand(newTagsGet())
+	crt.AddCommand(newTagsList())
+	crt.AddCommand(newTagsModRemove())
 	crt.AddCommand(newTagsPing())
 	crt.AddCommand(newTagsPingMe())
 	crt.AddCommand(newTagsPlatforms())
@@ -63,10 +64,6 @@ func RouterToStringSlice() []string { return crt.ToStringSlice() }
 
 // nilCommand is a thing that you can struct embed to avoid boilerplate
 type nilCommand struct{}
-
-func (n *nilCommand) Aliases() []string { return []string{""} }
-
-func (n *nilCommand) Desc() string { return "" }
 
 func (n *nilCommand) Subcommands() []commands.Command { return nil }
 
