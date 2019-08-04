@@ -422,7 +422,6 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		if err != nil {
 			mem, err = ses.GuildMember(msg.GuildID, utg.UID)
 			if err != nil {
-				mem = nil
 				utags = append(utags, nil)
 				continue
 			}
