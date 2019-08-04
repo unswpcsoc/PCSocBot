@@ -3,6 +3,8 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/sync/semaphore"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -44,10 +46,13 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrAddSpam means the user tried to add while a new platform was being waited on
 	ErrAddSpam = errors.New("please do not try add anything while I'm waiting")
+
+	addSemaphore = semaphore.NewWeighted(1)
 )
 
 type tag struct {
-	ID       string
+	UID      string
+	Username string // don't trust this, always fetch from the UID
 	Tag      string
 	Platform string
 	PingMe   bool
@@ -108,7 +113,6 @@ func (t *tagsAdd) Aliases() []string { return []string{"tags add"} }
 func (t *tagsAdd) Desc() string { return "Adds your tag to a platform" }
 
 func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
-	var snd *commands.CommandSend
 	var err error
 	var tgs tagStorer
 	var out = commands.NewSend(msg.ChannelID)
@@ -125,132 +129,125 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		return nil, ErrPlatTooLong
 	}
 
-	var exec bool
-	commands.DBOnce(func() {
-		exec = true
+	// check if we're already adding
+	if !addSemaphore.TryAcquire(1) {
+		return out.Message("Please don't add anything while I'm waiting!"), nil
+	}
+	defer addSemaphore.Release(1)
 
-		// lock the db
-		commands.DBLock()
-		defer commands.DBUnlock()
+	// lock the db
+	commands.DBLock()
+	defer commands.DBUnlock()
 
-		// get all tags
-		err = commands.DBGet(&tgs, tagsKey, &tgs)
-		if err == commands.ErrDBNotFound {
-			tgs = tagStorer{make(map[string]*platform)}
-		} else if err != nil {
-			return
-		}
-
-		// get platform
-		var drl *discordgo.Role
-		plt, ok := tgs.Platforms[t.Platform]
-		if !ok {
-			// wait for user reaction to verify
-			war, _ := ses.ChannelMessageSend(msg.ChannelID,
-				fmt.Sprintf("Warning: Creating a new platform. Make sure you check if a similar one exists.\n"+
-					"React to confirm this action. You have %d seconds to confirm.", addTimeout))
-
-			// react to the message to get things going
-			err = ses.MessageReactionAdd(war.ChannelID, war.ID, emojiConfirm)
-			if err != nil {
-				return
-			}
-
-			err = ses.MessageReactionAdd(war.ChannelID, war.ID, emojiDeny)
-			if err != nil {
-				return
-			}
-
-			// spin up goroutine to check if message has been reacted
-			reaction := make(chan bool)
-			go func() {
-				reacted := make(chan int)
-				kill := ses.AddHandler(func(se *discordgo.Session, no *discordgo.MessageReactionAdd) {
-					// demo sonnanja dame
-					// mou sonnanja hora
-					// KOKORO WA SHINKA SURU YO
-					// MOTTO
-					// MOTTO
-
-					// make sure reaction is on the correct message by the correct user
-					if no.MessageReaction.MessageID != war.ID || no.MessageReaction.UserID != msg.Author.ID {
-						return
-					}
-
-					// signal that we have achieved nirvana
-					switch no.MessageReaction.Emoji.Name {
-					case emojiConfirm:
-						reaction <- true
-						reacted <- 0
-					case emojiDeny:
-						reaction <- false
-						reacted <- 0
-					}
-				})
-
-				select {
-				case <-reacted:
-				case <-time.After(addTimeout * time.Second):
-					reaction <- false
-				}
-
-				kill()
-			}()
-
-			// check what we got
-			if !<-reaction {
-				snd = commands.NewSimpleSend(msg.ChannelID, "Aborting platform creation.")
-				return
-			}
-
-			// create new role
-			drl, err = ses.GuildRoleCreate(msg.GuildID)
-			if err != nil {
-				return
-			}
-
-			// edit the role
-			ses.GuildRoleEdit(msg.GuildID, drl.ID, t.Platform, teal, false, drl.Permissions, true)
-
-			// create new platform
-			plt = &platform{
-				Name:  t.Platform,
-				Role:  drl,
-				Users: make(map[string]*tag),
-			}
-			tgs.Platforms[t.Platform] = plt
-			out.Message("Creating new platform: " + utils.Code(t.Platform))
-		}
-
-		// set role, silently fails
-		ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
-
-		// add tag to platform
-		plt.Users[msg.Author.ID] = &tag{
-			ID:       msg.Author.ID,
-			Tag:      argTag,
-			Platform: t.Platform,
-			PingMe:   true, // opt-out pings
-		}
-
-		// set tags
-		_, _, err = commands.DBSet(&tgs, tagsKey)
-		if err != nil {
-			return
-		}
-
-		out.Message("Added tag " + utils.Code(argTag) + " for " + utils.Code(t.Platform))
-		snd = out
-		return
-	})
-
-	if !exec {
-		return nil, ErrAddSpam
+	// get all tags
+	err = commands.DBGet(&tgs, tagsKey, &tgs)
+	if err == commands.ErrDBNotFound {
+		tgs = tagStorer{make(map[string]*platform)}
+	} else if err != nil {
+		return nil, err
 	}
 
-	// refresh once
-	commands.DBNewOnce()
-	return snd, nil
+	// get platform
+	var drl *discordgo.Role
+	plt, ok := tgs.Platforms[t.Platform]
+	if !ok {
+		// wait for user reaction to verify
+		war, _ := ses.ChannelMessageSend(msg.ChannelID,
+			fmt.Sprintf("Warning: Creating a new platform. Make sure you check if a similar one exists.\n"+
+				"React to confirm this action. You have %d seconds to confirm.", addTimeout))
+
+		// react to the message to get things going
+		err = ses.MessageReactionAdd(war.ChannelID, war.ID, emojiConfirm)
+		if err != nil {
+			return nil, err
+		}
+
+		err = ses.MessageReactionAdd(war.ChannelID, war.ID, emojiDeny)
+		if err != nil {
+			return nil, err
+		}
+
+		// spin up goroutine to check if message has been reacted
+		reaction := make(chan bool)
+		go func() {
+			reacted := make(chan int)
+			kill := ses.AddHandler(func(se *discordgo.Session, no *discordgo.MessageReactionAdd) {
+				// demo sonnanja dame
+				// mou sonnanja hora
+				// KOKORO WA SHINKA SURU YO
+				// MOTTO
+				// MOTTO
+
+				// make sure reaction is on the correct message by the correct user
+				if no.MessageReaction.MessageID != war.ID || no.MessageReaction.UserID != msg.Author.ID {
+					return
+				}
+
+				// signal that we have achieved nirvana
+				switch no.MessageReaction.Emoji.Name {
+				case emojiConfirm:
+					reaction <- true
+					reacted <- 0
+				case emojiDeny:
+					reaction <- false
+					reacted <- 0
+				}
+			})
+
+			select {
+			case <-reacted:
+			case <-time.After(addTimeout * time.Second):
+				reaction <- false
+			}
+
+			kill()
+		}()
+
+		// check what we got
+		if !<-reaction {
+			out.Message("Aborting platform creation.")
+			return out, nil
+		}
+
+		// create new role
+		drl, err = ses.GuildRoleCreate(msg.GuildID)
+		if err != nil {
+			return nil, err
+		}
+
+		// edit the role
+		ses.GuildRoleEdit(msg.GuildID, drl.ID, t.Platform, teal, false, drl.Permissions, true)
+
+		// create new platform
+		plt = &platform{
+			Name:  t.Platform,
+			Role:  drl,
+			Users: make(map[string]*tag),
+		}
+		tgs.Platforms[t.Platform] = plt
+		out.Message("Creating new platform: " + utils.Code(t.Platform))
+	}
+
+	// set role, silently fails
+	ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
+
+	// add tag to platform
+	plt.Users[msg.Author.ID] = &tag{
+		UID:      msg.Author.ID,
+		Username: msg.Author.Username,
+		Tag:      argTag,
+		Platform: t.Platform,
+		PingMe:   true, // opt-out pings
+	}
+
+	// set tags
+	_, _, err = commands.DBSet(&tgs, tagsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	out.Message("Added tag " + utils.Code(argTag) + " for " + utils.Code(t.Platform))
+	return out, nil
 }
 
 type tagsClean struct {
@@ -418,18 +415,44 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 	list += "\n"
 
+	// update usernames
+	utags := []*tag{}
 	for _, utg := range plt.Users {
-		mem, err := ses.State.Member(msg.GuildID, utg.ID)
+		mem, err := ses.State.Member(msg.GuildID, utg.UID)
 		if err != nil {
-			mem, err = ses.GuildMember(msg.GuildID, utg.ID)
+			mem, err = ses.GuildMember(msg.GuildID, utg.UID)
 			if err != nil {
-				// fail silently
-				list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-					false, "[INVALID]", "Please run !tags clean")
+				mem = nil
+				utags = append(utags, nil)
+				continue
 			}
 		}
-		list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-			utg.PingMe, mem.User.Username, utg.Tag)
+		utg.Username = mem.User.Username
+		utags = append(utags, utg)
+	}
+
+	sort.Slice(utags, func(i, j int) bool {
+		// move nils to the end
+		if utags[i] == nil {
+			return false
+		}
+
+		if strings.Compare(utags[i].Username, utags[i].Username) < 0 {
+			return true
+		}
+		return false
+	})
+
+	// generate output
+	for _, utg := range utags {
+		if utg == nil {
+			// signil invalid users in the db
+			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
+				false, "[INVALID]", "Please run !tags clean")
+		} else {
+			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
+				utg.PingMe, utg.Username, utg.Tag)
+		}
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, t.Platform+"'s tags:\n"+utils.Block(list)), nil
@@ -458,8 +481,22 @@ func (t *tagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 	}
 
 	// iterate platforms
-	list := "Platforms:\n"
+	plats := []*platform{}
 	for _, plt := range tgs.Platforms {
+		plats = append(plats, plt)
+	}
+
+	// sort platforms
+	sort.Slice(plats, func(i, j int) bool {
+		if strings.Compare(plats[i].Name, plats[j].Name) < 0 {
+			return true
+		}
+		return false
+	})
+
+	// create message
+	list := "Platforms:\n"
+	for _, plt := range plats {
 		list += plt.Name + "  |  "
 		list += strconv.Itoa(len(plt.Users)) + " tag(s)\n"
 	}
@@ -484,6 +521,7 @@ func (t *tagsPing) Desc() string {
 func (t *tagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
 	var tgs tagStorer
+	out := commands.NewSend(msg.ChannelID)
 
 	err = commands.DBGet(&tgs, tagsKey, &tgs)
 	if err == commands.ErrDBNotFound {
@@ -497,18 +535,23 @@ func (t *tagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		return nil, ErrNoPlatform
 	}
 
-	pings := utils.Bold(plt.Name)
+	pings := ""
 	for _, utg := range plt.Users {
 		var dusr *discordgo.User
-		dusr, err = ses.User(utg.ID)
+		dusr, err = ses.User(utg.UID)
 		if err != nil || !utg.PingMe {
 			continue
 		}
 		pings += " " + dusr.Mention()
 	}
-	pings += "\n" + strings.Join(t.Message, " ")
 
-	return commands.NewSimpleSend(msg.ChannelID, pings), nil
+	if len(pings) == 0 {
+		return out.Message("No one wants " + utils.Code(plt.Name) + " pings."), nil
+	}
+
+	pings = utils.Bold(plt.Name) + pings + "\n" + strings.Join(t.Message, " ")
+
+	return out.Message(pings), nil
 }
 
 type tagsPingMe struct {
