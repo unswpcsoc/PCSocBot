@@ -750,6 +750,14 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		return nil, ErrNoUserTags
 	}
 
+	// sort tags
+	sort.Slice(utgs, func(i, j int) bool {
+		if strings.Compare(utgs[i].Username, utgs[j].Username) < 0 {
+			return true
+		}
+		return false
+	})
+
 	list := fmt.Sprintf(fmt.Sprintf("Ping? | %%-%ds | %%s\n", platLimit), "Platform", "Tag")
 	for i := range list {
 		if i == 6 || i == platLimit+9 {
