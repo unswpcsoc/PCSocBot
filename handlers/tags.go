@@ -494,13 +494,14 @@ func (t *tagsPlatforms) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 	})
 
 	// create message
-	list := "Platforms:\n"
+	list := ""
 	for _, plt := range plats {
-		list += plt.Name + "  |  "
-		list += strconv.Itoa(len(plt.Users)) + " tag(s)\n"
+		list += fmt.Sprintf(fmt.Sprintf("%%-%ds", platLimit), plt.Name)
+		list += "|  " + strconv.Itoa(len(plt.Users)) + " tag(s)\n"
 	}
 
-	return commands.NewSimpleSend(msg.ChannelID, list), nil
+	out := "Platforms:\n" + utils.Block(list)
+	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
 
 type tagsPing struct {
