@@ -7,5 +7,5 @@ do
     echo "Starting bot..."
     python3 bot.py
 
-    sleep 10
+    sleep 1
 done

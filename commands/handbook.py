@@ -11,11 +11,13 @@ HANDBOOK_URL = 'https://www.handbook.unsw.edu.au/{}/courses/2019/{}'
 
 def subject_details(code):
     code = code.upper()
-    page = requests.get(HANDBOOK_URL.format('undergraduate', code))
+    url = HANDBOOK_URL.format('undergraduate', code)
+    page = requests.get(url)
 
     if not is_good_response(page):
         # Check postgrad
-        page = requests.get(HANDBOOK_URL.format('postgraduate', code))
+        url = HANDBOOK_URL.format('postgraduate', code)
+        page = requests.get(url)
         if not is_good_response(page):
             return None
 
