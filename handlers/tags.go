@@ -46,10 +46,6 @@ var (
 	ErrNoUser = errors.New("you don't have a tag on this platform")
 	// ErrUserNotFound means the user queried a username that doesn't exist on the server
 	ErrUserNotFound = errors.New("user not found")
-	// ErrAddSpam means the user tried to add while a new platform was being waited on
-	ErrAddSpam = errors.New("please do not try add anything while I'm waiting")
-	// ErrCleanSpam means the user tried to clean while a clean is in progress
-	ErrCleanSpam = errors.New("already cleaning, please be patient")
 
 	// syncs
 	addSemaphore   = semaphore.NewWeighted(1)
@@ -285,7 +281,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 	// check if we're cleaning
 	if !cleanSemaphore.TryAcquire(1) {
-		return nil, ErrCleanSpam
+		return commands.NewSimpleSend(msg.ChannelID, "I'm already cleaning, please be patient"), nil
 	}
 	defer cleanSemaphore.Release(1)
 
