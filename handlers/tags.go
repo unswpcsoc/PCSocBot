@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -17,6 +18,7 @@ import (
 
 const (
 	emojiConfirm     = string(0x2714)
+	emojiClean       = string(0x2728)
 	emojiDeny        = string(0x274C)
 	guildMemberLimit = 1000
 	tagsKey          = "fulltags"
@@ -46,8 +48,12 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrAddSpam means the user tried to add while a new platform was being waited on
 	ErrAddSpam = errors.New("please do not try add anything while I'm waiting")
+	// ErrCleanSpam means the user tried to clean while a clean is in progress
+	ErrCleanSpam = errors.New("already cleaning, please be patient")
 
-	addSemaphore = semaphore.NewWeighted(1)
+	// syncs
+	addSemaphore   = semaphore.NewWeighted(1)
+	cleanSemaphore = semaphore.NewWeighted(1)
 )
 
 type tag struct {
@@ -108,7 +114,7 @@ type tagsAdd struct {
 
 func newTagsAdd() *tagsAdd { return &tagsAdd{} }
 
-func (t *tagsAdd) Aliases() []string { return []string{"tags add"} }
+func (t *tagsAdd) Aliases() []string { return []string{"tags add", "tags edit"} }
 
 func (t *tagsAdd) Desc() string { return "Adds your tag to a platform" }
 
@@ -209,6 +215,9 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 			return out, nil
 		}
 
+		// acknowledge reaction
+		ses.ChannelMessageSend(msg.ChannelID, "Creating new platform: "+utils.Code(t.Platform))
+
 		// create new role
 		drl, err = ses.GuildRoleCreate(msg.GuildID)
 		if err != nil {
@@ -218,6 +227,9 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		// edit the role
 		ses.GuildRoleEdit(msg.GuildID, drl.ID, t.Platform, teal, false, drl.Permissions, true)
 
+		// signal role creation
+		ses.ChannelMessageSend(msg.ChannelID, "Creating a new role: "+drl.Mention())
+
 		// create new platform
 		plt = &platform{
 			Name:  t.Platform,
@@ -225,8 +237,10 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 			Users: make(map[string]*tag),
 		}
 		tgs.Platforms[t.Platform] = plt
-		out.Message("Creating new platform: " + utils.Code(t.Platform))
 	}
+
+	// signal role giving
+	ses.ChannelMessageSend(msg.ChannelID, "Giving you the role...")
 
 	// set role, silently fails
 	ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
@@ -246,7 +260,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		return nil, err
 	}
 
-	out.Message("Added tag " + utils.Code(argTag) + " for " + utils.Code(t.Platform))
+	out.Message("Success! Added tag " + utils.Code(argTag) + " for " + utils.Code(t.Platform))
 	return out, nil
 }
 
@@ -268,7 +282,12 @@ func (t *tagsClean) Desc() string {
 func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
 	var tgs tagStorer
-	var out = commands.NewSend(msg.ChannelID)
+
+	// check if we're cleaning
+	if !cleanSemaphore.TryAcquire(1) {
+		return nil, ErrCleanSpam
+	}
+	defer cleanSemaphore.Release(1)
 
 	// lock the db
 	commands.DBLock()
@@ -277,7 +296,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	// get all tags
 	err = commands.DBGet(&tgs, tagsKey, &tgs)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrNoPlatform
+		return nil, ErrNoTags
 	} else if err != nil {
 		return nil, err
 	}
@@ -285,42 +304,54 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
 		// iterate users
+		var wg sync.WaitGroup
+		wg.Add(len(plt.Users))
 		for uid, usr := range plt.Users {
-		ROLE:
-			// check user
-			_, err = ses.GuildMember(msg.GuildID, uid)
-			if err != nil {
-				// couldn't find user, remove tag from db
-				delete(plt.Users, uid)
-				out.Message("Removed user: " + uid)
-				continue
-			}
-
-			// update roles, creates a new role if one does not exist for the platform
-			if usr.PingMe {
-				err = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
-			} else {
-				err = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
-			}
-			if err != nil {
-				// ASSUME only error is role not existing in server
-				// create new role
-				var drl *discordgo.Role
-				drl, err = ses.GuildRoleCreate(msg.GuildID)
+			// spawn heavily io-bound work in new goroutines
+			go func(pname string, plt *platform) {
+				defer wg.Done()
+			ROLE:
+				// check user
+				_, err = ses.GuildMember(msg.GuildID, uid)
 				if err != nil {
-					return nil, err
+					// couldn't find user, remove tag from db
+					delete(plt.Users, uid)
+					ses.ChannelMessageSend(msg.ChannelID, "Removed user: "+uid)
+					return
 				}
 
-				// edit the role
-				ses.GuildRoleEdit(msg.GuildID, drl.ID, pname, teal, false, drl.Permissions, true)
+				// update roles, creates a new role if one does not exist for the platform
+				if usr.PingMe {
+					err = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
+				} else {
+					err = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+				}
+				if err != nil {
+					// ASSUME only error is role not existing in server
+					// create new role
+					var drl *discordgo.Role
+					drl, err = ses.GuildRoleCreate(msg.GuildID)
+					if err != nil {
+						return
+					}
 
-				// add role to platform
-				plt.Role = drl
-				out.Message("Re-created missing role for platform: " + utils.Code(pname))
+					// edit the role
+					ses.GuildRoleEdit(msg.GuildID, drl.ID, pname, teal, false, drl.Permissions, true)
+					if err != nil {
+						return
+					}
 
-				// retry
-				goto ROLE
-			}
+					// add role to platform
+					plt.Role = drl
+					ses.ChannelMessageSend(msg.ChannelID, "Re-created missing role for platform: "+utils.Code(pname))
+
+					// retry
+					goto ROLE
+				}
+			}(pname, plt)
+
+			// wait for all users to be checked
+			wg.Wait()
 		}
 
 		// clean empty platforms
@@ -330,7 +361,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 			// remove the platform
 			delete(tgs.Platforms, pname)
-			out.Message("Removed empty platform: " + utils.Code(pname))
+			ses.ChannelMessageSend(msg.ChannelID, "Removed empty platform: "+utils.Code(pname))
 		}
 	}
 
@@ -339,8 +370,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
-	out.Message("All Clean!")
-	return out, nil
+	return commands.NewSimpleSend(msg.ChannelID, "Thanks for waiting, we're all clean now! "+emojiClean), nil
 }
 
 type tagsGet struct {
@@ -639,7 +669,7 @@ func (t *tagsRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 	// get all tags
 	err = commands.DBGet(&tgs, tagsKey, &tgs)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrNoPlatform
+		return nil, ErrNoTags
 	} else if err != nil {
 		return nil, err
 	}
@@ -802,7 +832,7 @@ func (t *tagsModRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message
 	// get all tags
 	err = commands.DBGet(&tgs, tagsKey, &tgs)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrNoPlatform
+		return nil, ErrNoTags
 	} else if err != nil {
 		return nil, err
 	}
