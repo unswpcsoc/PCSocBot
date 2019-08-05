@@ -301,6 +301,8 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		return nil, err
 	}
 
+	ses.ChannelMessageSend(msg.ChannelID, "Starting cleaning session! This may take a while...")
+
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
 		// clean empty platforms
@@ -321,7 +323,6 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			// spawn heavily io-bound work in new goroutines
 			go func(pname string, plt *platform) {
 				defer wg.Done()
-			ROLE:
 				// check user
 				_, err = ses.GuildMember(msg.GuildID, uid)
 				if err != nil {
@@ -355,9 +356,6 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 					// add role to platform
 					plt.Role = drl
 					ses.ChannelMessageSend(msg.ChannelID, "Re-created missing role for platform: "+utils.Code(pname))
-
-					// retry
-					goto ROLE
 				}
 			}(pname, plt)
 		}
