@@ -325,7 +325,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		// check role associated with platform
 		exists := false
 		for _, rol := range roles {
-			if rol == plt.Role {
+			if rol.ID == plt.Role.ID {
 				exists = true
 				break
 			}
