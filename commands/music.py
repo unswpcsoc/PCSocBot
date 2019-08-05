@@ -55,6 +55,16 @@ class Reset(Auto):
         await State.instance.message(self.client, out)
 
 
+class Leave(M):
+    desc = "Leaves the voice channel and unbinds from channel"
+
+    async def eval(self):
+        M.channels_required.clear()
+        out = await State.instance.leave(self.client)
+        await State.instance.message(self.client, out)
+        return
+
+
 class List(M):
     desc = "Lists the playlist."
 
