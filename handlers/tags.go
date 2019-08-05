@@ -303,6 +303,17 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
+		// clean empty platforms
+		if len(plt.Users) == 0 || len(plt.Name) == 0 {
+			// remove the role from guild, fails silently
+			ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
+
+			// remove the platform
+			delete(tgs.Platforms, pname)
+			ses.ChannelMessageSend(msg.ChannelID, "Removed empty platform: "+utils.Code(pname))
+			continue
+		}
+
 		// iterate users
 		var wg sync.WaitGroup
 		wg.Add(len(plt.Users))
@@ -349,20 +360,9 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 					goto ROLE
 				}
 			}(pname, plt)
-
-			// wait for all users to be checked
-			wg.Wait()
 		}
-
-		// clean empty platforms
-		if len(plt.Users) == 0 || len(plt.Name) == 0 {
-			// remove the role from guild, fails silently
-			ses.GuildRoleDelete(msg.GuildID, plt.Role.ID)
-
-			// remove the platform
-			delete(tgs.Platforms, pname)
-			ses.ChannelMessageSend(msg.ChannelID, "Removed empty platform: "+utils.Code(pname))
-		}
+		// wait for all users to be checked
+		wg.Wait()
 	}
 
 	_, _, err = commands.DBSet(&tgs, tagsKey)
