@@ -303,6 +303,12 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 
 	ses.ChannelMessageSend(msg.ChannelID, "Starting cleaning session! This may take a while...")
 
+	// get roles
+	roles, err := ses.GuildRoles(msg.GuildID)
+	if err != nil {
+		return nil, err
+	}
+
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
 		// clean empty platforms
@@ -314,6 +320,34 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			delete(tgs.Platforms, pname)
 			ses.ChannelMessageSend(msg.ChannelID, "Removed empty platform: "+utils.Code(pname))
 			continue
+		}
+
+		// check role associated with platform
+		exists := false
+		for _, rol := range roles {
+			if rol == plt.Role {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			// ASSUME only error is role not existing in server
+			// create new role
+			var drl *discordgo.Role
+			drl, err = ses.GuildRoleCreate(msg.GuildID)
+			if err != nil {
+				return nil, err
+			}
+
+			// edit the role
+			ses.GuildRoleEdit(msg.GuildID, drl.ID, pname, teal, false, drl.Permissions, true)
+			if err != nil {
+				return nil, err
+			}
+
+			// add role to platform
+			plt.Role = drl
+			ses.ChannelMessageSend(msg.ChannelID, "Re-created missing role for platform: "+utils.Code(pname))
 		}
 
 		// iterate users
@@ -332,30 +366,11 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 					return
 				}
 
-				// update roles, creates a new role if one does not exist for the platform
+				// update roles
 				if usr.PingMe {
-					err = ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
+					ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
 				} else {
-					err = ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
-				}
-				if err != nil {
-					// ASSUME only error is role not existing in server
-					// create new role
-					var drl *discordgo.Role
-					drl, err = ses.GuildRoleCreate(msg.GuildID)
-					if err != nil {
-						return
-					}
-
-					// edit the role
-					ses.GuildRoleEdit(msg.GuildID, drl.ID, pname, teal, false, drl.Permissions, true)
-					if err != nil {
-						return
-					}
-
-					// add role to platform
-					plt.Role = drl
-					ses.ChannelMessageSend(msg.ChannelID, "Re-created missing role for platform: "+utils.Code(pname))
+					ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
 				}
 			}(pname, plt)
 		}
