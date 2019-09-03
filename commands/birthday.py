@@ -10,18 +10,22 @@ from helpers import CommandFailure, bold
 from configstartup import config
 
 
-BIRTHDAY_FILE = config['FILES'].get('Birthday')
-BDAY_ROLE_ID = config['ROLES'].get('Birthday')
+BIRTHDAY_FILE = config["FILES"].get("Birthday")
+BDAY_ROLE_ID = config["ROLES"].get("Birthday")
 
 
 class Birthday(Command):
-    desc = "This command can be used to add or remove your birthday. When it is " \
+    desc = (
+        "This command can be used to add or remove your birthday. When it is "
         "your birthday, PCSocBot will give you the Birthday! role for a day."
+    )
 
 
 class Add(Birthday):
-    desc = "Add your own birthday. Please use the format dd/mm " \
+    desc = (
+        "Add your own birthday. Please use the format dd/mm "
         "(trailing zeroes aren't necessary)."
+    )
 
     def eval(self, birthday):
         dt_birthday = validate(birthday)
@@ -33,8 +37,10 @@ class Add(Birthday):
         # Check if they've already given their birthday
         curr_date = find_user(all_birthdays, self.user)
         if curr_date is not None:
-            raise CommandFailure("You've already entered your birthday. "
-                                 "If you wish to change it, please remove it first.")
+            raise CommandFailure(
+                "You've already entered your birthday. "
+                "If you wish to change it, please remove it first."
+            )
 
         # Convert datetime object back to a consistent dd/mm string
         day_month = dt_birthday.strftime("%d/%m")
@@ -47,8 +53,10 @@ class Add(Birthday):
 
 
 class Remove(Birthday):
-    desc = "Remove your birthday, and don't get the role on your birthday. " \
+    desc = (
+        "Remove your birthday, and don't get the role on your birthday. "
         "No arguments are needed."
+    )
 
     def eval(self):
         all_birthdays = get_birthdays(BIRTHDAY_FILE)
@@ -66,9 +74,11 @@ class Remove(Birthday):
 
 
 class ModAdd(Birthday):
-    desc = "Manually grant the Birthday! role to a given user and store " \
+    desc = (
+        "Manually grant the Birthday! role to a given user and store "
         "their birthday. Mod only."
-    roles_required = ['mod', 'exec']
+    )
+    roles_required = ["mod", "exec"]
 
     async def eval(self, user):
         member = self.server.get_member_named(user)
@@ -79,32 +89,28 @@ class ModAdd(Birthday):
         all_birthdays = get_birthdays(BIRTHDAY_FILE)
         curr_date = find_user(all_birthdays, member.id)
         dm_today = datetime.datetime.today().strftime("%d/%m")
+        bday_role = get_role(self.server)
         if curr_date is not None and curr_date != dm_today:
             raise CommandFailure(
                 f"{bold(user)} already has a birthday set for "
-                f"a different date - they don't need the date today")
+                f"a different date - they don't need the date today"
+            )
+        elif curr_date == dm_today:
+            await self.client.add_roles(member, bday_role)
+            raise CommandFailure(
+                f"It's already {bold(user)}'s birthday! Attempting to give role again..."
+            )
 
         if curr_date is None:
             # User doesn't have any birthday set
             # Set their birthday to today for next year
-            all_birthdays[dm_today] = member.id
+            all_birthdays[dm_today].append(member.id)
             save_birthdays(all_birthdays)
 
         # Grant them the Birthday! role
-        bday_role = get_role(self.server)
         await self.client.add_roles(member, bday_role)
 
         return f"{bold(user)} has been granted the Birthday role."
-
-
-class ModPurge(Birthday):
-    desc = "Remove the Birthday! role from all users. Mod only."
-    roles_required = ['mod', 'exec']
-
-    async def eval(self):
-        s = self.server
-        await remove_birthdays(self.client, s.members, get_role(s))
-        return "Removed all Birthday! roles."
 
 
 def get_birthdays(bday_file):
