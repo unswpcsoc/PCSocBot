@@ -78,27 +78,27 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	// extract info via shifty means
 	lines := bytes.Split(htmlText, []byte("\n"))
 	for i, line := range lines {
-		line := string(line[:])
+		lineString := string(line)
 		if title == "" {
-			if strings.Contains(line, "module-title") {
-				title = strings.Split(strings.Split(line, ">")[2], "<")[0]
+			if strings.Contains(lineString, "module-title") {
+				title = strings.Split(strings.Split(lineString, ">")[2], "<")[0]
 			}
 
 		}
 		if desc == "" {
-			if strings.Contains(line, "readmore__wrapper") {
-				desc = strings.Split(strings.Split(string(lines[i+2][:]), ">")[1], "<")[0]
+			if strings.Contains(lineString, "readmore__wrapper") {
+				desc = strings.Split(strings.Split(string(lines[i+2]), ">")[1], "<")[0]
 				desc = html.UnescapeString(desc)
 			}
 		}
 		if term == "" {
-			if strings.Contains(line, "<p tabindex=\"0\" class=\"\">") {
-				term = strings.Split(strings.Split(line, ">")[1], "<")[0]
+			if strings.Contains(lineString, "<p tabindex=\"0\" class=\"\">") {
+				term = strings.Split(strings.Split(lineString, ">")[1], "<")[0]
 			}
 		}
 		if cond == "" {
-			if strings.Contains(line, "Prerequisite") {
-				cond = strings.Split(strings.Split(line, ">")[1], "<")[0]
+			if strings.Contains(lineString, "Prerequisite") {
+				cond = strings.Split(strings.Split(lineString, ">")[1], "<")[0]
 			}
 		}
 		if title != "" && desc != "" && term != "" && cond != "" {
