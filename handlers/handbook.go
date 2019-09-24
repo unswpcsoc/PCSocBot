@@ -1,22 +1,23 @@
 package handlers
 
 import (
-	"errors"
-	"strings"
 	"bytes"
-	"regexp"
-	"net/http"
+	"errors"
 	"html"
 	"io/ioutil"
-	"github.com/bwmarrin/discordgo"
+	"net/http"
+	"regexp"
+	"strings"
+
 	"github.com/unswpcsoc/PCSocBot/commands"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
-
-	ErrNoInput = errors.New("No Course code entered")
+	ErrNoInput       = errors.New("No Course code entered")
 	ErrInvalidFormat = errors.New("Invalid Course Code Format")
-	ErrNotFound = errors.New("Course Not Found")
+	ErrNotFound      = errors.New("Course Not Found")
 )
 
 type handbook struct {
@@ -36,10 +37,10 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	if strings.ToUpper(h.Code) == "DELL1234" {
 		message := commands.NewSend(msg.ChannelID)
 		embed := makeMessage("https://webapps.cse.unsw.edu.au/webcms2/course/index.php?cid=1137",
-				"How to blow up my computer?",
-				"No Course Outline (yet)",
-				"None",
-				"None")
+			"How to blow up my computer?",
+			"No Course Outline (yet)",
+			"None",
+			"None")
 		return message.Embed(embed), nil
 	}
 
@@ -53,14 +54,14 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 
 	//assume undergraduate
-	url, htmltext, status, err := getResponse(h.Code, "undergraduate")
+	url, htmlText, status, err := getResponse(h.Code, "undergraduate")
 	if err != nil {
 		return nil, err
 	}
 
 	//if not undergraduate then must be postgraduate
 	if status != 200 {
-		url, htmltext, status, err = getResponse(h.Code, "postgraduate")
+		url, htmlText, status, err = getResponse(h.Code, "postgraduate")
 	}
 	if err != nil {
 		return nil, err
@@ -72,10 +73,10 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 
 	// initialise info
-	title, desc, term, cond := "", "", "", ""
+	var title, desc, term, cond = "", "", "", ""
 
 	// extract info via shifty means
-	lines := bytes.Split(htmltext, []byte("\n"))
+	lines := bytes.Split(htmlText, []byte("\n"))
 	for i, line := range lines {
 		line := string(line[:])
 		if title == "" {
@@ -85,19 +86,19 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 
 		}
 		if desc == "" {
-			if strings.Contains(line, "readmore__wrapper"){
+			if strings.Contains(line, "readmore__wrapper") {
 				desc = strings.Split(strings.Split(string(lines[i+2][:]), ">")[1], "<")[0]
 				desc = html.UnescapeString(desc)
 			}
 		}
 		if term == "" {
-			if strings.Contains(line, "<p tabindex=\"0\" class=\"\">"){
-				term = strings.Split(strings.Split(string(line), ">")[1], "<")[0]
+			if strings.Contains(line, "<p tabindex=\"0\" class=\"\">") {
+				term = strings.Split(strings.Split(line, ">")[1], "<")[0]
 			}
 		}
 		if cond == "" {
 			if strings.Contains(line, "Prerequisite") {
-				cond = strings.Split(strings.Split(string(line), ">")[1], "<")[0]
+				cond = strings.Split(strings.Split(line, ">")[1], "<")[0]
 			}
 		}
 		if title != "" && desc != "" && term != "" && cond != "" {
@@ -116,44 +117,43 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	return message.Embed(embed), nil
 }
 
-
-func getResponse(Code string, Graduate string) (string, []byte, int, error) {
+func getResponse(Code string, Graduate string) (url string, htmlText []byte, respCode int, err error) {
 	// access page
-	url := "https://www.handbook.unsw.edu.au/" + Graduate + "/courses/2020/" + Code
+	url = "https://www.handbook.unsw.edu.au/" + Graduate + "/courses/2020/" + Code
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", nil, 0, err
 	}
 	// always close
 	defer resp.Body.Close()
-	htmltext, err := ioutil.ReadAll(resp.Body)
+	htmlText, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", nil, 0, err
 	}
 
-	return url, htmltext, resp.StatusCode, nil
+	return url, htmlText, resp.StatusCode, nil
 }
 
-func makeMessage(Url string, Title string, Desc string, Term string, Cond string) (*discordgo.MessageEmbed) {
+func makeMessage(Url string, Title string, Desc string, Term string, Cond string) *discordgo.MessageEmbed {
 	// create fields for embed
-	terms := discordgo.MessageEmbedField {
-			Name: "Offering Terms",
-			Value: Term,
-			Inline: true,
+	terms := discordgo.MessageEmbedField{
+		Name:   "Offering Terms",
+		Value:  Term,
+		Inline: true,
 	}
-	conds := discordgo.MessageEmbedField {
-			Name: "Enrolment Conditions",
-			Value: Cond,
-			Inline: true,
+	conds := discordgo.MessageEmbedField{
+		Name:   "Enrolment Conditions",
+		Value:  Cond,
+		Inline: true,
 	}
 	messagefields := []*discordgo.MessageEmbedField{&terms, &conds}
 	// make embed and return
-	embed := &discordgo.MessageEmbed {
-		URL: Url,
-		Title: Title,
+	embed := &discordgo.MessageEmbed{
+		URL:         Url,
+		Title:       Title,
 		Description: Desc,
-		Fields: messagefields,
-		Color: 0xFDD600,
+		Fields:      messagefields,
+		Color:       0xFDD600,
 	}
 	return embed
 }
