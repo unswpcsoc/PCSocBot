@@ -53,7 +53,6 @@ func init() {
 	crt.AddCommand(newStaticIce())
 
 	crt.AddCommand(newHandbook())
-	//crt.AddCommand(newHandbookYear())
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
