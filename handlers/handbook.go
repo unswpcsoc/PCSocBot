@@ -18,7 +18,7 @@ var (
 	ErrNoInput        = errors.New("No Course code entered")
 	ErrInvalidFormat  = errors.New("Invalid Course Code Format")
 	ErrNotFound       = errors.New("Course Not Found")
-	ErrScrapingFailed = errors.New("Programmer was a pepega, web scraping failed")
+	ErrScrapingFailed = errors.New("Web scraping failed, please contact an Exec")
 )
 
 type handbook struct {
