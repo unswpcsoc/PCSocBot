@@ -21,6 +21,8 @@ func init() {
 	crt.AddCommand(newHelp())
 
 	crt.AddCommand(newLog())
+	crt.AddCommand(newLogDelete())
+	crt.AddCommand(newLogFilter())
 
 	crt.AddCommand(newPing())
 
