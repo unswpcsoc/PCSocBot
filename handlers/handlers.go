@@ -74,7 +74,7 @@ func (n *nilCommand) Chans() []string { return nil }
 // InitLogs inits all logging commands.
 // Needs to be maually updated when adding new loggers
 func InitLogs(ses *discordgo.Session) {
-	initFill(ses)
+	initFil(ses)
 	initDel(ses)
 	initArchive(ses)
 }
