@@ -14,3 +14,6 @@
 # go mod
 go.mod
 go.sum
+
+# discord notes
+*.discord
