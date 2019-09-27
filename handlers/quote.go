@@ -21,10 +21,12 @@ const (
 )
 
 var (
-	// ErrquoteIndex means quote index is not valid
-	ErrquoteIndex = errors.New("index not valid")
-	// ErrquoteEmpty means quote list is not there
-	ErrquoteEmpty = errors.New("list is empty")
+	// ErrQuoteIndex means quote index is not valid
+	ErrQuoteIndex = errors.New("index not valid")
+	// ErrQuoteEmpty means quote list is not there
+	ErrQuoteEmpty = errors.New("list is empty")
+	// ErrQuoteNone means user entered no quote
+	ErrQuoteNone = errors.New("please enter a quote")
 )
 
 /* Storer: quotes */
@@ -68,7 +70,7 @@ func (q *quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comm
 	var quo quotes
 	err := commands.DBGet(&quotes{}, keyQuotes, &quo)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
@@ -82,15 +84,13 @@ func (q *quote) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comm
 	} else {
 		ind = q.Index[0]
 		if ind > quo.Last || ind < 0 {
-			return nil, ErrquoteIndex
+			return nil, ErrQuoteIndex
 		}
 	}
 
 	// Get quote and send it
 	return commands.NewSimpleSend(msg.ChannelID, quo.List[ind]), nil
 }
-
-/* quote add */
 
 type quoteAdd struct {
 	nilCommand
@@ -117,9 +117,18 @@ func (q *quoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		return nil, err
 	}
 
+	// Check quote first
+	newQuote := strings.TrimSpace(strings.Join(q.New, " "))
+
+	if len(newQuote) == 0 {
+		// Quote is empty, throw error
+		return nil, ErrQuoteNone
+	}
+
 	// Put the new quote into the pending quote list and update Last
-	newquote := strings.Join(q.New, " ")
-	pen.List = append(pen.List, newquote)
+	newQuote = strings.Join(q.New, " ")
+
+	pen.List = append(pen.List, newQuote)
 	pen.Last++
 
 	// Set the pending quote list in the db
@@ -129,12 +138,10 @@ func (q *quoteAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	}
 
 	// Send message to channel
-	out := "Added" + utils.Block(newquote) + "to the Pending list at index "
+	out := "Added" + utils.Block(newQuote) + "to the Pending list at index "
 	out += utils.Code(strconv.Itoa(pen.Last))
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
-
-/* quote approve */
 
 type quoteApprove struct {
 	nilCommand
@@ -154,14 +161,14 @@ func (q *quoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 	var pen quotes
 	err := commands.DBGet(&quotes{}, keyPending, &pen)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
 
 	// Check index
 	if err != nil || q.Index < 0 || q.Index > pen.Last {
-		return nil, ErrquoteIndex
+		return nil, ErrQuoteIndex
 	}
 
 	// Get approved list
@@ -220,8 +227,6 @@ func (q *quoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
 
-/* quote list */
-
 type quoteList struct {
 	nilCommand
 }
@@ -237,7 +242,7 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	var quo quotes
 	err := commands.DBGet(&quotes{}, keyQuotes, &quo)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
@@ -254,8 +259,6 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
 
-/* quote pending */
-
 type quotePending struct {
 	nilCommand
 }
@@ -271,7 +274,7 @@ func (q *quotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 	var pen quotes
 	err := commands.DBGet(&quotes{}, keyPending, &pen)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
@@ -287,8 +290,6 @@ func (q *quotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
-
-/* quote reject */
 
 type quoteReject struct {
 	nilCommand
@@ -306,14 +307,14 @@ func (q *quoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	var pen quotes
 	err := commands.DBGet(&quotes{}, keyPending, &pen)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
 
 	// Check index
 	if q.Index < 0 || q.Index > pen.Last {
-		return nil, ErrquoteIndex
+		return nil, ErrQuoteIndex
 	}
 
 	// Reorder list
@@ -335,8 +336,6 @@ func (q *quoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
 
-/* quote remove */
-
 type quoteRemove struct {
 	nilCommand
 	Index int `arg:"index"`
@@ -355,14 +354,14 @@ func (q *quoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	var quo quotes
 	err := commands.DBGet(&quotes{}, keyQuotes, &quo)
 	if err == commands.ErrDBNotFound {
-		return nil, ErrquoteEmpty
+		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
 	}
 
 	// Check index
 	if q.Index < 0 || q.Index > quo.Last {
-		return nil, ErrquoteIndex
+		return nil, ErrQuoteIndex
 	}
 
 	// Clear index, don't reorder
