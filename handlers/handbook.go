@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrNoInput       = errors.New("No Course code entered")
-	ErrInvalidFormat = errors.New("Invalid Course Code Format")
-	ErrNotFound      = errors.New("Course Not Found")
+	ErrNoInput        = errors.New("No Course code entered")
+	ErrInvalidFormat  = errors.New("Invalid Course Code Format")
+	ErrNotFound       = errors.New("Course Not Found")
+	ErrScrapingFailed = errors.New("Programmer was a pepega, web scraping failed")
 )
 
 type handbook struct {
@@ -81,24 +82,54 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		lineString := string(line)
 		if title == "" {
 			if strings.Contains(lineString, "module-title") {
-				title = strings.Split(strings.Split(lineString, ">")[2], "<")[0]
+				titleSlice := strings.Split(lineString, ">")
+				if len(titleSlice) >= 3 {
+					title = strings.Split(titleSlice[2], "<")[0]
+				} else {
+					return nil, ErrScrapingFailed
+				}
 			}
 
 		}
 		if desc == "" {
 			if strings.Contains(lineString, "readmore__wrapper") {
-				desc = strings.Split(strings.Split(string(lines[i+2]), ">")[1], "<")[0]
+				if len(lines) <= i+2 {
+					return nil, ErrScrapingFailed
+				}
+				desc = string(lines[i+2])
 				desc = html.UnescapeString(desc)
+				// if the desc have html formatting (<>) before it, take the first entry
+				if string(desc[0]) == "<" {
+					descSlice := strings.Split(desc, ">")
+					if len(descSlice) >= 2 {
+						desc = strings.Split(descSlice[1], "<")[0]
+					} else {
+						return nil, ErrScrapingFailed
+					}
+				}
 			}
 		}
 		if term == "" {
-			if strings.Contains(lineString, "<p tabindex=\"0\" class=\"\">") {
-				term = strings.Split(strings.Split(lineString, ">")[1], "<")[0]
+			if strings.Contains(lineString, ">Offering Terms<") {
+				if len(lines) <= i+1 {
+					return nil, ErrScrapingFailed
+				}
+				termSlice := strings.Split(string(lines[i+1]), ">")
+				if len(termSlice) >= 2 {
+					term = strings.Split(termSlice[1], "<")[0]
+				} else {
+					return nil, ErrScrapingFailed
+				}
 			}
 		}
 		if cond == "" {
 			if strings.Contains(lineString, "Prerequisite") {
-				cond = strings.Split(strings.Split(lineString, ">")[1], "<")[0]
+				condSlice := strings.Split(lineString, ">")
+				if len(condSlice) >= 2 {
+					cond = strings.Split(condSlice[1], "<")[0]
+				} else {
+					return nil, ErrScrapingFailed
+				}
 			}
 		}
 		if title != "" && desc != "" && term != "" && cond != "" {
@@ -106,9 +137,12 @@ func (h *handbook) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 			break
 		}
 	}
-	// If no prerequisites found
+	// If no prerequisites/offering found
 	if cond == "" {
 		cond = "None"
+	}
+	if term == "" {
+		term = "None"
 	}
 
 	// create and send message
