@@ -48,6 +48,7 @@ type Storer interface {
 func DBOpen(path string) error {
 	var err error
 	DB, err = buntdb.Open(path)
+	DB.Shrink()
 	return err
 }
 
