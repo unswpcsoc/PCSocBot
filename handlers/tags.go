@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	emojiConfirm     = string(0x2714)
+	emojiConfirm     = string(0x2705)
 	emojiClean       = string(0x2728)
 	emojiDeny        = string(0x274C)
 	guildMemberLimit = 1000
