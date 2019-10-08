@@ -65,6 +65,7 @@ func (q *quote) Subcommands() []commands.Command {
 		newQuotePending(),
 		newQuoteRemove(),
 		newQuoteReject(),
+		newQuoteSearch(),
 	}
 }
 
@@ -187,11 +188,15 @@ func (q *quoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 	}
 
 	// Move pending quote to approved list, filling gaps first
+	var ins int
 	if quo.Last == -1 {
+		// quote list is empty
 		quo.List = append(quo.List, pen.List[q.Index])
 		quo.Last++
+		ins = quo.Last
 	} else {
-		ins := quo.Last + 1
+		// quote list is not empty
+		ins = quo.Last + 1
 		for i, q := range quo.List {
 			if len(q) == 0 {
 				ins = i
@@ -224,8 +229,8 @@ func (q *quoteApprove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 		return nil, err
 	}
 
-	out := "Approved quote\n" + utils.Block(quo.List[len(quo.List)-1]) + "now at index "
-	out += utils.Code(strconv.Itoa(quo.Last))
+	out := "Approved quote\n" + utils.Block(quo.List[ins]) + "now at index "
+	out += utils.Code(strconv.Itoa(ins))
 
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
@@ -331,7 +336,7 @@ func (q *quoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 	}
 
 	// Reorder list
-	rem := pen.List[q.Index]
+	rej := pen.List[q.Index]
 	newPen := pen.List[:q.Index]
 	if q.Index != pen.Last {
 		newPen = append(newPen, pen.List[q.Index+1:]...)
@@ -345,7 +350,7 @@ func (q *quoteReject) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 		return nil, err
 	}
 
-	out := "Rejected quote\n" + utils.Block(rem)
+	out := "Rejected quote\n" + utils.Block(rej)
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
 
