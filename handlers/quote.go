@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sahilm/fuzzy"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
@@ -24,9 +25,11 @@ var (
 	// ErrQuoteIndex means quote index is not valid
 	ErrQuoteIndex = errors.New("index not valid")
 	// ErrQuoteEmpty means quote list is not there
-	ErrQuoteEmpty = errors.New("list is empty")
+	ErrQuoteEmpty = errors.New("quote list not initialised")
 	// ErrQuoteNone means user entered no quote
-	ErrQuoteNone = errors.New("please enter a quote")
+	ErrQuoteNone = errors.New("no quote entered, please enter a quote")
+	// ErrQueryNone means user entered no quote
+	ErrQueryNone = errors.New("no search terms entered")
 )
 
 /* Storer: quotes */
@@ -150,7 +153,7 @@ type quoteApprove struct {
 
 func newQuoteApprove() *quoteApprove { return &quoteApprove{} }
 
-func (q *quoteApprove) Aliases() []string { return []string{"quote approve"} }
+func (q *quoteApprove) Aliases() []string { return []string{"quote approve", "quote ap"} }
 
 func (q *quoteApprove) Desc() string { return "Approves a quote." }
 
@@ -250,6 +253,11 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	// List them
 	out := utils.Under("quotes:") + "\n"
 	for i, q := range quo.List {
+		// deleted quote, skip
+		if len(q) == 0 {
+			continue
+		}
+
 		if len(q) > quoteLineLimit {
 			q = q[:quoteLineLimit] + "[...]"
 		}
@@ -277,6 +285,11 @@ func (q *quotePending) MsgHandle(ses *discordgo.Session, msg *discordgo.Message)
 		return nil, ErrQuoteEmpty
 	} else if err != nil {
 		return nil, err
+	}
+
+	// Check empty
+	if len(pen.List) == 0 {
+		return commands.NewSimpleSend(msg.ChannelID, "Pending list is empty."), nil
 	}
 
 	// List them
@@ -383,6 +396,51 @@ func (q *quoteRemove) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) 
 		return nil, err
 	}
 
-	out := "Rejected quote\n" + utils.Block(rem)
+	out := "Removed quote\n" + utils.Block(rem)
+	return commands.NewSimpleSend(msg.ChannelID, out), nil
+}
+
+type quoteSearch struct {
+	nilCommand
+	Query []string `arg:"query"`
+}
+
+func newQuoteSearch() *quoteSearch { return &quoteSearch{} }
+
+func (q *quoteSearch) Aliases() []string { return []string{"quote search", "quote se"} }
+
+func (q *quoteSearch) Desc() string { return "Searches for a quote, returns top 5 results." }
+
+func (q *quoteSearch) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
+	// Join query
+	qry := strings.TrimSpace(strings.Join(q.Query, " "))
+	if len(qry) == 0 {
+		return nil, ErrQueryNone
+	}
+
+	// Get quotes list
+	var quo quotes
+	err := commands.DBGet(&quotes{}, keyQuotes, &quo)
+	if err == commands.ErrDBNotFound {
+		return nil, ErrQuoteEmpty
+	} else if err != nil {
+		return nil, err
+	}
+
+	// use fuzzy finding to get top 5 results
+	mat := fuzzy.Find(qry, quo.List)
+	if len(mat) == 0 {
+		return commands.NewSimpleSend(msg.ChannelID, "No matches found."), nil
+	}
+
+	// print results
+	out := "Search Results:\n"
+	for i, m := range mat {
+		if i == 5 {
+			break
+		}
+		out += utils.Bold("#"+strconv.Itoa(m.Index)+": ") + m.Str + "\n"
+	}
+
 	return commands.NewSimpleSend(msg.ChannelID, out), nil
 }
