@@ -33,6 +33,7 @@ func init() {
 	crt.AddCommand(newQuotePending())
 	crt.AddCommand(newQuoteRemove())
 	crt.AddCommand(newQuoteReject())
+	crt.AddCommand(newQuoteSearch())
 
 	crt.AddCommand(newRole("Bookworm"))
 	crt.AddCommand(newRole("Meta"))
