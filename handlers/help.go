@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"errors"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/sahilm/fuzzy"
+
 	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/utils"
 )
@@ -27,6 +29,7 @@ func (h *help) Desc() string { return "help!" }
 
 func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	snd := commands.NewSend(msg.ChannelID)
+	var out string
 	if len(h.Query) == 0 {
 		// consider rate-limiting/re-routing/disabling this if your message becomes enormous
 		ignore := map[string]bool{}
@@ -46,7 +49,7 @@ func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comma
 		}
 
 		count := 0
-		out := utils.Bold("All Commands:")
+		out = utils.Bold("All Commands:")
 		for _, com := range routerSlice {
 			// ignore subcommands
 			if seen, _ := ignore[com.Aliases()[0]]; seen {
@@ -66,13 +69,28 @@ func (h *help) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*comma
 		snd.Message(out)
 	} else {
 		com, _ := RouterRoute(h.Query)
-		if com == nil {
-			return nil, errors.New("Error: Unknown command; use " + HelpAlias)
-		}
+		if com != nil {
+			out = "Command " + utils.Bold(com.Aliases()[0])
+			out += "\n" + commands.GetUsage(com)
+			snd.Message(out)
+		} else {
+			// user provided bad command string, use fuzzy finding to find suggestions
+			mat := fuzzy.Find(strings.Join(h.Query, " "), RouterToStringSlice())
 
-		out := "Command " + utils.Bold(com.Aliases()[0])
-		out += "\n" + commands.GetUsage(com)
-		snd.Message(out)
+			out = "Unknown command provided"
+			if len(mat) > 0 {
+				out += ", did you mean:\n"
+
+				// fuzzy find top 3 suggestions
+				for i, m := range mat {
+					if i == 3 {
+						break
+					}
+					out += utils.Code(commands.Prefix+m.Str) + "\n"
+				}
+			}
+			snd.Message(out)
+		}
 	}
 	return snd, nil
 }
