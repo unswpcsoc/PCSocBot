@@ -6,7 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/router"
+	"github.com/unswpcsoc/PCSocBot/internal/router"
 )
 
 var crt *router.Router
