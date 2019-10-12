@@ -140,7 +140,7 @@ func main() {
 					out = utils.Italics("Error: Unknown command") + "\n"
 				}
 
-				out += utils.Italics("Use") + " " + utils.Code(handlers.HelpAlias) + " " + utils.Italics("for more.")
+				out += utils.Italics("Use") + " " + commands.Prefix + utils.Code(handlers.HelpAlias) + " " + utils.Italics("for more.")
 				s.ChannelMessageSend(m.ChannelID, out)
 				return
 			}
