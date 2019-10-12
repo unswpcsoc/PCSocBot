@@ -95,6 +95,7 @@ func (c *CommandSend) Send(s *discordgo.Session) error {
 		if utils.Strlen(data) > MessageLimit {
 			return fmt.Errorf("Send: following message exceeds limit\n%#v", data)
 		}
+		fmt.Println("SENDING:", data)
 		s.ChannelMessageSendComplex(c.channelid, data)
 	}
 	return nil
