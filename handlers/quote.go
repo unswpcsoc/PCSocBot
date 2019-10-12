@@ -271,10 +271,13 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		}
 
 		tmp = utils.Bold("#"+strconv.Itoa(i)+":") + " " + q + "\n"
+
 		if len(out)+len(tmp) >= commands.MessageLimit {
 			// reached message limit, add a new message to Send
 			snd.Message(out)
 			out = tmp
+		} else {
+			out += tmp
 		}
 	}
 
