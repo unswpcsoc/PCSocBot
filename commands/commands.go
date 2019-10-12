@@ -11,7 +11,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 const (

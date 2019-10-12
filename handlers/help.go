@@ -7,7 +7,7 @@ import (
 	"github.com/sahilm/fuzzy"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 const (

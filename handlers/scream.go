@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 type scream struct {
