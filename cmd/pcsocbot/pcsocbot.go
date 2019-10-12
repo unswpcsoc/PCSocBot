@@ -122,6 +122,7 @@ func main() {
 			// regular routing
 			com, ind = handlers.RouterRoute(argv)
 			if com == nil {
+				/* REDACTED
 				mat := fuzzy.Find(strings.Join(argv, " "), handlers.RouterToStringSlice())
 
 				var out string
@@ -142,6 +143,7 @@ func main() {
 
 				out += utils.Italics("Use") + " " + commands.Prefix + utils.Code(handlers.HelpAlias) + " " + utils.Italics("for more.")
 				s.ChannelMessageSend(m.ChannelID, out)
+				*/
 				return
 			}
 		}

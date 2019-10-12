@@ -251,7 +251,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		Username: msg.Author.Username,
 		Tag:      argTag,
 		Platform: t.Platform,
-		PingMe:   true, // opt-out pings
+		PingMe:   false, // opt-in pings
 	}
 
 	// set tags
