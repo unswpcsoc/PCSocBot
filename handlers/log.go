@@ -17,7 +17,7 @@ import (
 const (
 	cacheLimit  = 100
 	embedColour = 0xff0000
-	logChannel  = "462063414408249376" // currently just the #commands channel in pcsoc2
+	logChannel  = "529463078610534410" // #report
 )
 
 var (
