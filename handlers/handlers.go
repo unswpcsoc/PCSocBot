@@ -39,7 +39,6 @@ func init() {
 	crt.AddCommand(newRole("Meta"))
 	crt.AddCommand(newRole("Weeb"))
 
-	/* disabled until migration
 	crt.AddCommand(newTags())
 	crt.AddCommand(newTagsAdd())
 	crt.AddCommand(newTagsClean())
@@ -51,7 +50,6 @@ func init() {
 	crt.AddCommand(newTagsPlatforms())
 	crt.AddCommand(newTagsRemove())
 	crt.AddCommand(newTagsUser())
-	*/
 
 	crt.AddCommand(newArchive())
 

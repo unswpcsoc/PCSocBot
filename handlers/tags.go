@@ -492,7 +492,7 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 		if utg == nil {
 			// signil invalid users in the db
 			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-				false, "[INVALID]", "Please run !tags clean")
+				false, "[INVALID]", "!tags clean")
 		} else {
 			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
 				utg.PingMe, utg.Username, utg.Tag)
