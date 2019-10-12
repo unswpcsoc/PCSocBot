@@ -13,7 +13,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/sahilm/fuzzy"
+	//"github.com/sahilm/fuzzy"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/handlers"
