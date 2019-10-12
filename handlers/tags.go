@@ -239,11 +239,13 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		tgs.Platforms[t.Platform] = plt
 	}
 
+	/* opt-in pings
 	// signal role giving
 	ses.ChannelMessageSend(msg.ChannelID, "Giving you the role...")
 
 	// set role, silently fails
 	ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
+	*/
 
 	// add tag to platform
 	plt.Users[msg.Author.ID] = &tag{
