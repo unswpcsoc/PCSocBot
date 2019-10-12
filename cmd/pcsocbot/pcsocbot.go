@@ -17,7 +17,7 @@ import (
 
 	"github.com/unswpcsoc/PCSocBot/commands"
 	"github.com/unswpcsoc/PCSocBot/handlers"
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 var (
@@ -200,7 +200,6 @@ func main() {
 		snd, err := com.MsgHandle(s, m.Message)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
-			s.ChannelMessageSend(m.ChannelID, commands.GetUsage(com))
 			errs.Printf("%#v threw error: %#v\n", com, err)
 			return
 		}

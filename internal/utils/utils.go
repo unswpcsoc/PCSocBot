@@ -37,6 +37,15 @@ func Under(s string) string {
 	return "__" + s + "__"
 }
 
+// Reverse reverses a string, assuming ascii encoding
+func Reverse(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
+}
+
 // StrLen Recursively searches for strings and counts up the total length
 func Strlen(e interface{}) int {
 	count := 0

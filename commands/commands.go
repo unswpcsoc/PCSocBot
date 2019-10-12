@@ -11,7 +11,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 const (
@@ -145,7 +145,7 @@ func GetUsage(c Command) (usage string) {
 		case reflect.String:
 			tName = "word"
 		case reflect.Array, reflect.Slice:
-			tName = "zero or more "
+			tName = "multiple "
 			switch f.Type.Elem().Kind() {
 			case reflect.Bool:
 				tName += "true/false"

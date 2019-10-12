@@ -6,7 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/router"
+	"github.com/unswpcsoc/PCSocBot/internal/router"
 )
 
 var crt *router.Router
@@ -21,6 +21,8 @@ func init() {
 	crt.AddCommand(newHelp())
 
 	crt.AddCommand(newLog())
+	crt.AddCommand(newLogDelete())
+	crt.AddCommand(newLogFilter())
 
 	crt.AddCommand(newPing())
 
@@ -31,6 +33,7 @@ func init() {
 	crt.AddCommand(newQuotePending())
 	crt.AddCommand(newQuoteRemove())
 	crt.AddCommand(newQuoteReject())
+	crt.AddCommand(newQuoteSearch())
 
 	crt.AddCommand(newRole("Bookworm"))
 	crt.AddCommand(newRole("Meta"))
@@ -53,6 +56,9 @@ func init() {
 	crt.AddCommand(newStaticIce())
 
 	crt.AddCommand(newHandbook())
+
+	crt.AddCommand(newScream())
+
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
@@ -76,7 +82,7 @@ func (n *nilCommand) Chans() []string { return nil }
 // InitLogs inits all logging commands.
 // Needs to be maually updated when adding new loggers
 func InitLogs(ses *discordgo.Session) {
-	initFill(ses)
+	initFil(ses)
 	initDel(ses)
 	initArchive(ses)
 }

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"bytes"
+	"errors"
 	logs "log"
 	"net/http"
 	"regexp"
-	"strconv"
+	//"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,8 +21,8 @@ const (
 )
 
 var (
-	delFunc func()
-	filFunc func()
+	killDel func()
+	killFil func()
 
 	msgCache = NewMapCache(cacheLimit)
 
@@ -30,6 +31,9 @@ var (
 		regexp.MustCompile("(?i)kill[[:space:]]*myself"),
 		regexp.MustCompile("(?i)kill[[:space:]]*me"),
 	}
+
+	ErrLoggingOn  = errors.New("logging is already on")
+	ErrLoggingOff = errors.New("logging is already off")
 )
 
 /* helpers */
@@ -115,8 +119,6 @@ func (m *MapCache) Pop(ky string) (*discordgo.Message, *discordgo.File, bool) {
 	return vl, im, true
 }
 
-/* log */
-
 type log struct {
 	nilCommand
 	Mode bool `arg:"mode"`
@@ -142,23 +144,30 @@ func (l *log) Subcommands() []commands.Command {
 func (l *log) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
 	if l.Mode {
+		// TODO: test
+		if killFil != nil || killDel != nil {
+			return nil, ErrLoggingOn
+		}
+
 		initDel(ses)
-		initFill(ses)
+		initFil(ses)
 
 		stat = "on"
 	} else {
-		delFunc()
-		delFunc = nil
-		filFunc()
-		filFunc = nil
+		if killFil == nil && killDel == nil {
+			return nil, ErrLoggingOff
+		}
+
+		killDel()
+		killDel = nil
+		killFil()
+		killFil = nil
 
 		stat = "off"
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, "logging has been turned "+stat), nil
 }
-
-/* log delete */
 
 type logDelete struct {
 	log
@@ -177,21 +186,25 @@ func (l *logDelete) Subcommands() []commands.Command { return nil }
 
 func (l *logDelete) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
-	if delFunc == nil {
+	if l.Mode {
+		if killDel != nil {
+			return nil, ErrLoggingOn
+		}
+
 		initDel(ses)
 		stat = "on"
 	} else {
-		if delFunc != nil {
-			delFunc()
-			delFunc = nil
+		if killDel == nil {
+			return nil, ErrLoggingOff
 		}
+
+		killDel()
+		killDel = nil
 		stat = "off"
 	}
 
 	return commands.NewSimpleSend(msg.ChannelID, "MessageDelete logging has been turned "+stat), nil
 }
-
-/* log filter */
 
 type logFilter struct {
 	log
@@ -210,14 +223,21 @@ func (l *logFilter) Subcommands() []commands.Command { return nil }
 
 func (l *logFilter) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	stat := ""
-	if filFunc == nil {
-		initFill(ses)
+	if l.Mode {
+		if killFil != nil {
+			return nil, ErrLoggingOn
+		}
+
+		initFil(ses)
 		stat = "on"
 	} else {
-		if filFunc != nil {
-			filFunc()
-			filFunc = nil
+		if killFil == nil {
+			return nil, ErrLoggingOff
 		}
+
+		killFil()
+		killFil = nil
+
 		stat = "off"
 	}
 
@@ -247,6 +267,12 @@ func initDel(ses *discordgo.Session) {
 			Tts:     false,
 		}
 
+		// check if content was empty
+		cnt := dtd.Content
+		if len(cnt) == 0 {
+			cnt = "[EMPTY]"
+		}
+
 		// craft fields
 		fields := []*discordgo.MessageEmbedField{
 			&discordgo.MessageEmbedField{
@@ -257,18 +283,20 @@ func initDel(ses *discordgo.Session) {
 		}
 
 		// TODO: fix
-		if len(dtd.Reactions) > 0 {
-			var reacts string
-			for _, react := range dtd.Reactions {
-				reacts += "[" + strconv.Itoa(react.Count) + "] "
-				reacts += react.Emoji.Name
+		/*
+			if len(dtd.Reactions) > 0 {
+				var reacts string
+				for _, react := range dtd.Reactions {
+					reacts += "[" + strconv.Itoa(react.Count) + "] "
+					reacts += react.Emoji.Name
+				}
+				fields = append(fields, &discordgo.MessageEmbedField{
+					Name:   "Reactions:",
+					Value:  reacts,
+					Inline: false,
+				})
 			}
-			fields = append(fields, &discordgo.MessageEmbedField{
-				Name:   "Reactions:",
-				Value:  reacts,
-				Inline: false,
-			})
-		}
+		*/
 
 		cha, err := ses.State.Channel(dtd.ChannelID)
 		if err != nil {
@@ -296,14 +324,14 @@ func initDel(ses *discordgo.Session) {
 
 		se.ChannelMessageSendComplex(logChannel, out)
 	})
-	delFunc = func() {
+	killDel = func() {
 		tmp1()
 		tmp2()
 	}
 }
 
-func initFill(ses *discordgo.Session) {
-	filFunc = ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
+func initFil(ses *discordgo.Session) {
+	killFil = ses.AddHandler(func(se *discordgo.Session, mc *discordgo.MessageCreate) {
 		msg := mc.Message
 		if msg.Author.ID == se.State.User.ID {
 			return

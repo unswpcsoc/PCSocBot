@@ -13,11 +13,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/unswpcsoc/PCSocBot/commands"
-	"github.com/unswpcsoc/PCSocBot/utils"
+	"github.com/unswpcsoc/PCSocBot/internal/utils"
 )
 
 const (
-	emojiConfirm     = string(0x2714)
+	emojiConfirm     = string(0x2705)
 	emojiClean       = string(0x2728)
 	emojiDeny        = string(0x274C)
 	guildMemberLimit = 1000
