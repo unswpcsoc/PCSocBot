@@ -23,7 +23,7 @@ type help struct {
 
 func newHelp() *help { return &help{} }
 
-func (h *help) Aliases() []string { return []string{"helpme", "h", "commands", "fuck", "fuck you"} }
+func (h *help) Aliases() []string { return []string{"hg", "commands", "fuck", "fuck you"} }
 
 func (h *help) Desc() string { return "help!" }
 

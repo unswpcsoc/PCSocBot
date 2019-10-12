@@ -78,7 +78,7 @@ func main() {
 	defer dgo.Close()
 	defer commands.DBClose()
 
-	dgo.UpdateListeningStatus("you")
+	dgo.UpdateStatus(0, "!hg")
 
 	// init loggers
 	handlers.InitLogs(dgo)
