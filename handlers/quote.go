@@ -249,6 +249,8 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	// Get all approved quotes from db
 	var quo quotes
 	err := commands.DBGet(&quotes{}, keyQuotes, &quo)
+	snd := commands.NewSend(msg.ChannelID)
+
 	if err == commands.ErrDBNotFound {
 		return nil, ErrQuoteEmpty
 	} else if err != nil {
@@ -256,7 +258,8 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	}
 
 	// List them
-	out := utils.Under("quotes:") + "\n"
+	var tmp string
+	var out = utils.Under("Quotes:") + "\n"
 	for i, q := range quo.List {
 		// deleted quote, skip
 		if len(q) == 0 {
@@ -266,10 +269,16 @@ func (q *quoteList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		if len(q) > quoteLineLimit {
 			q = q[:quoteLineLimit] + "[...]"
 		}
-		out += utils.Bold("#"+strconv.Itoa(i)+":") + " " + q + "\n"
+
+		tmp = utils.Bold("#"+strconv.Itoa(i)+":") + " " + q + "\n"
+		if len(out)+len(tmp) >= commands.MessageLimit {
+			// reached message limit, add a new message to Send
+			snd.Message(out)
+			out = tmp
+		}
 	}
 
-	return commands.NewSimpleSend(msg.ChannelID, out), nil
+	return snd.Message(out), nil
 }
 
 type quotePending struct {
