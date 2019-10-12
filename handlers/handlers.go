@@ -55,7 +55,10 @@ func init() {
 
 	crt.AddCommand(newStaticIce())
 
+	crt.AddCommand(newHandbook())
+
 	crt.AddCommand(newScream())
+
 }
 
 // RouterRoute is a wrapper around the handler package's internal router's Route method
