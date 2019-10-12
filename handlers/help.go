@@ -12,7 +12,7 @@ import (
 
 const (
 	// HelpAlias is the default alias for help command
-	HelpAlias = commands.Prefix + "h"
+	HelpAlias = "hg"
 )
 
 // help is a special command that needs a concrete router to work
@@ -23,7 +23,7 @@ type help struct {
 
 func newHelp() *help { return &help{} }
 
-func (h *help) Aliases() []string { return []string{"hg", "commands", "fuck", "fuck you"} }
+func (h *help) Aliases() []string { return []string{HelpAlias, "commands", "fuck", "fuck you"} }
 
 func (h *help) Desc() string { return "help!" }
 
