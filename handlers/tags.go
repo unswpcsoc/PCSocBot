@@ -754,21 +754,27 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 			// use mention to get user
 			usr = msg.Mentions[0]
 		} else {
-			// use string to search for user
-			members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
+			// try as uid
+			mem, err := ses.GuildMember(msg.GuildID, strings.TrimSpace(User[0]))
 			if err != nil {
-				return nil, err
-			}
-
-			for _, mem := range members {
-				// case-insensitive
-				if strings.ToLower(mem.User.Username) == strings.ToLower(t.User[0]) {
-					usr = mem.User
+				// use string to search for user
+				members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
+				if err != nil {
+					return nil, err
 				}
-			}
 
-			if usr == nil {
-				return nil, ErrUserNotFound
+				for _, mem := range members {
+					// case-insensitive
+					if strings.ToLower(mem.User.Username) == strings.ToLower(t.User[0]) {
+						usr = mem.User
+					}
+				}
+
+				if usr == nil {
+					return nil, ErrUserNotFound
+				}
+			} else {
+				usr = mem.User
 			}
 		}
 	}
