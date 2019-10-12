@@ -267,6 +267,12 @@ func initDel(ses *discordgo.Session) {
 			Tts:     false,
 		}
 
+		// check if content was empty
+		cnt := dtd.Content
+		if len(cnt) == 0 {
+			cnt = "[EMPTY]"
+		}
+
 		// craft fields
 		fields := []*discordgo.MessageEmbedField{
 			&discordgo.MessageEmbedField{
@@ -277,18 +283,20 @@ func initDel(ses *discordgo.Session) {
 		}
 
 		// TODO: fix
-		if len(dtd.Reactions) > 0 {
-			var reacts string
-			for _, react := range dtd.Reactions {
-				reacts += "[" + strconv.Itoa(react.Count) + "] "
-				reacts += react.Emoji.Name
+		/*
+			if len(dtd.Reactions) > 0 {
+				var reacts string
+				for _, react := range dtd.Reactions {
+					reacts += "[" + strconv.Itoa(react.Count) + "] "
+					reacts += react.Emoji.Name
+				}
+				fields = append(fields, &discordgo.MessageEmbedField{
+					Name:   "Reactions:",
+					Value:  reacts,
+					Inline: false,
+				})
 			}
-			fields = append(fields, &discordgo.MessageEmbedField{
-				Name:   "Reactions:",
-				Value:  reacts,
-				Inline: false,
-			})
-		}
+		*/
 
 		cha, err := ses.State.Channel(dtd.ChannelID)
 		if err != nil {
