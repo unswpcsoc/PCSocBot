@@ -102,7 +102,6 @@ func main() {
 		if !strings.HasPrefix(trm, commands.Prefix) || len(trm) == 1 {
 			return
 		}
-		s.ChannelTyping(m.ChannelID)
 
 		// route message
 		var com commands.Command
@@ -199,6 +198,7 @@ func main() {
 		}
 
 		// handle message
+		s.ChannelTyping(m.ChannelID)
 		snd, err := com.MsgHandle(s, m.Message)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, utils.Italics("Error: "+err.Error()))
