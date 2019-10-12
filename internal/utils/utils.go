@@ -37,6 +37,11 @@ func Under(s string) string {
 	return "__" + s + "__"
 }
 
+// Mention encloses the string in mention tags
+func Mention(s string) string {
+	return "<@!" + s + ">"
+}
+
 // Reverse reverses a string, assuming ascii encoding
 func Reverse(s string) string {
 	runes := []rune(s)

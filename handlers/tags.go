@@ -154,7 +154,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 	}
 
 	// get platform
-	var drl *discordgo.Role
+	//var drl *discordgo.Role
 	plt, ok := tgs.Platforms[t.Platform]
 	if !ok {
 		// wait for user reaction to verify
@@ -218,6 +218,7 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 		// acknowledge reaction
 		ses.ChannelMessageSend(msg.ChannelID, "Creating new platform: "+utils.Code(t.Platform))
 
+		/* role
 		// create new role
 		drl, err = ses.GuildRoleCreate(msg.GuildID)
 		if err != nil {
@@ -229,11 +230,12 @@ func (t *tagsAdd) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*co
 
 		// signal role creation
 		ses.ChannelMessageSend(msg.ChannelID, "Creating a new role: "+drl.Mention())
+		*/
 
 		// create new platform
 		plt = &platform{
 			Name:  t.Platform,
-			Role:  drl,
+			Role:  nil,
 			Users: make(map[string]*tag),
 		}
 		tgs.Platforms[t.Platform] = plt
@@ -306,10 +308,12 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	ses.ChannelMessageSend(msg.ChannelID, "Starting cleaning session! This may take a while...")
 
 	// get roles
+	/* roles
 	roles, err := ses.GuildRoles(msg.GuildID)
 	if err != nil {
 		return nil, err
 	}
+	*/
 
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
@@ -325,6 +329,7 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		}
 
 		// check role associated with platform
+		/* role
 		exists := false
 		for _, rol := range roles {
 			if rol.ID == plt.Role.ID {
@@ -351,11 +356,12 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			plt.Role = drl
 			ses.ChannelMessageSend(msg.ChannelID, "Re-created missing role for platform: "+utils.Code(pname))
 		}
+		*/
 
 		// iterate users
 		var wg sync.WaitGroup
 		wg.Add(len(plt.Users))
-		for uid, usr := range plt.Users {
+		for uid, _ := range plt.Users {
 			// spawn heavily io-bound work in new goroutines
 			go func(pname string, plt *platform) {
 				defer wg.Done()
@@ -369,11 +375,13 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 				}
 
 				// update roles
+				/* roles
 				if usr.PingMe {
 					ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
 				} else {
 					ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
 				}
+				*/
 			}(pname, plt)
 		}
 		// wait for all users to be checked
@@ -582,12 +590,17 @@ func (t *tagsPing) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 
 	pings := ""
 	for _, utg := range plt.Users {
+		/* slow
 		var dusr *discordgo.User
 		dusr, err = ses.User(utg.UID)
 		if err != nil || !utg.PingMe {
 			continue
 		}
 		pings += " " + dusr.Mention()
+		*/
+		if utg.PingMe {
+			pings += " " + utils.Mention(utg.UID)
+		}
 	}
 
 	if len(pings) == 0 {
@@ -641,13 +654,17 @@ func (t *tagsPingMe) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (
 
 	// set pingme
 	utg.PingMe = t.PingMe
+
+	/* roles
 	if t.PingMe {
+		// TODO: fix this shit
 		// set role, silently fails
 		ses.GuildMemberRoleAdd(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	} else {
 		// remove role, silently fails
 		ses.GuildMemberRoleRemove(msg.GuildID, msg.Author.ID, plt.Role.ID)
 	}
+	*/
 	_, _, err = commands.DBSet(&tgs, tagsKey)
 	if err != nil {
 		return nil, err
