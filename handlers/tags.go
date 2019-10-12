@@ -755,7 +755,7 @@ func (t *tagsUser) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 			usr = msg.Mentions[0]
 		} else {
 			// try as uid
-			mem, err := ses.GuildMember(msg.GuildID, strings.TrimSpace(User[0]))
+			mem, err := ses.GuildMember(msg.GuildID, strings.TrimSpace(t.User[0]))
 			if err != nil {
 				// use string to search for user
 				members, err := ses.GuildMembers(msg.GuildID, "0", guildMemberLimit)
