@@ -78,7 +78,7 @@ func main() {
 	defer dgo.Close()
 	defer commands.DBClose()
 
-	dgo.UpdateStatus(0, "!hg")
+	dgo.UpdateStatus(0, commands.Prefix+handlers.HelpAlias)
 
 	// init loggers
 	handlers.InitLogs(dgo)
