@@ -362,10 +362,12 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		// check valid users
 		for uid, _ := range plt.Users {
 			res, ok := checkMap[uid]
-			if ok && !res {
-				// has been checked and is invalid, remove
-				delete(plt.Users, uid)
-				ses.ChannelMessageSend(msg.ChannelID, "Removed invalid user: "+uid)
+			if ok {
+				if !res {
+					// has been checked and is invalid, remove
+					delete(plt.Users, uid)
+					ses.ChannelMessageSend(msg.ChannelID, "Removed invalid user: "+uid)
+				}
 				continue
 			}
 
