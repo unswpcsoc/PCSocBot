@@ -282,6 +282,8 @@ func (t *tagsClean) Desc() string {
 	- Double-checks that platform roles are assigned based on PingMe status`
 }
 
+func (t *tagsClean) Roles() []string { return []string{"mod"} }
+
 func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*commands.CommandSend, error) {
 	var err error
 	var tgs tagStorer
