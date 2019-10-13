@@ -316,6 +316,9 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 	}
 	*/
 
+	// cache already seen uids
+	checkMap := make(map[string]bool)
+
 	// iterate platforms
 	for pname, plt := range tgs.Platforms {
 		// clean empty platforms
@@ -359,8 +362,6 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		}
 		*/
 
-		// cache already seen uids
-		checkMap := make(map[string]bool)
 		// check valid users
 		for uid, _ := range plt.Users {
 			res, ok := checkMap[uid]
