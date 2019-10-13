@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -328,8 +327,8 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 			continue
 		}
 
+		/* roles
 		// check role associated with platform
-		/* role
 		exists := false
 		for _, rol := range roles {
 			if rol.ID == plt.Role.ID {
@@ -358,34 +357,49 @@ func (t *tagsClean) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*
 		}
 		*/
 
-		// iterate users
-		var wg sync.WaitGroup
-		wg.Add(len(plt.Users))
+		// cache already seen uids
+		checkMap := make(map[string]bool)
+		// check valid users
 		for uid, _ := range plt.Users {
-			// spawn heavily io-bound work in new goroutines
-			go func(pname string, plt *platform) {
-				defer wg.Done()
-				// check user
-				_, err = ses.GuildMember(msg.GuildID, uid)
+			res, ok := checkMap[uid]
+			if ok && !res {
+				// has been checked and is invalid, remove
+				delete(plt.Users, uid)
+				ses.ChannelMessageSend(msg.ChannelID, "Removed invalid user: "+uid)
+				continue
+			}
+
+			// check user
+			mem, err := ses.State.Member(msg.GuildID, uid)
+			if err != nil {
+				mem, err = ses.GuildMember(msg.GuildID, uid)
 				if err != nil {
 					// couldn't find user, remove tag from db
 					delete(plt.Users, uid)
-					ses.ChannelMessageSend(msg.ChannelID, "Removed user: "+uid)
-					return
-				}
+					ses.ChannelMessageSend(msg.ChannelID, "Removed invalid user: "+uid)
 
-				// update roles
-				/* roles
-				if usr.PingMe {
-					ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
-				} else {
-					ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+					// update cache
+					checkMap[uid] = false
+					continue
 				}
-				*/
-			}(pname, plt)
+			}
+
+			/* roles
+			// update roles
+			if usr.PingMe {
+				ses.GuildMemberRoleAdd(msg.GuildID, uid, plt.Role.ID)
+			} else {
+				ses.GuildMemberRoleRemove(msg.GuildID, uid, plt.Role.ID)
+			}
+			*/
+
+			// update usernames
+			plt.Users[uid].Username = mem.User.Username
+			ses.ChannelMessageSend(msg.ChannelID, "Updated username for "+uid+" to "+mem.User.Username)
+
+			// update cache
+			checkMap[uid] = true
 		}
-		// wait for all users to be checked
-		wg.Wait()
 	}
 
 	_, _, err = commands.DBSet(&tgs, tagsKey)
@@ -473,11 +487,14 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	for _, utg := range plt.Users {
 		mem, err := ses.State.Member(msg.GuildID, utg.UID)
 		if err != nil {
+			/* expensive
 			mem, err = ses.GuildMember(msg.GuildID, utg.UID)
 			if err != nil {
 				utags = append(utags, nil)
 				continue
 			}
+			*/
+			utags = append(utags, nil)
 		}
 		utg.Username = mem.User.Username
 		utags = append(utags, utg)
