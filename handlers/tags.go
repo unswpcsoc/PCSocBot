@@ -24,8 +24,8 @@ const (
 	teal             = 0x008080
 
 	tagLimit  = 32
-	platLimit = 32
-	userLimit = 32 // discord's nick limit is 32
+	platLimit = 20
+	userLimit = 20 // discord's nick limit is 32
 
 	addTimeout = 7
 )
@@ -516,7 +516,7 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 	// generate output
 	for _, utg := range utags {
 		if utg == nil {
-			// signil invalid users in the db
+			// signal invalid users in the db
 			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
 				false, "[INVALID]", "!tags clean")
 		} else {
