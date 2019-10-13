@@ -495,6 +495,7 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 			}
 			*/
 			utags = append(utags, nil)
+			continue
 		}
 		utg.Username = mem.User.Username
 		utags = append(utags, utg)

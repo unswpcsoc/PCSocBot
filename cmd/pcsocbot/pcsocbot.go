@@ -86,7 +86,7 @@ func main() {
 	// handle commands
 	dgo.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// catch panics on production
-		if prod {
+		if false {
 			defer func() {
 				if r := recover(); r != nil {
 					errs.Printf("Caught panic: %#v\n", r)
