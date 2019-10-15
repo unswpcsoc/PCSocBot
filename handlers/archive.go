@@ -14,7 +14,7 @@ import (
 
 const (
 	historyLim  = 2000
-	archiveChan = "462063414408249376" // TODO: change
+	archiveChan = "543714336401784862" // #archive
 	scrollEmoji = string(0x1f4dc)
 )
 
