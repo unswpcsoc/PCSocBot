@@ -525,8 +525,12 @@ func (t *tagsList) MsgHandle(ses *discordgo.Session, msg *discordgo.Message) (*c
 			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
 				false, "[INVALID]", "!tags clean")
 		} else {
+			ind := len(utg.Username)
+			if len(utg.Username) > userLimit {
+				ind = userLimit
+			}
 			list += fmt.Sprintf(fmt.Sprintf("%%-%dt | %%-%ds | %%s\n", 5, userLimit),
-				utg.PingMe, utg.Username, utg.Tag)
+				utg.PingMe, utg.Username[0:ind], utg.Tag)
 		}
 	}
 
