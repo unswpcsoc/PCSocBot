@@ -47,7 +47,13 @@ class Count(Emoji):
 class Chungus(Emoji):
     desc = ":chungus:"
 
-    async def eval(self, emoji):
+    async def eval(self, emoji=None):
+        if emoji == None:
+            emoji_list = self.server.emojis
+            if not emoji_list:
+                raise CommandFailure("Emoji list is empty!")
+            emoji = str(random.choice(emoji_list))
+
         return f"<:cw:590153701252005907><:c1_0:590153698324381698><:c2_0:590153703609204760><:cw:590153701252005907>\n<:cw:590153701252005907><:c1_1:590153699372826634>{emoji}<:c3_1:590153701281497109>\n<:c0_2:590153690493747220><:c1_2:590153704129298442><:c2_2:590153702443319307><:c3_2:590153704121040898>\n<:c0_3:590153695363203072><:c1_3:590153703454015493><:c2_3:590153701969231873><:c3_3:590153703697416192>"
 
 
