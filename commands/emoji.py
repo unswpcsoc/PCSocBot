@@ -44,6 +44,12 @@ class Count(Emoji):
 
         return out
 
+class Chungus(Emoji):
+    desc = ":chungus:"
+
+    async def eval(self, emoji):
+        return f":cw::c1_0::c2_0::cw:\n:cw::c1_1:{emoji}:c3_1:\n:c0_2::c1_2::c2_2::c3_2:\n:c0_3::c1_3::c2_3::c3_3:"
+
 
 async def emojistats(message):
     # doesn't count if the message author is a bot
