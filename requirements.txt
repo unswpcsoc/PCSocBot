@@ -12,7 +12,7 @@ discord.py==0.16.12
 google-api-python-client==1.7.4
 google-auth==1.6.1
 google-auth-httplib2==0.0.3
-httplib2==0.12.0
+httplib2==0.18.0
 idna==2.7
 isodate==0.6.0
 isort==4.3.4
