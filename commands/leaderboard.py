@@ -17,7 +17,7 @@ SLEEP_INTERVAL = 60
 
 async def leaderboard(client, channel):
     req = urllib.request.Request(
-        MEE6_URL + channel.server.id,
+        MEE6_URL + channel.guild.id,
         data=None,
         headers={
             'User-Agent': SPOOF_AGENT

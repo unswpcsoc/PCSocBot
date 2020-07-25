@@ -73,7 +73,7 @@ class Entry():
         self.attachments = message.attachments
         self.timestamp = message.timestamp
         self.hotlink = "{}{}/{}/{}".format(HOTLINK_PREFIX,
-                                           message.server.id, message.channel.id, message.id)
+                                           message.guild.id, message.channel.id, message.id)
 
     def as_text(self):
         # Show index

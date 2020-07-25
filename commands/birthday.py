@@ -81,7 +81,7 @@ class ModAdd(Birthday):
     roles_required = ["mod", "exec"]
 
     async def eval(self, user):
-        member = self.server.get_member_named(user)
+        member = self.guild.get_member_named(user)
         if member is None:
             raise CommandFailure(f"User {bold(user)} doesn't exist!")
 
@@ -89,7 +89,7 @@ class ModAdd(Birthday):
         all_birthdays = get_birthdays(BIRTHDAY_FILE)
         curr_date = find_user(all_birthdays, member.id)
         dm_today = datetime.datetime.today().strftime("%d/%m")
-        bday_role = get_role(self.server)
+        bday_role = get_role(self.guild)
         if curr_date is not None and curr_date != dm_today:
             raise CommandFailure(
                 f"{bold(user)} already has a birthday set for "
@@ -158,16 +158,16 @@ def find_user(birthdays, user):
     return None
 
 
-def get_role(server):
+def get_role(guild):
     """
-    Gets the Birthday! role in the server.
+    Gets the Birthday! role in the guild.
     """
-    return find(lambda r: r.id == BDAY_ROLE_ID, server.roles)
+    return find(lambda r: r.id == BDAY_ROLE_ID, guild.roles)
 
 
 async def remove_birthdays(client, members, bday_role):
     """
-    Remove Birthday! role from all members in the server.
+    Remove Birthday! role from all members in the guild.
     """
     for member in members:
         if any(bday_role == role for role in member.roles):
@@ -188,16 +188,16 @@ async def update_birthday(client):
             dm_today = new.strftime("%d/%m")
 
             # Get all members
-            server = list(client.servers)[0]
-            bday_role = get_role(server)
+            guild = list(client.guilds)[0]
+            bday_role = get_role(guild)
 
             # Remove everyone with the Birthday role from yesterday
             # TODO: Generalise this for any role, usable for any command
-            await remove_birthdays(client, server.members, bday_role)
+            await remove_birthdays(client, guild.members, bday_role)
 
             # Happy Birthday!
             for birthday_member in all_birthdays[dm_today]:
-                member = server.get_member(birthday_member)
+                member = guild.get_member(birthday_member)
                 if member is not None:
                     await client.add_roles(member, bday_role)
 

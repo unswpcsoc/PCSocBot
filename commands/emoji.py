@@ -12,10 +12,10 @@ CHAR_LIMIT = 2000
 
 
 class Emoji(Command):
-    desc = "Prints a random custom emoji from the server"
+    desc = "Prints a random custom emoji from the guild"
 
     async def eval(self):
-        emoji_list = self.server.emojis
+        emoji_list = self.guild.emojis
         if not emoji_list:
             raise CommandFailure("Emoji list is empty!")
         return str(random.choice(emoji_list))
@@ -44,12 +44,13 @@ class Count(Emoji):
 
         return out
 
+
 class Chungus(Emoji):
     desc = ":chungus:"
 
     async def eval(self, emoji=None):
         if emoji == None:
-            emoji_list = self.server.emojis
+            emoji_list = self.guild.emojis
             if not emoji_list:
                 raise CommandFailure("Emoji list is empty!")
             emoji = str(random.choice(emoji_list))
@@ -62,7 +63,7 @@ async def emojistats(message):
     if message.author.bot:
         return
 
-    emoji_list = message.channel.server.emojis
+    emoji_list = message.channel.guild.emojis
     try:
         with open(EMOJI_FILE, 'r') as old:
             emoji_dict = json.load(old)

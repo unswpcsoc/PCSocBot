@@ -26,7 +26,7 @@ class Bookworm(Command):
 
 
 async def assign_role(client, message, role_name):
-    role = find_role(message.server.roles, role_name)
+    role = find_role(message.guild.roles, role_name)
     if role is None:
         raise CommandFailure("%s role does not exist!" % role_name)
 

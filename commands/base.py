@@ -47,8 +47,8 @@ class Command(metaclass=Tree):
         self.message = message
         self.user = message.author.id
         self.name = message.author.name
-        self.server = message.server
-        self.members = message.server.members
+        self.guild = message.guild
+        self.members = message.guild.members
 
     async def init(self, *args):
         argspec = inspect.getargspec(self.eval)
@@ -155,12 +155,12 @@ class Command(metaclass=Tree):
             else:
                 return
 
-        # Check if bot is connected already in the server
+        # Check if bot is connected already in the guild
         vclients = list(self.client.voice_clients)
-        voices = [x.server for x in vclients]
+        voices = [x.guild for x in vclients]
         try:
             # Get the voice channel
-            v_index = voices.index(self.message.server)
+            v_index = voices.index(self.message.guild)
             voice = vclients[v_index]
         except ValueError:
             # Not connected, join a vc

@@ -40,12 +40,12 @@ class Reply(Report):
             raise CommandFailure("Message cannot be blank!")
 
         channel = None
-        for member in self.server.members:
+        for member in self.guild.members:
             if report_author == member.id:
                 channel = member
                 break
         if channel is None:
-            raise CommandFailure("Member is no longer in the server!")
+            raise CommandFailure("Member is no longer in the guild!")
 
         reply_message = "A mod has replied: " + message
 
@@ -77,12 +77,12 @@ class Block(Report):
         blocked[report_author] = unban_time.isoformat()
 
         channel = None
-        for member in self.server.members:
+        for member in self.guild.members:
             if report_author == member.id:
                 channel = member
                 break
         if channel is None:
-            raise CommandFailure("Member is no longer in the server!")
+            raise CommandFailure("Member is no longer in the guild!")
 
         with open(BLOCK_FILE, 'w') as new:
             json.dump(blocked, new)
@@ -98,6 +98,7 @@ class Block(Report):
 class Unblock(Report):
     desc = "Manually removes a specified user from the block list by User ID."
     roles_required = ["mod"]
+
     async def eval(self, userid):
 
         # Open the JSON file or create a new dict to load
@@ -121,7 +122,7 @@ class Unblock(Report):
 async def report(client, channel, message):
 
     # checks if the message is a PM and not from a bot account
-    if message.server is None and not message.author.bot:
+    if message.guild is None and not message.author.bot:
 
         # Open the JSON file
         try:
@@ -130,8 +131,8 @@ async def report(client, channel, message):
         except FileNotFoundError:
             blocked = {}
 
-        # checks if user is in server
-        if message.author not in channel.server.members:
+        # checks if user is in guild
+        if message.author not in channel.guild.members:
             return True
 
         # checks if user is blocked
