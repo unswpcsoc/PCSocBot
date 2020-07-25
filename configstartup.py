@@ -36,8 +36,7 @@ def disable(command):
 
 def disable_dependencies():
     # Disable commands which rely on an API key that isn't available
-    dependencies = {'YouTube': 'm',
-                    'TwitchClientID': 'twitch'}
+    dependencies = {'TwitchClientID': 'twitch'}
 
     # Disable specific commands if their key doesn't exist
     for key, val in dependencies.items():

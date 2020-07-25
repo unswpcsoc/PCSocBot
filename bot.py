@@ -23,6 +23,7 @@ DEFAULT_PRESENCE = "!helpme"
 err = """OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo!
 The code monkeys at our headquarters are working VEWY HAWD to fix this!"""
 
+
 @client.event
 async def on_ready():
     # Set game by CLA or default
@@ -33,20 +34,11 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print("Playing " + presence)
-
-    if not discord.opus.is_loaded():
-        discord.opus.load_opus()
-
-    if discord.opus.is_loaded():
-        print("Opus Loaded")
-    else:
-        print("Opus not Loaded!")
-
     print('------')
 
     global report_channel
 
-    await client.change_presence(game=discord.Game(name=presence))
+    await client.change_presence(activity=discord.Game(presence))
 
     # Birthday checking!
     asyncio.ensure_future(update_birthday(client))
@@ -54,16 +46,17 @@ async def on_ready():
     for channel in client.get_all_channels():
 
         # if channel.name == HIGH_NOON_CHANNEL:
-            # await high_noon(client, channel)
+        # await high_noon(client, channel)
 
         # if channel.name == LEADERBOARD_CHANNEL:
-            #asyncio.ensure_future(leaderboard(client, channel))
+        #asyncio.ensure_future(leaderboard(client, channel))
 
         if channel.id == TWITCH_CHANNEL:
             asyncio.ensure_future(twitch(client, channel))
 
         if channel.id == REPORT_CHANNEL:
             report_channel = channel
+
 
 @client.event
 async def on_message(message):
@@ -81,15 +74,15 @@ async def on_message(message):
                     # Command is enabled
                     output = await cls(client, message).init(*args)
                     if isinstance(output, discord.Embed):
-                        await client.send_message(message.channel, embed=output)
+                        await message.channel.send(embed=output)
                     elif output is not None:
                         if isinstance(output, list):
                             for msg in output:
-                                await client.send_message(message.channel, msg)
+                                await message.channel.send(msg)
                         else:
-                            await client.send_message(message.channel, output)
+                            await message.channel.send(output)
     except discord.errors.HTTPException as e:
         print(e)
-        await client.send_message(message.channel, err)
+        await message.channel.send(err)
 
 client.run(config['KEYS'].get('DiscordToken'))
